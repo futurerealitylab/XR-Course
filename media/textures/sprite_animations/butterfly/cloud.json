@@ -1,0 +1,6 @@
+{
+    "name" : "cloud",
+    "assets" : {
+        "0" : {"path":"cloud.png"}
+    }
+}

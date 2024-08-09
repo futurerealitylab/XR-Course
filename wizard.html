@@ -1,0 +1,1004 @@
+<body bgcolor=#808080>
+<TABLE width=100% height=100%><TR align=center valign=middle><TD>
+
+<table bgcolor=white border=0 cellpadding=0 cellspacing=0>
+<tr>
+<td valign=top width=200 id=datalog bgcolor=#d0d0d0>
+<td>
+   <canvas id=canvas1></canvas>
+<td valign=top width=200>
+   <font face=courier><b>
+   <center><canvas id=angleCanvas width=100 height=100</canvas>
+   <hr>
+   <center></b>
+   <div id=palette></div>
+   <p>
+      <hr>
+      <p> <b>mouse drag</b> to
+      <br>move an object
+      <p> <b>shift key</b> to
+      <br>turn an object
+      <p> <b>delete key</b> to
+      <br>remove an object
+</table>
+
+</TABLE>
+<script src=server/client.js></script>
+<script src=js/wizard/things.js></script>
+<script src=js/wizard/lib.js></script>
+<script style='width:100%'>
+
+   // START SPEECH RECOGNITION
+
+   let speechRecognition = new webkitSpeechRecognition();
+   speechRecognition.continuous = true;
+   speechRecognition.lang = 'en-US';
+   speechRecognition.interimResults = false;
+   speechRecognition.maxAlternatives = 1;
+   speechRecognition.onresult = e => console.log(window.speech = e.results[e.resultIndex][0].transcript);
+   speechRecognition.onend = () => speechRecognition.start();
+   speechRecognition.start();
+
+   // MAKE A LIST OF SPEECH-RECOGNIZABLE THINGS
+
+   let things_and_groups = {};
+      for (let thing in things)
+	 things_and_groups[thing] = 1;
+      for (let groupName in groups)
+	 things_and_groups[groupName] = 1;
+
+   // SET THE SIZE OF THE DISPLAY CANVAS
+
+   canvas1.width  = canvasWidth;
+   canvas1.height = canvasWidth;
+
+   let cr = canvasWidth/2;
+
+   // DECLARE VARIABLES
+
+   let colorIndex = 0, currentColor = 'white',
+       angleIndex = 0, currentAngle = 0;
+   let w = canvas1.width, h = canvas1.height;
+   let isDown = false, id = -1, pp, isShift = false, isMinus = false;
+   let speakingClient, activeClient = [];
+   let debug = false;
+
+   // STANDARD COLORS AND A FUNCTION TO CONVERT RGB TO HEX CODE
+
+   let color = 'white brown red orange yellow green blue magenta violet black'.split(' ');
+   let rgb = [[1,1,1],[.2,.05,.025],[1,0,0],[1,.15,0],[1,1,0],[0,.5,0],[0,.25,1],[.25,0,1],[1,0,.25],[0,0,0]];
+   let hx1 = n => '0123456789abcdef'.charAt(n);
+   let hx2 = n => hx1(n>>4) + hx1(n&15);
+   let hx3 = r => hx2(255 * Math.sqrt(r) >> 0);
+   let hex = rgb => '#' + hx3(rgb[0]) + hx3(rgb[1]) + hx3(rgb[2]);
+
+   {
+      // SHOW THE COLOR PALETTE
+
+      let s = '<center><hr><b>TO SET COLOR<br>type a number<br>combination</b><p>';
+      s += '<table bgcolor=#d0d0d0><tr><td><big>';
+      for (let n = 0 ; n < 10 ; n++)
+         s += '<font color=' + hex(rgb[n]) + '>' + n + '</font>';
+      s += '</table><hr>';
+      currentColor = hex(rgb[0]);
+
+      // SHOW THE OBJECT SHAPES
+
+      s += '<table><tr><td><b><center>TO ADD AN OBJECT<br>type a letter</center></b><p>';
+      let ch = 65;
+      for (let name in things)
+         s += '&nbsp;' + String.fromCharCode(ch++)
+            + '&nbsp;' + name.replace('_',' ') + '&nbsp;</font><br>';
+         s += '</table>';
+      palette.innerHTML = s;
+   }
+
+   // CONNECT TO THE SERVER
+
+   let server = new Server(2024);
+   server.init('wizard', {});
+
+   // CHANGE THE CURRENT ANGLE BY SOME DELTA
+
+   let changeAngle = (angle, delta) => (3600 + angle + delta) % 360;
+   let turn = delta => currentAngle = changeAngle(currentAngle, delta);
+
+   // CHANGE THE CURRENT COLOR
+
+   let setColor = rgb => {
+      currentColor = hex(rgb);
+      let id = find().id;
+      let obj = wizard[id];
+      if (obj) {
+         obj.color = currentColor;
+         sendObject(id);
+      }
+   }
+
+   // CHECK WHETHER ANY CLIENT IS LOOKING AT THE TABLE
+
+   let isAnyoneLookingAtTheTable = () => {
+      for (let client in wizard.focus)
+         if (activeClient[client] && isOnTable(wizard.focus[client].head))
+            return true;
+      return false;
+   }
+
+   // ADD A NEW OBJECT OF A SPECIFIED SHAPE AT THE CURSOR
+
+   let addObject = name => {
+
+      // FIND AN UNUSED ID
+
+      let id = 0;
+      for ( ; id < 100 ; id++)
+         if (wizard[id] === undefined)
+            break;
+
+      // FIND WHERE TO PLACE THE NEW OBJECT
+
+      let p = pp;
+      let checkPart = part => {
+         if (! isOnTable(p))
+            for (let client in wizard.focus)
+               if (activeClient[client] && isOnTable(p = findAt(wizard.focus[client][part] ).p))
+                  return;
+      }
+      checkPart('left');
+      checkPart('right');
+      checkPart('head');
+      p = isOnTable(p) ? p : pp;
+
+      // SEND OBJECT DESCRIPTION TO THE SERVER
+
+      server.send('wizard', {
+         op: 'object',
+         id: id,
+         obj: {
+            type: name,
+            x: p.x+.5>>0, y: p.y+.5>>0,
+            color: currentColor,
+            angle: currentAngle,
+         }
+      });
+   }
+
+   // RESPOND TO KEYBOARD EVENTS
+
+   let kc = [0,0,0,0,0,0,0,0,0,0];
+
+   let mixColors = () => {
+      let c = [0,0,0], n = 0;
+      for (let i = 0 ; i < kc.length ; i++)
+         if (kc[i]) {
+            for (let j = 0 ; j < 3 ; j++)
+               c[j] += 1 - rgb[i][j];
+            n++;
+         }
+      setColor([1 - c[0]/n, 1 - c[1]/n, 1 - c[2]/n]);
+      for (let i = 0 ; i < kc.length ; i++)
+         kc[i] = 0;
+   }
+
+   document.addEventListener('keydown', e => {
+      switch (e.key) {
+      case 'Shift': isShift = true; id = findAt(pp).id; break;
+      case '-': isMinus = true; break;
+      }
+
+      if (e.keyCode >= 48 && e.keyCode < 58)
+         kc[e.keyCode - 48] = 1;
+   });
+
+   document.addEventListener('keyup', e => {
+      switch (e.key) {
+      case 'Shift': isShift = false; id = -1; break;
+      case '-': isMinus = false; break;
+      case 'Backspace':
+         let i = findAt(pp).id;
+         if (i >= 0)
+            server.send('wizard', { op: 'remove', id: i })
+         break;
+      default:
+
+         // IF RELEASING A NUMBER KEY
+
+         if (e.keyCode >= 48 && e.keyCode < 58) {
+            let id = e.keyCode - 48;
+
+            // DELETE AN OBJECT IF HOLDING DOWN THE '-' KEY
+
+            if (isMinus)
+               server.send('wizard', { op: 'remove', id: id })
+
+            // ELSE MIX COLORS BY COMBINING NUMBER KEYS
+
+            else {
+               kc[id] = 2;
+               let nDown = 0;
+               for (let i = 0 ; i < 10 ; i++)
+                  nDown += kc[i] == 1;
+               if (nDown == 0)
+                  mixColors();
+            }
+         }
+
+         // ELSE TYPE A LETTER KEY TO ADD AN OBJECT
+
+         else {
+            let n = 0, i = e.keyCode - 65;
+            for (let name in things)
+               if (n++ == i) {
+                  addObject(name);
+                  break;
+               }
+         }
+
+         break;
+     }
+   });
+
+   let sendObject = id => server.send('wizard', { op: 'object', id: id, obj: wizard[id] });
+
+   // GET THE (X,Y) POSITION ON THE CANVAS FOR THIS EVENT
+
+   let getP = e => {
+      let r = canvas1.getBoundingClientRect();
+      return { x: e.clientX - r.left, y: e.clientY - r.top };
+   }
+
+   // DETERMINE WHETHER A PIXEL IS ON THE TABLE
+
+   let isOnTable = p => {
+      if (! p)
+         return false;
+      let x = (p.x - canvasWidth / 2) / (canvasWidth / 2);
+      let y = (p.y - canvasWidth / 2) / (canvasWidth / 2);
+      return x * x + y * y < 1;
+   }
+
+   // DETERMINE WHETHER A PIXEL IS WITHIN AN OBJECT
+
+   let isWithin = (obj, p) => {
+
+      // ROTATE THE PIXEL AROUND THE OBJECT'S CENTER OPPOSITE TO THE OBJECT'S ROTATION
+
+      let x = obj.x, y = obj.y, angle = obj.angle;
+      let c = Math.cos(-angle * Math.PI / 180);
+      let s = Math.sin(-angle * Math.PI / 180);
+      let M = [ c, -s, s, c, x-c*x-s*y, y+s*x-c*y ];
+      let X = M[0] * p.x + M[2] * p.y + M[4];
+      let Y = M[1] * p.x + M[3] * p.y + M[5];
+
+      // RETURN TRUE IF THE PIXEL IS IN ANY OF THE OBJECT'S COMPONENT SHAPES
+
+      let thing = things[obj.type];
+      let scale = w/2 * thingsScale;
+      for (let n = 0 ; n < thing.items.length ; n++) {
+         let item = thing.items[n];
+         let x = scale * item.m[0] + obj.x;
+         let y = scale * item.m[2] + obj.y;
+         let w = scale * item.s[0];
+         let h = scale * item.s[2];
+         switch (item.type) {
+         case 'cube':
+            if (X >= x-w && X < x+w && Y > y-h && Y < y+h)
+               return true;
+            break;
+         case 'tubeY':
+         case 'sphere':
+            let dx = (X - x) / w;
+            let dy = (Y - y) / h;
+            if (dx * dx + dy * dy < 1)
+               return true;
+            break;
+         }
+      }
+      return false;
+   }
+
+   let findAt = p => {
+      if (isOnTable(p))
+         for (let id in wizard)
+            if (isInt(id) && isWithin(wizard[id], p))
+               return { id: id, p: p };
+      return { id: -1, p: p };
+   }
+
+   let findPartOfClient = (part, client) => {
+      let found = findAt(wizard.focus[client][part]);
+      if (found.id >= 0)
+         found.client = client;
+      return found;
+   }
+
+   let findPart = (part, client) => {
+      if (client !== undefined)
+         return findPartOfClient(part, client);
+      let found = { id: -1, p: { x: 0, y: 0 }, client: -1 };
+      for (let client in wizard.focus)
+         if (activeClient[client])
+            if ((found = findPartOfClient(part, client)).id >= 0)
+               break;
+      return found;
+   }
+
+   let find = client => {
+      let found = { id: findAt(pp).id, p: pp };
+      if (found.id == -1) found = findPart('left' , client);
+      if (found.id == -1) found = findPart('right', client);
+      if (found.id == -1) found = findPart('head' , client);
+      return found;
+   }
+
+   // ----------------------------------- RESPOND TO MOUSE EVENTS
+
+   // ON MOUSE DOWN, TRY TO SELECT AN OBJECT
+
+   canvas1.onmousedown = e => id = find().id;
+
+   // ON MOUSE MOVE, DO LOTS OF THINGS
+
+   canvas1.onmousemove = e => {
+      let found = find();
+      let obj = wizard[found.id];            // IF THERE IS AN OBJECT AT THE CURSOR
+      if (obj) {
+         currentAngle = obj.angle;           // THEN SET CURRENT ANGLE AND COLOR TO MATCH IT
+         currentColor = obj.color;
+      }
+      if (wizard[id] !== undefined) {        // IF THERE IS A SELECTED OBJECT
+         let obj = wizard[id];
+         if (isShift) {                      // THEN IF SHIFT KEY IS DOWN
+            turn(getP(e).x - pp.x);
+            obj.angle = currentAngle;        //      THEN ROTATE SELECTED OBJECT
+            sendObject(id);
+         }
+         else {                              //      ELSE TRANSLATE SELECTED OBJECT
+            let p = getP(e);
+            let x = obj.x + p.x - pp.x;
+            let y = obj.y + p.y - pp.y;
+            if (isOnTable({x: x, y: y})) {
+               obj.x = x;
+               obj.y = y;
+               sendObject(id);
+            }
+         }
+      }
+      else if (isShift)                      // ELSE IF SHIFT KEY IS DOWN
+         turn(getP(e).x - pp.x);             //      THEN ROTATE CURRENT ANGLE
+      pp = getP(e);
+   }
+
+   // ON MOUSE UP, UNSELECT OBJECT
+
+   canvas1.onmouseup = e => id = -1;
+
+   // -----------------------------------
+
+   // RETURN BLACK OR WHITE -- WHICHEVER IS MOST DIFFERENT FROM COLOR ARG
+
+   let blackOrWhite = color => {
+      let h = 0;
+      for (let k = 0 ; k < 3 ; k++) {
+         let c = color.charCodeAt(2*k+1);
+         h += (c < 64 ? c-48 : c-96+10) * (k==0 ? 1 : k==1 ? 1.3 : .7);
+      }
+      return h > 30 ? 'black' : 'white';
+   }
+
+   // DRAW SOMETHING WITH A TRANSLATION + ROTATION
+
+   let rotatedDrawing = (ctx,x,y,angle,drawingProc) => {
+      let c = Math.cos(angle * Math.PI / 180);
+      let s = Math.sin(angle * Math.PI / 180);
+      ctx.save();
+         ctx.setTransform(c, -s, s, c, x-c*x-s*y, y+s*x-c*y);
+         drawingProc();
+      ctx.restore();
+   }
+
+   // DRAW ONE ANIMATION FRAME
+
+   setInterval(() => {
+
+      // KEEP TRACK OF WHO SPOKE MOST RECENTLY
+
+      for (let client in wizard.focus)
+         if (wizard.focus[client].isSpeaking)
+            speakingClient = client;
+
+      // RESPOND TO ANY SPEECH COMMANDS IF EITHER THE CURSOR IS OVER THE TABLE
+      // OR IF ANY CLIENT IS LOOKING AT THE TABLE
+
+      if (window.speech && (isOnTable(pp) || isAnyoneLookingAtTheTable())) {
+
+         speech = speech.toLowerCase()
+                        .replace('light','white')
+                        .replace('dark','black')
+                        ;
+
+         // SET THE NORTH/SOUTH/EAST/WEST POSITION OF A CLIENT AROUND THE TABLE, BUT ONLY IF
+         // THE HALFWAY POINT BETWEEN THE TWO CONTROLLERS IS NEAR THE CENTER OF THE TABLE
+
+         let seats = 'south west north east'.split(' ');
+         for (let i = 0 ; i < seats.length ; i++)
+            if (speech.indexOf(seats[i]) >= 0) {
+               let L = wizard.focus[speakingClient].left;
+               let R = wizard.focus[speakingClient].right;
+               let x = (L.x + R.x) / 2 - canvasWidth / 2;
+               let y = (L.y + R.y) / 2 - canvasWidth / 2;
+               if (x * x + y * y < canvasWidth / 8 * canvasWidth / 8)
+                  server.send('wizard', { op: 'focus', client: speakingClient, seat: i });
+           }
+
+         // ----------------- CHOOSING A SET OF OBJECTS TO WORK ON -----------------
+
+	 // LIST ALL COLORS AND SHAPES IN THE SPEECH, IN THE ORDER THEY ARE MENTIONED
+
+         let parsed = '' + speech;
+	 let filler = '------------------------';
+	 let sortItems = (items, extract) => {
+	    let A = [];
+	    A.minIndex = 1000;
+	    for (let item in items) {
+	       let match = extract(item);
+	       let i = parsed.indexOf(match);
+	       if (i >= 0) {
+	          A.minIndex = Math.min(A.minIndex, i);
+		  A.push([i, item]);
+		  parsed = parsed.substring(0, i)
+		         + filler.substring(0, match.length)
+			 + parsed.substring(i + match.length);
+	       }
+	    }
+	    A.sort((a,b) => a[0] - b[0]);
+	    for (let i = 0 ; i < A.length ; i++)
+	       A[i] = A[i][1];
+            return A;
+	 }
+
+	 let C = sortItems(color , c => color[c]);
+	 let S = sortItems(things_and_groups, name => name);
+
+	 let matches = (obj, key) => {
+	    if (obj.type == key)
+	       return true;
+	    if (groups[key])
+	       for (let type in groups[key])
+	          if (obj.type == type)
+		     return true;
+            return false;
+	 }
+
+         // MAKE A LIST OF OBJECT IDS IN VARIOUS WAYS IN RESPONSE TO SPEECH
+
+         let idList = [];
+
+         // LIST EVERY OBJECT
+
+	 if (speech.indexOf('everything') >= 0) {
+	    S.minIndex = Math.min(S.minIndex, speech.indexOf('everything'));
+            for (let id in wizard)
+               idList.push(id);
+         }
+
+         // OR LIST MULTIPLE OBJECTS OF A GIVEN SHAPE
+
+         else if (speech.indexOf('every') >= 0 && S.length > 0) {
+            for (let id in wizard)            // OR ELSE EVERY OBJECT OF A GIVEN SHAPE
+               if (matches(wizard[id], S[0]))
+                  idList.push(id);
+
+            if (C.length && C.minIndex < S.minIndex) {   // THEN OPTIONALLY FILTER BY COLOR
+               let newList = [];
+               for (let i = 0 ; i < idList.length ; i++) {
+                  let id = idList[i], obj = wizard[id];
+                  if (obj.color === hex(rgb[C[0]]))
+                     newList.push(id);
+               }
+               idList = newList;
+            }
+         }
+
+         // OR LIST A SINGLE OBJECT WITH GIVEN COLOR AND SHAPE
+
+         else if (C.length && S.length && C.minIndex < S.minIndex) {
+            for (let id in wizard)
+               if (matches(wizard[id], S[0]) && wizard[id].color == hex(rgb[C[0]])) {
+                  idList.push(id);
+                  break;
+               }
+         }
+
+         // OR LIST A SINGLE OBJECT WITH GIVEN SHAPE
+
+         else if (S.length) {
+            for (let id in wizard)
+               if (matches(wizard[id], S[0])) {
+                  idList.push(id);
+                  break;
+               }
+         }
+
+         // OR LIST THE OBJECT BEING POINTED AT
+
+         else {
+            let id = find(speakingClient).id;
+            if (id >= 0)
+               idList.push(id);
+         }
+
+         // ----------------- OPERATIONS ON OBJECTS -----------------
+
+         // REMOVE OBJECTS
+
+	 // "remove every green table"
+	 // "remove the chair"
+
+         if (speech.indexOf('remove') >= 0)
+            for (let i = 0 ; i < idList.length ; i++)
+               server.send('wizard', { op: 'remove', id: idList[i] });
+
+         // SET COLOR
+
+         let isColor = false;
+         for (let i = 0 ; i < color.length ; i++)
+            if (kc[i] = speech.indexOf(color[i]) >= 0)
+               isColor = true;
+         if (isColor)
+            mixColors();
+
+         // ADD AN OBJECT
+
+	 // "add a blue table"
+	 // "add a chair"
+
+         if (speech.indexOf('add') >= 0 ||
+             speech.indexOf('and') >= 0 ||
+             speech.indexOf('had') >= 0 ||
+             speech.indexOf('at')  >= 0 ) {
+            if (S.length > 0) {
+	       let success = false;
+	       for (let name in things)
+	          if (S[0] == name) {
+                     addObject(name);
+	             success = true;
+                     break;
+	          }
+               if (! success) {
+	          for (let groupName in groups)
+		     if (S[0] == groupName) {
+		        let group = groups[groupName], groupSize = 0, count = 0;
+			for (let type in group)
+			   groupSize++;
+                        let randomSelection = groupSize * Math.random() >> 0;
+			for (let type in group)
+			   if (count++ == randomSelection) {
+                              addObject(type);
+			      break;
+                           }
+		        break;
+		     }
+	}
+	    }
+         }
+
+         // MOVE OBJECTS FORWARD, BACK, LEFT OR RIGHT
+
+	 // "move every desk left three feet"
+	 // "move the blue chair back"
+
+         if (speech.indexOf('move') >= 0) {
+            let dir = 'forward left back right'.split(' ');
+            for (let n = 0 ; n < dir.length ; n++)
+               if (speech.indexOf(dir[n]) >= 0) {
+                  let dist = 1;
+                  let j = speech.search(/[0-9]/);
+                  if (j >= 0)
+                     dist = parseInt(speech.substring(j));
+                  dist *= canvasWidth / 4 * thingsScale;
+                  for (let i = 0 ; i < idList.length ; i++) {
+                     let id = idList[i], obj = wizard[id];
+                     let angle = obj.angle + 90 * n;
+                     obj.y = obj.y + dist * Math.cos(angle * Math.PI / 180);
+                     obj.x = obj.x + dist * Math.sin(angle * Math.PI / 180);
+                     sendObject(id);
+                  }
+               }
+         }
+
+         // TURN OBJECTS
+
+	 // "turn the blue chair left 45 degrees"
+	 // "turn everything"
+	 // "turn every table 60 degrees"
+
+         if (speech.indexOf('turn') >= 0) {
+            let sgn = speech.indexOf('left') >= 0 ? 1 : -1;
+            let delta = 90;
+            let j = speech.search(/[0-9]/);
+            if (j >= 0)
+               delta = parseInt(speech.substring(j));
+            for (let i = 0 ; i < idList.length ; i++) {
+               let id = idList[i], obj = wizard[id];
+               obj.angle = changeAngle(obj.angle, sgn * delta);
+               sendObject(id);
+            }
+         }
+
+         // RELOCATE THE OBJECT THAT I AM LOOKING AT TO WHERE I AM POINTING
+
+         if (speech.indexOf('put that there') >= 0) {
+            let H = findPart('head', speakingClient);
+            if (H.client >= 0) {
+               let P = wizard.focus[H.client].left;
+               if (! isOnTable(P))
+                  P = wizard.focus[H.client].right;
+               if (isOnTable(P)) {
+                  let id = H.id, obj = wizard[id];
+                  obj.x = P.x;
+                  obj.y = P.y;
+                  sendObject(id);
+               }
+            }
+         }
+
+         // COPY THE OBJECT THAT I AM LOOKING AT TO WHERE I AM POINTING
+
+         if (speech.indexOf('copy') >= 0) {
+            let H = findPart('head', speakingClient);
+            if (H.client >= 0) {
+               let P = wizard.focus[H.client].left;
+               if (! isOnTable(P))
+                  P = wizard.focus[H.client].right;
+               if (isOnTable(P)) {
+                  let id = H.id, obj = wizard[id];
+		  addObject(obj.type);
+               }
+            }
+         }
+
+	 // TRANSFORM THE SHAPE OR COLOR OF AN OBJECT
+
+	 if (speech.indexOf('make') >= 0) {
+
+	    // TRANSFORM THE COLOR OF OBJECTS
+
+	    // "make every table green"
+
+	    if (C.length == 1 && S.length > 0 && C.minIndex > S.minIndex) {
+	       for (let id in wizard)
+	          if (matches(wizard[id], S[0])) {
+	             wizard[id].color = hex(rgb[C[0]]);
+                     sendObject(id);
+                  }
+	    }
+
+	    // "make every red object green"
+	    // "make every red desk green"
+	    // "make the red desk green"
+
+	    if (C.length == 2) {
+	       for (let id in wizard)
+	          if (S.length == 0) {
+	             if (wizard[id].color == hex(rgb[C[0]])) {
+	                wizard[id].color = hex(rgb[C[1]]);
+                        sendObject(id);
+                     }
+                  }
+	          else if (wizard[id].type == S[0] && wizard[id].color == hex(rgb[C[0]])) {
+	             wizard[id].color = hex(rgb[C[1]]);
+                     sendObject(id);
+                  }
+            }
+
+	    // "make everything green"
+	    // "make every desk green"
+	    // "make the blue chair yellow"
+
+	    if (C.length == 1 && C.minIndex > S.minIndex) {
+	       for (let id in wizard)
+	          if (S.length == 0) {
+	             wizard[id].color = hex(rgb[C[0]]);
+                     sendObject(id);
+                  }
+	          else if (wizard[id].type == S[0]) {
+	             wizard[id].color = hex(rgb[C[0]]);
+                     sendObject(id);
+                  }
+            }
+
+	    // TRANSFORM THE SHAPE OF OBJECTS
+
+	    // "make every desk a chair"
+	    // "make every green desk a chair"
+
+	    if (S.length == 2) {
+	       for (let id in wizard) {
+	          if (C.length == 0) {
+	             if (wizard[id].type == S[0]) {
+	                wizard[id].type = S[1];
+                        sendObject(id);
+                     }
+                  }
+	          else if (wizard[id].type == S[0] && wizard[id].color == hex(rgb[C[0]])) {
+	             wizard[id].type = S[1];
+                     sendObject(id);
+                  }
+               }
+            }
+	 }
+
+         speech = '';
+      }
+
+      // INCORPORATE STATE DATA THAT WAS RELAYED BY THE SERVER
+
+      server.sync('wizard', msgs => {
+         for (let msgID in msgs) {
+            let msg = msgs[msgID];
+            switch (msg.op) {
+            case 'remove':
+               delete wizard[msg.id];
+               break;
+            case 'speaking':
+               wizard.focus[msg.client].isSpeaking = msg.status;
+               break;
+            case 'focus':
+               let client = msg.client;
+               if (! wizard.focus)
+                  wizard.focus = {};
+               if (msg.remove) {
+                  delete wizard.focus[client];
+                  delete activeClient[client];
+               }
+               else {
+                  if (! wizard.focus[client])
+                     wizard.focus[client] = { seat: 0, isSpeaking: false };
+                  if (msg.seat !== undefined)
+                     wizard.focus[client].seat = msg.seat;
+                  else {
+                     activeClient[client] = 100;
+                     if (! wizard.focus[client][msg.part])
+                        wizard.focus[client][msg.part] = {};
+                     wizard.focus[client][msg.part].x = msg.value.x;
+                     wizard.focus[client][msg.part].y = msg.value.y;
+                     wizard.focus[client][msg.part].down = msg.value.down;
+                  }
+               }
+               break;
+            case 'object':
+               wizard[msg.id] = msg.obj;
+               break;
+            }
+         }
+      });
+
+      // MAKE THE PEOPLE MOVE
+
+      let turnAwayFrom = (obj, p) => {
+         let dx = p.x - obj.x;
+         let dy = p.y - obj.y;
+	 let d = Math.sqrt(dx * dx + dy * dy);
+	 if (d < .3 * cr) {
+	    let dir = Math.atan2(dx, dy) * 180 / Math.PI;
+	    while (dir - obj.angle > 180) dir -= 360;
+	    while (obj.angle - dir > 180) dir += 360;
+	    let da = dir - obj.angle;
+	    let s = Math.sign(da);
+	    da = Math.abs(da);
+	    if (da < 150)
+               obj.angle = changeAngle(obj.angle, -.03 * s * Math.max(da, 10));
+	 }
+      }
+
+      for (let id in wizard) {
+         let obj = wizard[id];
+	 if (obj.type == 'guy' || obj.type == 'gal') {
+	    obj.x += Math.sin(obj.angle * Math.PI / 180);
+	    obj.y += Math.cos(obj.angle * Math.PI / 180);
+	    for (let i in wizard)
+	       if (i != id)
+		  turnAwayFrom(obj, wizard[i]);
+	    let x = obj.x / cr - 1;
+	    let y = obj.y / cr - 1;
+	    let r = Math.sqrt(x * x + y * y);
+	    let edgePoint = { x: cr * (x / r + 1),
+	                      y: cr * (y / r + 1) };
+	    turnAwayFrom(obj, edgePoint);
+	    sendObject(id);
+	 }
+      }
+
+      // FOR EACH CLIENT, DETERMINE WHAT OBJECT THAT CLIENT IS POINTING TO, IF ANY
+
+      let parts = 'left right head'.split(' ');
+      for (let client in wizard.focus)
+         if (activeClient[client]) {
+            let focus = wizard.focus[client];
+            for (let i = 0 ; i < parts.length ; i++) {
+               let part = parts[i];
+               if (focus[part]) {
+                  let id = focus[part].id;
+                  focus[part].id = findAt(focus[part]).id;
+                  if (focus[part].id != id)
+                     server.send('wizard', { op    : 'focus',
+                                             client: client,
+                                             part  : part,
+                                             value : focus[part] });
+               }
+            }
+         }
+
+      // ADD DISK DRAWING METHODS TO A CANVAS 2D DRAWING CONTEXT
+
+      let addMethods = ctx => {
+         ctx.strokeDisk = (x,y,r) => { ctx.beginPath(); ctx.arc(x,y,r,0,2*Math.PI); ctx.stroke(); }
+         ctx.fillDisk   = (x,y,r) => { ctx.beginPath(); ctx.arc(x,y,r,0,2*Math.PI); ctx.fill  (); }
+         return ctx;
+      }
+
+      let s = '<TABLE><TR><TD><font face=helvetica>';
+      s += '<table cellspacing=0 cellpadding=3>';
+      s += '<tr><td><td width=104><th>x y angle';
+      for (let id in wizard)
+         if (isInt(id)) {
+            let obj = wizard[id];
+            let fc = '<font color=' + obj.color + '>';
+            s += '<tr>'
+               +     '<td valign=top><font color=black>' + id
+               +     '<td valign=top><font color=black>' + obj.type.replace(' ','_')
+               +     '<td><center><table cellpadding=0 cellspacing=0 border=1 bordercolor='
+               +         obj.color + '><tr><td>' + (obj.x>>0) + '&nbsp;' + (obj.y>>0) + '&nbsp;' + (obj.angle>>0)
+               +         '</table></center>';
+         }
+      s += '</table>';
+      s += '<br></TABLE><font face=helvetica>';
+      s += '<b>&nbsp;CLIENTS</b><p>';
+      s += '<table cellspacing=0><tr><th width=15>&nbsp;<th width=60>left<th width=60>right<th width=60>head';
+      for (let client in wizard.focus) {
+         if (! activeClient[client])
+            continue;
+         let focus = wizard.focus[client];
+         let fc = '<font color=' + color[client] + '>';
+         s += '<tr bgcolor=' + ( focus.isSpeaking         ? 'black'   :
+                                 client == speakingClient ? '#a0a0a0' :
+                                                            '#d0d0d0' ) + '>'
+
+            + '<td align=center><small>' + fc + client
+            + '<td align=center><small>' + fc + focus.left.x  + ',' + focus.left.y
+            + '<td align=center><small>' + fc + focus.right.x + ',' + focus.right.y
+            + '<td align=center><small>' + fc + (focus.head ? focus.head.x : '---')
+                                        + ',' + (focus.head ? focus.head.y : '---')
+            + '<br></small>';
+      }
+      s += '</table></TABLE>';
+      datalog.innerHTML = s;
+
+      // DRAW THE ANGLE+COLOR INDICATOR
+
+      let x = 50, y = 53;
+      let actx = addMethods(angleCanvas.getContext('2d'));
+      actx.fillStyle = currentColor;
+      actx.fillDisk(x,y,40);
+      actx.strokeStyle = 'black';
+      actx.stroke();
+      actx.fillStyle = blackOrWhite(currentColor);
+      rotatedDrawing(actx, x,y,currentAngle, () => {
+         actx.beginPath();
+         actx.moveTo(x-10,y-30);
+         actx.lineTo(x+10,y-30);
+         actx.lineTo(x,y+33);
+         actx.fill();
+      });
+
+      // DRAW THE BACKGROUND
+
+      let ctx = addMethods(canvas1.getContext('2d'));
+      ctx.fillStyle = 'black';
+      ctx.fillRect(0,0,w,h);
+      ctx.font = '20px Helvetica';
+      ctx.fillStyle = 'white';
+      ctx.textAlign = 'left';
+      ctx.fillText(isOnTable(pp) ? 'ON TABLE' : 'OFF TABLE', 5, 24);
+      ctx.fillStyle = '#d0d0d0';
+      ctx.fillDisk(w/2,h/2,w/2);
+
+      // DRAW ALL THE OBJECTS
+
+      let textHeight = 12;
+      ctx.font = textHeight + 'px Courier';
+      ctx.textAlign = 'center';
+      ctx.textVerticalAlign = 'center';
+      ctx.fillStyle = currentColor;
+      for (let id in wizard)
+         if (isInt(id)) {
+
+            // DRAW THE OBJECT AS COLORED ROTATED POLYGONS
+
+            let obj = wizard[id];
+            let thing = things[obj.type];
+            let scale = w/2 * thingsScale;
+            rotatedDrawing(ctx, obj.x, obj.y, obj.angle, () => {
+               for (let n = 0 ; n < thing.items.length ; n++) {
+                  let item = thing.items[n];
+                  let x = scale * item.m[0] + obj.x;
+                  let y = scale * item.m[2] + obj.y;
+                  let w = scale * item.s[0];
+                  let h = scale * item.s[2];
+                  ctx.lineWidth = 2;
+                  ctx.strokeStyle = obj.color;
+                  switch (item.type) {
+                  case 'cube':
+                     ctx.strokeRect(x-w,y-h,2*w,2*h);
+                     break;
+                  case 'tubeY':
+                  case 'sphere':
+                     ctx.beginPath();
+                     ctx.ellipse(x,y,w,h,0,0,2*Math.PI);
+                     ctx.stroke();
+                     break;
+                  }
+               }
+            });
+
+            // SHOW THE OBJECT'S SHAPE
+
+            if (obj.type) {
+               ctx.fillStyle = 'black';
+               let lines = obj.type.split(' ');
+               let y = n => (textHeight+2) * (n + 3/4 - lines.length/2);
+               for (let n = 0 ; n < lines.length ; n++)
+                  ctx.fillText(lines[n],obj.x,obj.y+y(n));
+            }
+         }
+
+      // SHOW THE CLIENT FOCUS FOR ALL CLIENTS
+
+      for (let client = 0 ; client < activeClient.length ; client++) {
+         if (! activeClient[client] || client == clientID)
+            continue;
+         if (--activeClient[client] == 0) {
+            delete wizard.focus[client];
+            delete activeClient[client];
+            continue;
+         }
+
+         // REMOVE ANY INACTIVE CLIENTS FROM STATE
+
+         let isActiveClient = client => {
+            for (let n = 0 ; n < clients.length ; n++)
+               if (client == clients[n])
+                  return true;
+            return client != clientID;
+         }
+
+         if (! isActiveClient(client)) {
+            server.send('wizard', { op: 'focus', client: client, remove: true });
+            continue;
+         }
+
+         // SHOW POSITIONS OF LEFT, RIGHT, HEAD FOR THIS CLIENT
+
+         ctx.strokeStyle = hex(rgb[client]);
+         ctx.fillStyle = hex(rgb[client]) + '40';
+         let focus = wizard.focus[client];
+         for (let part in focus) {
+	    let r = cr / 50;
+            let data = focus[part];
+            switch (part) {
+            case 'head':
+               ctx.fillRect(data.x - .35*r, data.y - 2*r, .7*r, 4*r);
+               ctx.fillRect(data.x - 2*r, data.y - .35*r, 4*r, .7*r);
+               break;
+            case 'left':
+            case 'right':
+               ctx.fillDisk(data.x - r, data.y - r, 2*r, 2*r);
+               if (data.down)
+                  ctx.strokeDisk(data.x - r, data.y - r, 2*r, 2*r);
+               break;
+            }
+         }
+      }
+   }, 30);
+</script>

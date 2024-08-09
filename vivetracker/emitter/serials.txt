@@ -1,0 +1,10 @@
+LHR-5A818C85 : ViveTracker1
+LHR-80D6E89A : ViveTracker2
+LHR-BD6CE126 : ViveTracker3
+LHB-49F4F79E : ViveTracker4
+LHR-476A1CF9 : Head
+LHR-5B9A4B98 : LeftHand
+LHR-92818789 : RightHand
+LHR-B7C0D8AA : Pelvis
+LHR-72DAD064 : LeftFoot
+LHR-04675926 : RightFoot

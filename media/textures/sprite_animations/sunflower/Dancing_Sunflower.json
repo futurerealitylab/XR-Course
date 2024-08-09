@@ -1,0 +1,34 @@
+{
+	"name" : "Dancing_Sunflower",
+	"assets" : {
+		"0" : {"path":"0_Dancing_Sunflower.png"},
+		"1" : {"path":"1_Dancing_Sunflower.png"},
+		"2" : {"path":"2_Dancing_Sunflower.png"},
+		"3" : {"path":"3_Dancing_Sunflower.png"}
+	},
+	"sequences" : 
+	{
+		"default" : {
+			"mode" : "ANIM_MODE_LOOP",
+			"frames" : [
+				{
+					"ref" : "0",
+					"secondsPerFrame" : 0.16
+				},
+				{
+					"ref" : "1",
+					"secondsPerFrame" : 0.16
+				},
+				{
+					"ref" : "2",
+					"secondsPerFrame" : 0.16
+				},
+				{
+					"ref" : "3",
+					"secondsPerFrame" : 0.16
+				}
+			]
+		}
+	}
+	
+}

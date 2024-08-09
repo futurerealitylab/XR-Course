@@ -1,0 +1,4 @@
+rm main
+rm shared.hpp.gch
+rm main.js
+rm main.wasm

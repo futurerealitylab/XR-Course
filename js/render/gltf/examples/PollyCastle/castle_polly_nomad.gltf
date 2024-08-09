@@ -1,0 +1,291 @@
+{
+  "accessors": [
+    {
+      "bufferView": 0,
+      "componentType": 5126,
+      "type": "VEC3",
+      "count": 20546,
+      "min": [
+        -8.97983,
+        -6.96317,
+        -1.24592
+      ],
+      "max": [
+        15.783,
+        3.99478,
+        11.0049
+      ]
+    },
+    {
+      "bufferView": 1,
+      "componentType": 5121,
+      "type": "VEC3",
+      "normalized": true,
+      "count": 20546
+    },
+    {
+      "bufferView": 2,
+      "componentType": 5125,
+      "type": "SCALAR",
+      "count": 117744
+    }
+  ],
+  "asset": {
+    "generator": "nomad 2",
+    "version": "2.0"
+  },
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteLength": 246552,
+      "byteOffset": 0
+    },
+    {
+      "buffer": 0,
+      "byteLength": 82184,
+      "byteOffset": 246552,
+      "byteStride": 4
+    },
+    {
+      "buffer": 0,
+      "byteLength": 470976,
+      "byteOffset": 328736
+    }
+  ],
+  "buffers": [
+    {
+      "uri": "castle_polly_nomad_data.bin",
+      "byteLength": 799712
+    }
+  ],
+  "meshes": [
+    {
+      "name": "default",
+      "primitives": [
+        {
+          "indices": 2,
+          "attributes": {
+            "POSITION": 0,
+            "COLOR_0": 1
+          },
+          "extensions": {
+            "FB_ngon_encoding": {}
+          }
+        }
+      ],
+      "extras": {
+        "active_layer": -1,
+        "matcap_global": true,
+        "matcap_name": "grey.jpg",
+        "material_opacity": 1,
+        "mesh_type": "Mesh",
+        "symmetry_local": false,
+        "symmetry_normal": [
+          1,
+          0,
+          0
+        ],
+        "symmetry_origin": [
+          0,
+          0,
+          0
+        ],
+        "visible": true,
+        "voxel_detail": -1
+      }
+    }
+  ],
+  "nodes": [
+    {
+      "mesh": 0
+    }
+  ],
+  "scene": 0,
+  "scenes": [
+    {
+      "nodes": [
+        0
+      ]
+    }
+  ],
+  "extras": {
+    "auto_save_materials": true,
+    "auto_save_project": true,
+    "auto_save_project_seconds": 300,
+    "auto_save_settings": true,
+    "backface_color": [
+      0.7799999713897705,
+      0.44999998807907104,
+      0.20999999344348907,
+      0.10000000149011612
+    ],
+    "backface_colored": true,
+    "backface_visible": true,
+    "background_blur": 0.4000000059604645,
+    "background_color": [
+      0.04399999976158142,
+      0.035999998450279236,
+      0.03200000151991844
+    ],
+    "background_exposure": 1,
+    "background_image_display": false,
+    "background_image_name": "",
+    "background_image_overlay": 0,
+    "background_image_position": [
+      0,
+      0
+    ],
+    "background_image_scale": 1,
+    "background_type": "environment",
+    "camera_fov": 25,
+    "camera_orthographic": true,
+    "camera_pan_speed": 1,
+    "camera_pivot": [
+      9.265273094177246,
+      -2.729065179824829,
+      7.117250919342041
+    ],
+    "camera_rotate_speed": 1,
+    "camera_rotation": [
+      0.09564622491598129,
+      0.16276045143604279,
+      0.01585453748703003,
+      0.9818907976150513
+    ],
+    "camera_rotation_type": "orbit",
+    "camera_translation": [
+      -5.062809467315674,
+      0.4589029550552368,
+      11.959318161010742
+    ],
+    "camera_zoom_speed": 1,
+    "darken_unselected": true,
+    "debug_picking": 0,
+    "dynamic_use_pressure": true,
+    "env_attached_to_camera": true,
+    "env_exposure": 1.0584372282028198,
+    "env_name": "venetian_crossroads_1k.hdr",
+    "env_rotation": 196.30810546875,
+    "file_triangle_pairing": false,
+    "gesture_allow_unknown_pressure": true,
+    "gesture_auto_update_pivot": true,
+    "gesture_double_tap_focus": true,
+    "gesture_double_tap_focus_selection": false,
+    "gesture_double_tap_pivot": true,
+    "gesture_finger_always_smooth": false,
+    "gesture_finger_camera_only": false,
+    "gesture_finger_rotate_environment": true,
+    "gesture_pencil_double_tap": "ALTMODE",
+    "gesture_size_rejection": 50,
+    "gesture_stylus_sculpt_only": false,
+    "gesture_use_size_rejection": false,
+    "gizmo_size": 1.2999999523162842,
+    "grid_color": [
+      0.6000000238418579,
+      0.6000000238418579,
+      0.6000000238418579,
+      1
+    ],
+    "grid_display": true,
+    "grid_height": -0.46821892261505127,
+    "gui_auto_close": true,
+    "gui_blur_factor": 1,
+    "gui_color_base": [
+      0.11999999731779099,
+      0.11999999731779099,
+      0.11999999731779099,
+      1
+    ],
+    "gui_color_base_transparent": [
+      0.699999988079071,
+      0.699999988079071,
+      0.699999988079071,
+      1
+    ],
+    "gui_color_select": [
+      0.6499999761581421,
+      0.4399999976158142,
+      0.3199999928474426,
+      1
+    ],
+    "gui_cursor_step": 40,
+    "gui_font_scale": 1,
+    "gui_inline_slider": false,
+    "gui_left_handed": false,
+    "gui_mask_gesture": true,
+    "gui_panel_transparent": true,
+    "gui_panel_width": 350,
+    "gui_quick_alpha": true,
+    "gui_quick_camera_reset": true,
+    "gui_quick_camera_snap": true,
+    "gui_quick_camera_snapFlip": true,
+    "gui_quick_mask": true,
+    "gui_quick_paint": true,
+    "gui_quick_smooth": true,
+    "gui_quick_toggle": true,
+    "gui_quick_voxel_remesh": true,
+    "gui_quick_wireframe": true,
+    "gui_rounding": true,
+    "gui_scale": 1,
+    "gui_show_tooltips": true,
+    "gui_toolbox_max_column": 4,
+    "gui_toolbox_persistent": true,
+    "gui_tools_order": [
+      "INDEX_CLAY",
+      "INDEX_BRUSH",
+      "INDEX_MOVE",
+      "INDEX_DRAG",
+      "INDEX_SMOOTH",
+      "INDEX_MASK",
+      "INDEX_MASK_SELECTOR",
+      "INDEX_PAINT",
+      "INDEX_SMUDGE",
+      "INDEX_FLATTEN",
+      "INDEX_LAYER",
+      "INDEX_CREASE",
+      "INDEX_TRIM",
+      "INDEX_SPLIT",
+      "INDEX_PROJECT",
+      "INDEX_INFLATE",
+      "INDEX_PINCH",
+      "INDEX_NUDGE",
+      "INDEX_STAMP",
+      "INDEX_CLEAR_LAYER",
+      "INDEX_TRANSFORM",
+      "INDEX_TRANSLATE",
+      "INDEX_ROTATE",
+      "INDEX_SCALE",
+      "INDEX_VIEW"
+    ],
+    "history_gesture": true,
+    "history_length": 1000,
+    "history_max_size": 500,
+    "history_range_protect": 30,
+    "history_restore_camera": false,
+    "json_version": 1,
+    "matcap_name": "grey.jpg",
+    "max_detail_range": 300,
+    "max_nb_faces": 10000000,
+    "outline_color": [
+      0.5199999809265137,
+      0.029999999329447746,
+      0.05999999865889549,
+      1
+    ],
+    "outline_display": false,
+    "outline_only_if_multiple": true,
+    "outline_thickness": 1,
+    "recent_project": "castle_polly_obj.glb.lz4",
+    "selection_show_dot": true,
+    "selection_while_sculpting": false,
+    "shader_type": "pbr",
+    "smooth_shading": false,
+    "wireframe_color": [
+      0,
+      0,
+      0,
+      0.6000000238418579
+    ],
+    "wireframe_display": false
+  }
+}

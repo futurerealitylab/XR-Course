@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<!--
+Copyright 2018 The Immersive Web Community Group
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software is furnished to do so,
+subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+-->
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, user-scalable=no"
+    />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="32x32"
+      href="../favicon-32x32.png"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="96x96"
+      href="../favicon-96x96.png"
+    />
+    <link rel="stylesheet" href="../css/common.css" />
+
+    <title>Pointer Painter</title>
+  </head>
+  <body>
+    <header>
+      <details open>
+        <summary>Pointer painter</summary>
+        <p>
+          Leaves behind a trail of pointers and cursors on select events. Useful
+          for testing screen input.
+          <a class="back" href="./">Back</a>
+        </p>
+      </details>
+    </header>
+    <script type="module">
+      import { WebXRSampleApp } from "../js/webxr-sample-app.js";
+      import { WebXRButton } from "../js/util/webxr-button.js";
+      import { Gltf2Node } from "../js/render/nodes/gltf2.js";
+      import { vec3 } from "../js/render/math/gl-matrix.js";
+      import { Ray } from "../js/render/math/ray.js";
+      import { QueryArgs } from "../js/util/query-args.js";
+
+      // If requested, use the polyfill to provide support for mobile devices
+      // and devices which only support WebVR.
+      import WebXRPolyfill from "../js/third-party/webxr-polyfill/build/webxr-polyfill.module.js";
+      if (QueryArgs.getBool("usePolyfill", true)) {
+        let polyfill = new WebXRPolyfill();
+      }
+
+      // WebXR sample app setup
+      class CustomWebXRSampleApp extends WebXRSampleApp {
+        constructor(options) {
+          super(options);
+          this.selecting = false;
+
+          this.scene._resetInputEndFrame = false;
+        }
+
+        onSessionStarted(session) {
+          super.onSessionStarted(session);
+
+          session.addEventListener("selectstart", () => {
+            this.selecting = true;
+          });
+          session.addEventListener("selectend", () => {
+            this.selecting = false;
+          });
+          session.addEventListener("select", (ev) => {
+            let refSpace = this.getSessionReferenceSpace(ev.frame.session);
+            let targetRayPose = ev.frame.getPose(
+              ev.inputSource.targetRaySpace,
+              refSpace
+            );
+            if (!targetRayPose) {
+              return;
+            }
+
+            this.scene.inputRenderer.addLaserPointer(targetRayPose.transform);
+
+            let targetRay = new Ray(targetRayPose.transform);
+            let cursorDistance = 2.0;
+            let cursorPos = vec3.fromValues(
+              targetRay.origin.x,
+              targetRay.origin.y,
+              targetRay.origin.z
+            );
+            vec3.add(cursorPos, cursorPos, [
+              targetRay.direction.x * cursorDistance,
+              targetRay.direction.y * cursorDistance,
+              targetRay.direction.z * cursorDistance,
+            ]);
+            this.scene.inputRenderer.addCursor(cursorPos);
+          });
+        }
+
+        onRendererInit() {
+          super.onRendererInit();
+        }
+
+        onXRFrame(time, frame, refSpace) {
+          for (let inputSource of frame.session.inputSources) {
+            if (this.selecting) {
+              let targetRayPose = frame.getPose(
+                inputSource.targetRaySpace,
+                refSpace
+              );
+              if (targetRayPose) {
+                this.scene.inputRenderer.addLaserPointer(
+                  targetRayPose.transform
+                );
+              }
+            }
+
+            if (inputSource.gripSpace) {
+              let gripPose = frame.getPose(inputSource.gripSpace, refSpace);
+              if (gripPose) {
+                this.scene.inputRenderer.addController(
+                  gripPose.transform.matrix,
+                  inputSource.handedness
+                );
+              }
+            }
+          }
+
+          super.onXRFrame(time, frame, refSpace);
+
+          this.scene.inputRenderer.reset({ controllers: true });
+        }
+      }
+
+      let app = new CustomWebXRSampleApp({
+        referenceSpace: "local-floor",
+        defaultInputHandling: false,
+      });
+      document.querySelector("header").appendChild(app.xrButton.domElement);
+
+      app.scene.addNode(
+        new Gltf2Node({ url: "../media/gltf/garage/garage.gltf" })
+      );
+      app.scene.enableStats(false);
+
+      // Start the XR application.
+      app.run();
+    </script>
+  </body>
+</html>

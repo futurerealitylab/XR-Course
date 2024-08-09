@@ -1,0 +1,13 @@
+SRC=$(find ./*.cpp)
+
+em++ -O3 -std=c++20 -include shared.hpp \
+$SRC \
+-o main.js \
+-s STANDALONE_WASM \
+-s MODULARIZE \
+-s EXPORT_ES6=1 \
+-s ALLOW_MEMORY_GROWTH=0 \
+-s INITIAL_MEMORY=256mb \
+-s STRICT=1 \
+-s EXPORT_NAME=FCwasm \
+--no-entry

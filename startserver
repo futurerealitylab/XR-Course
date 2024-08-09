@@ -1,0 +1,3 @@
+killall -q Python
+killall -q node
+node server/main.js 2024 2024 http &

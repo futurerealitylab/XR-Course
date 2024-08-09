@@ -1,0 +1,27 @@
+{
+	"name" : "butterfly",
+	"assets" : {
+		"0" : {"path":"0_butterfly.png"},
+		"1" : {"path":"1_butterfly.png"},
+		"2" : {"path":"2_butterfly.png"}
+	},
+	"sequences" : {
+		"default": {
+			"mode" : "ANIM_MODE_PINGPONG",
+			"frames" : [
+				{
+					"ref" : "0",
+					"secondsPerFrame" : 0.08
+				},
+				{
+					"ref" : "1",
+					"secondsPerFrame" : 0.08
+				},
+				{
+					"ref" : "2",
+					"secondsPerFrame" : 0.08
+				}
+			]
+		}
+	}
+}

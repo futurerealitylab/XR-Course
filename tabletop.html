@@ -1,0 +1,29 @@
+<script>window.onlyScene = 'tabletop'</script>
+<title>NYU-FRL-XR</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
+<link rel="icon" type="image/png" sizes="96x96" href="favicon-96x96.png" />
+<link rel="stylesheet" href="css/common.css" />
+<script src='server/client.js'></script>
+<script src='js/wizard/things.js'></script>
+<script src='js/wizard/lib.js'></script>
+<script src='js/wizard/molecules.js'></script>
+<script src="https://cdn.jsdelivr.net/npm/resonance-audio/build/resonance-audio.min.js"></script>
+<script src="https://www.gstatic.com/external_hosted/omnitone/build/omnitone.min.js"></script>
+<script src="js/third-party/corelink.browser.lib.js"></script>
+<script src="js/buffer-browser.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+<script src="js/util/peerjs.min.js"></script>
+<body>
+  <div id=videoElement></div>
+  <canvas id=anidrawCanvas width=1024 height=960 style="position:absolute;left:-2000px;"></canvas>
+  <header id=header>
+    <div id="connection-status">Initializing p2p connection ...</div>
+    <div id="active-demo">No demo selected</div>
+  </header>
+  <div id="audios"><audio id="local_webrtc" autoplay></audio></div>
+  <script type="module" src="/js/main.js"></script>
+</body>

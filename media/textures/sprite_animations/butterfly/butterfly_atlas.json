@@ -1,0 +1,38 @@
+{
+    "name" : "butterfly",
+    "assets" : {
+        "0" : {"path":"butterfly_atlas.png"}
+    },
+    "sequences" : {
+        "default" : {
+            "mode" : "ANIM_MODE_PINGPONG",
+            
+            "frames" : [
+                {
+                    "ref" : "0",
+                    "secondsPerFrame" : 0.08,
+                    "x" : 16,
+                    "y" : 16,
+                    "width" : 914,
+                    "height" : 914
+                },
+                {
+                    "ref" : "0",
+                    "secondsPerFrame" : 0.08,
+                    "x" : 946,
+                    "y" : 16,
+                    "width" : 914,
+                    "height" : 914
+                },
+                {
+                    "ref" : "0",
+                    "secondsPerFrame" : 0.08,
+                    "x" : 16,
+                    "y" : 946,
+                    "width" : 914,
+                    "height" : 914
+                }
+            ]
+        }
+    }
+}
