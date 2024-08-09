@@ -2,7 +2,7 @@
 
 Software for NYU Future Reality Lab webXR-based XR experience.
 
-# How to setup environment
+# How to setup the environment
 
 install Node.js and npm if you haven't. Then in the command line, do
 ```sh
@@ -10,30 +10,30 @@ npm install
 cd server
 npm install
 ```
-Then in the server folder, open file: 
+Then in the server folder, open the file: 
 node_modules/formidable/lib/incoming_form.js
 Replace the ``os.tmpDir()`` in that file by ``'/tmp'``
 
 # How to run on your local computer
 
-1. At root folder, do ``./startserver``
+1. At the root folder, do ``./startserver``
 2. Go to chrome://flags/ in your Google Chrome browser
 3. Search: ***"Insecure origins treated as secure"*** and enable the flag
-4. Add http://[your-computer's-ip-address]:8000 to the text box. For example: http://10.19.127.1:8000
-5. Relunch the chrome browser on your computer and go to http://localhost:8000 
+4. Add http://[your-computer's-ip-address]:2024 to the text box. For example http://10.19.127.1:2024
+5. Relaunch the chrome browser on your computer and go to http://localhost:2024
 
 # How to run in VR
 
-1. Run the program locally on your compurer
+1. Run the program locally on your computer
 2. Open the browser on your VR headset
 3. Go to chrome://flags/
 4. Search: ***"Insecure origins treated as secure"*** and enable the flag
-5. Add http://[your-computer's-ip-address]:8000 to the text box. For example: http://10.19.127.1:8000
-7. Relunch the browser on your VR headset and go to http://[your-computer's-ip-address]:8000 
+5. Add http://[your-computer's-ip-address]:2024 to the text box. For example http://10.19.127.1:2024
+7. Relaunch the browser on your VR headset and go to http://[your-computer's-ip-address]:2024 
 
 # How to debug in VR
 
-1. On your Oculus app, go to *Devices*, select your headset from the device list and wait for it to connect.Then select *Developer Mode* and turn on *Developer Mode*.
+1. On your Oculus app, go to *Devices*, select your headset from the device list, and wait for it to connect. Then select *Developer Mode* and turn on *Developer Mode*.
 2. Connect your quest with your computer using your Oculus Quest cable.
 3. Go to chrome://inspect#devices on your computer
 4. Go to your VR headset and accept *Allow USB Debugging* when prompted on the headset
@@ -46,11 +46,11 @@ Replace the ``os.tmpDir()`` in that file by ``'/tmp'``
 3. Go to [scenes.js](https://github.com/futurerealitylab/NYU-FRL-XR/tree/master/js/scenes/scenes.js), add the name of your demo and its path to the returned value of [```scenes```](https://github.com/futurerealitylab/NYU-FRL-XR/tree/master/js/scenes/scenes.js#L11)
 4. Note that the [```enableSceneReloading```](https://github.com/futurerealitylab/NYU-FRL-XR/tree/master/js/scenes/scenes.js#L10) is set to true so that you can hot-reload the changes in your demo. 
 
-# How to enable your hand tracking
+# How to enable your hand-tracking
 
 1. Enable the experimental feature in the browser (Oculus Browser 11)
 2. Visit chrome://flags/
-3. Enable WebXR experiences with joints tracking (#webxr-hands)
+3. Enable WebXR experiences with joint tracking (#webxr-hands)
 4. Enable WebXR Layers depth sorting (#webxr-depth-sorting)
 5. Enable WebXR Layers (#webxr-layers)
 6. Enable phase sync support (#webxr-phase-sync)
@@ -63,7 +63,7 @@ Replace the ``os.tmpDir()`` in that file by ``'/tmp'``
 
 # How to connect an Arduino Camera
 1. Get the url you use to stream the camera feed (example: 'http://192.168.1.189/640x480.jpg'), and make sure the computer hosting the server is under the same LAN as the Arducam.
-2. Set up the environment by opening the terminal located on the folder and type ```pip install -r requirements.txt``` (or ```pip3 install -r requirements.txt``` based on your version of pip)
+2. Set up the environment by opening the terminal located in the folder and type ```pip install -r requirements.txt``` (or ```pip3 install -r requirements.txt``` based on your version of pip)
 3. Replace the url on line 19 of track.py (inside the urlopen() function) with your own url from the Arducam.
 4. After starting the server, open the terminal and locate to the current folder, type ```python track.py``` (or ```python3 track.py```)
 5. The default information from the camera contains the positional data and the context of the QR code inside the camera feed, if any, and the radius and positional data of the largest green object. To engineer your own CV method, consider the variable ```frame``` inside track.py, it is the pixel data of your current camera feed. After your own engineering, to make communication with the server regarding the new information, wrap the information into a JSON-formatted dictionary and send it by using ```requests.post('http://localhost:2024/your-own-function', json=your-data-dictionary)```. Then under server/main.js, open up a new app.route("/your-own-function").post(function (req, res), make sure to match the name with the name you defined in the python code, and receive the information by ```req.body```.
