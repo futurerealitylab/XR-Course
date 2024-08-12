@@ -11,6 +11,9 @@ export default () => {
    return {
       enableSceneReloading: true,
       scenes: [ 
+         { name: "kaist1"             , path: "./demoKaist1.js"         , public: true },
+         { name: "kaist2"             , path: "./demoKaist2.js"         , public: true },
+         { name: "kaist3"             , path: "./demoKaist3.js"         , public: true },
          { name: "build_noise"        , path: "./build_noise.js"        , public: true },
          { name: "ellipsoid"          , path: "./ellipsoid.js"          , public: true },
          { name: "quaternion"         , path: "./quaternion.js"         , public: true },
