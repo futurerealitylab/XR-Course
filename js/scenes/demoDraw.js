@@ -45,7 +45,7 @@ export const init = async model => {
       }
    `);
    let wires = model.add();
-   //wires.flag('uWireTexture');
+   wires.flag('uWireTexture');
 
    let addGlyphFromCurves = (name, drawing, f) => {
       matchCurves.addGlyphFromCurves(name, drawing, f);
