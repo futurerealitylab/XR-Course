@@ -1628,7 +1628,7 @@ export class Renderer {
     } 
 
     if(window.useGuide){
-        server.synchronize('guideStates');
+        window.guideStates = server.synchronize('guideStates');
       let roomDemo = "";
       for(let i=0;i<window.guideStates.length;i++){
         let s = window.guideStates[i].split(',');
