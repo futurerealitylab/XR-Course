@@ -15,6 +15,7 @@ export default () => {
          { name: "kaist2"             , path: "./demoKaist2.js"         , public: true },
          { name: "kaist3"             , path: "./demoKaist3.js"         , public: true },
          { name: "kaist4"             , path: "./demoKaist4.js"         , public: true },
+         { name: "kaist5"             , path: "./demoKaist5.js"         , public: true },
          { name: "build_noise"        , path: "./build_noise.js"        , public: true },
          { name: "ellipsoid"          , path: "./ellipsoid.js"          , public: true },
          { name: "quaternion"         , path: "./quaternion.js"         , public: true },
