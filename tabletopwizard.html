@@ -230,8 +230,12 @@
    let drawings = {};
 
    let agent = new Agent();
+/*
    let agents = { 0: agent };
    let agentsInfo = { 0: { x:0, y:0, h:0 } };
+*/
+   let agents = { };
+   let agentsInfo = { };
 
    // CHANGE THE CURRENT ANGLE BY SOME DELTA
 
@@ -1252,7 +1256,7 @@
       }
 
       tabletop.agents = agentsInfo;
-      console.log(tabletop.agents);
+//    console.log(tabletop.agents);
 
       // ADD AVATARS TO THE STATE DATA
 

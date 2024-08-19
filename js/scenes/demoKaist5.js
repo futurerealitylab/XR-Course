@@ -10,15 +10,15 @@ export const init = async model => {
    inputEvents.onPress = hand => {
       ballInfo.rgb = hand == 'left' ? 'green'    // Set ball color: left=green, right=blue
                                     : 'blue';
-      ballInfo.xyz = inputEvents.pos(hand);      // AFTER AN INPUT EVENT CHANGES STATE
+      ballInfo.xyz = inputEvents.pos(hand);      // AFTER AN INPUT EVENT MODIFIES STATE
       server.broadcastGlobal('ballInfo');        // BROADCAST THE NEW STATE VALUE.
    }
    inputEvents.onDrag = hand => {
-      ballInfo.xyz = inputEvents.pos(hand);      // AFTER AN INPUT EVENT CHANGES STATE
+      ballInfo.xyz = inputEvents.pos(hand);      // AFTER AN INPUT EVENT MODIFIES STATE
       server.broadcastGlobal('ballInfo');        // BROADCAST THE NEW STATE VALUE.
    }
    inputEvents.onRelease = hand => {
-      ballInfo.rgb = 'red';                      // AFTER AN INPUT EVENT CHANGES STATE
+      ballInfo.rgb = 'red';                      // AFTER AN INPUT EVENT MODIFIES STATE
       server.broadcastGlobal('ballInfo');        // BROADCAST THE NEW STATE VALUE.
    }
 

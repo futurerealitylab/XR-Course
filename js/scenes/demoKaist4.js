@@ -1,4 +1,5 @@
 import * as cg from "../render/core/cg.js";
+import { buttonState, joyStickState } from "../render/core/controllerInput.js";
 
 export const init = async model => {
    let groundPos = [0,0.8,-1];
