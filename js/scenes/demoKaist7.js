@@ -1,40 +1,46 @@
-// THE WIZARD MOVES THE BALL TO THE AVERAGE POSITION OF ALL
-// CONTROLLERS THAT ARE CURRENTLY PRESSING THEIR TRIGGERS.
+// THE WIZARD MOVES THE BALL TO THE AVERAGE POSITION
+// OF ALL CONTROLLERS WHOSE TRIGGERS ARE PRESSED.
 
-window.kaist7 = {
-   pos: [0,1.5,0],
-   controller: { },
-}
+window.kaist7_input = [];
+window.kaist7_state = { pos: [0,1.5,0] };
+
+let round = t => (1000 * t >> 0) / 1000;
 
 export const init = async model => {
 
-   let ball = model.add('sphere');
+   let obj = model.add();
+   let ball = obj.add('sphere').scale(.07).color(0,.5,1);
 
    inputEvents.onDrag = hand => {
-      kaist7.controller[hand + clientID] = inputEvents.pos(hand);
-      server.broadcastGlobal('kaist7');
+      let index = 2 * clientID + (hand=='left' ? 0 : 1);
+      let p = inputEvents.pos(hand);
+      kaist7_input[index] = [ round(p[0]), round(p[1]), round(p[2]) ];
+      server.broadcastGlobalSlice('kaist7_input', index, index+1);
    }
-
    inputEvents.onRelease = hand => {
-      delete kaist7.controller[hand + clientID];
-      server.broadcastGlobal('kaist7');
+      let index = 2 * clientID + (hand=='left' ? 0 : 1);
+      delete kaist7_input[index];
+      server.broadcastGlobalSlice('kaist7_input', index, index+1);
    }
 
    model.animate(() => {
-      kaist7 = server.synchronize('kaist7')
+      kaist7_state = server.synchronize('kaist7_state')
+
       if (clientID == clients[0]) {
+         kaist7_input = server.synchronize('kaist7_input')
+
          let sum = [0,0,0], count = 0;
-	 for (let id in kaist7.controller) {
+	 for (let id in kaist7_input) {
 	    count++;
 	    for (let i = 0 ; i < 3 ; i++)
-	       sum[i] += kaist7.controller[id][i];
+	       sum[i] += kaist7_input[id][i];
          }
 	 if (count > 0)
 	    for (let i = 0 ; i < 3 ; i++)
-	       kaist7.pos[i] = .9 * kaist7.pos[i] + .1 * sum[i]/count;
-         server.broadcastGlobal('kaist7');
+	       kaist7_state.pos[i] = round(.9 * kaist7_state.pos[i] + .1 * sum[i]/count);
+         server.broadcastGlobal('kaist7_state');
       }
 
-      ball.identity().move(kaist7.pos).scale(.07).color(0,.5,1);
+      obj.identity().move(kaist7_state.pos);
    });
 }
