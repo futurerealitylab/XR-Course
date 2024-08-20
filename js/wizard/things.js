@@ -151,6 +151,30 @@ defineThings = () => {
       ]);
    });
 
+   defineThing('house:object', args => {
+      return new Shape([
+         CUBE().move( 0.0,1.0,0.0).scale(2.00,1.00,1.00),
+         PYRA().move( 0.0,3.0,0.0).scale(3.00,1.00,2.00).color(.2,.2,.2),
+         CUBE().move(-1.4,1.8,0.0).scale(0.30,1.80,0.30).color(.2,.2,.2),
+         CUBE().move(-1.4,3.6,0.0).scale(0.20,0.01,0.20).color(.05,.05,.05),
+         CUBE().move(-0.8,0.7,1.0).scale(0.50,0.70,0.01).color(.1,0,0),
+         CUBE().move( 0.8,1.0,1.0).scale(0.40,0.50,0.01).color(0,0,0),
+         CUBE().move( 0.8,1.0,1.0).scale(0.40,0.03,0.02),
+         CUBE().move( 0.8,1.0,1.0).scale(0.03,0.50,0.02),
+      ]);
+   });
+
+   defineThing('car:object', args => {
+      return new Shape([
+         CUBE().move( 0.00,0.80, 0.00).scale(0.40,0.25,0.40),
+         CUBE().move( 0.00,0.40, 0.00).scale(1.00,0.25,0.40),
+         BALL().move( 0.60,0.25, 0.40).scale(0.25,0.25,0.05).color(.1,.1,.1),
+         BALL().move(-0.60,0.25, 0.40).scale(0.25,0.25,0.05).color(.1,.1,.1),
+         BALL().move( 0.60,0.25,-0.40).scale(0.25,0.25,0.05).color(.1,.1,.1),
+         BALL().move(-0.60,0.25,-0.40).scale(0.25,0.25,0.05).color(.1,.1,.1),
+      ]);
+   });
+
    defineThing('buckyball:molecule', args => { return new Shape([]); });
    defineThing('caffeine:molecule' , args => { return new Shape([]); });
    defineThing('ethanol:molecule'  , args => { return new Shape([]); });

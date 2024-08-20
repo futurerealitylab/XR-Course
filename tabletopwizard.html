@@ -173,7 +173,7 @@
    let colorIndex = 0, currentColor = 'white',
        angleIndex = 0, currentAngle = 0;
    let w = canvas1.width, h = canvas1.height;
-   let id = -1, pp, isShift = false, isMeta = false, isMinus = false;
+   let id = -1, pp, isShift = false, isMeta = false, isMinus = false, showAgents = true;
    let speakingClient;
    let clientState = {};
    let isAnyObjectInFocus = false;
@@ -230,13 +230,13 @@
    let drawings = {};
 
    let agent = new Agent();
-/*
+
    let agents = { 0: agent };
    let agentsInfo = { 0: { x:0, y:0, h:0 } };
-*/
+/*
    let agents = { };
    let agentsInfo = { };
-
+*/
    // CHANGE THE CURRENT ANGLE BY SOME DELTA
 
    let changeAngle = (angle, delta) => (3600 + angle + delta) % 360;
@@ -394,6 +394,7 @@
       switch (e.key) {
       case 'Shift': isShift = false; id = -1; break;
       case 'Meta': drawingRelease(clientID, 'left'); isMeta = false; break;
+      case 'a': showAgents = ! showAgents; break;
       case '-': isMinus = false; break;
       case '.': startAnimation(); break;
       case '/': showSpeech = ! showSpeech; break;
@@ -1541,6 +1542,7 @@
 
       // SHOW AGENTS
 
+      if (showAgents)
       for (let id in agents) {
          let r = 40;
          let agent = agents[id];
