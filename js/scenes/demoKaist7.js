@@ -24,15 +24,15 @@ export const init = async model => {
       server.broadcastGlobalSlice('kaist7_input', index, index+1);
    }
 
-   model.animate(() => {
+   model.animate(() => {                                    // AT EVERY ANIMATION FRAME:
 
-      kaist7_state = server.synchronize('kaist7_state')     // EVERY CLIENT RECEIVES THE UPDATED RENDER STATE
+      kaist7_state = server.synchronize('kaist7_state')     //    EVERY CLIENT RECEIVES THE UPDATED RENDER STATE
 
-      if (clientID == clients[0]) {                         // ONLY THE WIZARD CLIENT CAN MODIFY THE RENDER STATE
+      if (clientID == clients[0]) {                         //    THE WIZARD CLIENT MODIFIES RENDER STATE IN 3 STEPS:
 
-         kaist7_input = server.synchronize('kaist7_input')  // FIRST THE WIZARD GETS ALL CONTROLLER POSITIONS
+         kaist7_input = server.synchronize('kaist7_input')  //       (1) IT GETS ALL CONTROLLER POSITIONS
 
-         let sum = [0,0,0], count = 0;                      // THEN THE WIZARD COMPUTES THE AVERAGE OF THOSE POSITIONS
+         let sum = [0,0,0], count = 0;                      //       (2) IT COMPUTES THE AVERAGE OF THOSE POSITIONS
 	 for (let id in kaist7_input) {
 	    count++;
 	    for (let i = 0 ; i < 3 ; i++)
@@ -42,9 +42,9 @@ export const init = async model => {
 	    for (let i = 0 ; i < 3 ; i++)
 	       kaist7_state.pos[i] = round(.9 * kaist7_state.pos[i] + .1 * sum[i]/count);
 
-         server.broadcastGlobal('kaist7_state');            // FINALLY THE WIZARD TELLS ALL CLIENTS THE AVERAGE POSITION
+         server.broadcastGlobal('kaist7_state');            //       (3) IT TELLS ALL CLIENTS THAT AVERAGE POSITION
       }
 
-      obj.identity().move(kaist7_state.pos);                // EACH CLIENT RENDERS THE OBJECT WHERE IT IS TOLD TO
+      obj.identity().move(kaist7_state.pos);                //    EACH CLIENT RENDERS THE OBJECT WHERE IT IS TOLD TO
    });
 }
