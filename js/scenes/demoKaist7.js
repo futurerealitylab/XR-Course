@@ -33,13 +33,13 @@ export const init = async model => {
          kaist7_input = server.synchronize('kaist7_input')  //       (1) IT GETS ALL CONTROLLER POSITIONS
 
          let sum = [0,0,0], count = 0;                      //       (2) IT COMPUTES THE AVERAGE OF THOSE POSITIONS
-	 for (let id in kaist7_input) {
-	    count++;
-	    for (let i = 0 ; i < 3 ; i++)
-	       sum[i] += kaist7_input[id][i];
-         }
-	 if (count > 0)
-	    for (let i = 0 ; i < 3 ; i++)
+	 for (let id in kaist7_input) {                     //
+	    count++;                                        //
+	    for (let i = 0 ; i < 3 ; i++)                   //
+	       sum[i] += kaist7_input[id][i];               //
+         }                                                  //
+	 if (count > 0)                                     //
+	    for (let i = 0 ; i < 3 ; i++)                   //
 	       kaist7_state.pos[i] = round(.9 * kaist7_state.pos[i] + .1 * sum[i]/count);
 
          server.broadcastGlobal('kaist7_state');            //       (3) IT TELLS ALL CLIENTS THAT AVERAGE POSITION
