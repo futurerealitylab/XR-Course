@@ -3,9 +3,9 @@
 
 window.kaist8_input = [];                                   // GLOBAL VARIABLE FOR CONTROLLER POSITIONS
 window.kaist8_state = {
-   a: [-.2,1.5,0],
-   b: [  0,1.5,0],
-   c: [ .2,1.5,0],
+   lion   : [-.2,1.5,0],
+   tiger  : [  0,1.5,0],
+   penguin: [ .2,1.5,0],
 };
 
 let round = t => (1000 * t >> 0) / 1000;                    // ROUND NUMBERS TO REDUCE NETWORK MESSAGE SIZE
@@ -13,9 +13,22 @@ let round = t => (1000 * t >> 0) / 1000;                    // ROUND NUMBERS TO 
 export const init = async model => {
 
    let objects = {};
-   for (let a in kaist8_state) {
-      objects[a] = model.add();
-      objects[a].add('sphere').scale(.07).color(a=='a' ? [1,.2,.2] : a=='b' ? [1,1,0] : [0,.5,1]);
+   for (let name in kaist8_state) {
+      objects[name] = model.add();
+      switch (name) {
+      case 'lion':
+         // HERE YOU CAN CHANGE TO THE CODE TO BUILD A LION
+         objects[name].add('sphere').scale(.07).color(1,.2,.2);
+	 break;
+      case 'tiger':
+         // HERE YOU CAN CHANGE TO THE CODE TO BUILD A TIGER
+         objects[name].add('sphere').scale(.07).color(1,1,0);
+	 break;
+      case 'penguin':
+         // HERE YOU CAN CHANGE TO THE CODE TO BUILD A PENGUIN
+         objects[name].add('sphere').scale(.07).color(0,.5,1);
+	 break;
+      }
    }
 
    let setController = (hand, position) => {
