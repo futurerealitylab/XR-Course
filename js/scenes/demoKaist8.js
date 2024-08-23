@@ -45,8 +45,14 @@ export const init = async model => {
 	          for (let a in kaist8_state) {
 	             let Q = kaist8_state[a];
 		     let x = P[0]-Q[0], y = P[1]-Q[1], z = P[2]-Q[2];
-		     if (x * x + y * y + z * z < .07 * .07)
-		        whoIsAt[index] = a;
+		     if (x * x + y * y + z * z < .07 * .07) {
+		        let isOkToGrab = true;
+		        for (let i in whoIsAt)              //           ONLY IF IT IS NOT ALREADY GRABBED
+			   if (whoIsAt[i] == a)
+			      isOkToGrab = false;
+                        if (isOkToGrab)
+		           whoIsAt[index] = a;
+                     }
 	          }
                if (whoIsAt[index])                          //       (3) IF AN OBJECT IS GRABBED, MOVE IT
 	          kaist8_state[whoIsAt[index]] = P;
