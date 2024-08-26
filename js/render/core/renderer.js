@@ -1606,7 +1606,7 @@ export class Renderer {
                     }
                   }
   
-                  if(!serverHasRoomID){
+                  if(!serverHasRoomID && window.roomID){
                     guideStates.push(window.roomID.toString().concat(',').concat(info));
                   }
                   canSyncGuide = false;

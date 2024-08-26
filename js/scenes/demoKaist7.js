@@ -25,7 +25,6 @@ export const init = async model => {
    }
 
    model.animate(() => {                                    // AT EVERY ANIMATION FRAME:
-
       kaist7_state = server.synchronize('kaist7_state')     //    EVERY CLIENT RECEIVES THE UPDATED RENDER STATE
 
       if (clientID == clients[0]) {                         //    THE WIZARD CLIENT MODIFIES RENDER STATE IN 3 STEPS:

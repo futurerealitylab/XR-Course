@@ -5,6 +5,7 @@ import { buttonState, controllerMatrix } from "./controllerInput.js";
 import { HandsWidget } from "./handsWidget.js";
 import { PeopleBillboards } from "./peopleBillboards.js";
 import { InputEvents } from "./inputEvents.js";
+import { createInput, Input } from "./inputAPI.js";
 import { EditText } from "./editText.js";
 import { CodeEditor } from "./codeEditor.js";
 import * as keyboardInput from "../../util/input_keyboard.js";
@@ -3742,8 +3743,6 @@ for (let s = 3 ; s < 100 ; s *= 2)
 ////////////// GIVE PROGRAMMERS THE OPTION TO BUILD AND ANIMATE THEIR OWN MODEL. /////////////
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-const _animateNoop = () => {};
-
 let wasInteractMode = true;
 
 function Node(_form) {
@@ -3867,6 +3866,7 @@ function Node(_form) {
          flags: node._flags,
          isHUD: node._isHUD,
          animate: node._animate,
+         update: node._update,
          customShader: node._customShader,
          texture: node._texture,
          bumpTexture: node._bumpTexture,
@@ -3910,7 +3910,8 @@ function Node(_form) {
    this.clear = () => {
       previousTime = 0;
       rm = matrix_identity;
-      this._animate  = _animateNoop;
+      this._update   = null;
+      this._animate  = null;
       this._bevel    = false;
       this._blend    = false;
       this._view     = -1;
@@ -3992,6 +3993,7 @@ function Node(_form) {
       return this;
    }
    this.nChildren = ()      => { return this._children.length;      }
+   this.update    = func    => { this._update  = func; return this; }
    this.animate   = func    => { this._animate = func; return this; }
    this.identity  = ()      => { m.identity();         return this; }
    this.aimX      = vec     => { m.aimX(vec);          return this; }
@@ -4356,6 +4358,33 @@ function Node(_form) {
                                         diffuse : [.8*color[0], .8*color[1], .8*color[2] ],
                                         specular: [.9,.9,.9,20] };
          color = materialName;
+      }
+
+      if (this._update && window.clientID !== undefined) {    // TO HANDLE SCENE UPDATES BY A WIZARD CLIENT:
+
+         if (window.input_state === undefined)
+            window.input_state = [];
+
+         if (clientID != clients[0]) {                        // OTHER CLIENTS JUST BROADCAST THEIR INPUT DATA
+            input_state[clientID] = createInput();
+            server.broadcastGlobalSlice('input_state', clientID, clientID+1);
+         }
+         else {                                               // BUT THE WIZARD CLIENT:
+
+            input_state = server.synchronize('input_state');  //    GATHERS INPUT DATA FROM ALL OTHER CLIENTS
+
+            input_state[clientID] = createInput();            //    COMPUTING ITS OWN INPUT DATA SEPARATELY
+
+	    if (window.inputObjects === undefined)            //    THEN CONVERTS INPUT DATA TO API OBJECTS
+	       window.inputObjects = [];
+            for (id of clients) {
+	       if (inputObjects[id] === undefined)
+	          inputObjects[id] = new Input();
+	       inputObjects[id].update(input_state[id]);
+            }
+
+            this._update(inputObjects);                       //    AND FINALLY UPDATES THE SCENE STATE
+         }
       }
 
       if (this._animate) {

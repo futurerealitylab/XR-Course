@@ -129,7 +129,7 @@ function Server(wsPort) {
          for (let i = 0 ; i < data.length ; i++)
             obj.push(this.construct(data[i]));
       }
-      else if (data.constructorName) {
+      else if (data && data.constructorName) {
          obj = new (eval(data.constructorName))();
          for (let f in data)
             obj[f] = this.construct(data[f]);
