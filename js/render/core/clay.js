@@ -2075,7 +2075,8 @@ let fl = 5;                                                          // CAMERA F
       if (size)
          M.scale(size);
 
-      drawMesh(mesh, color, texture, bumpTexture, dull, flags, customShader, opacity, view);
+      if (! isNaN(M.getValue()[0]))
+         drawMesh(mesh, color, texture, bumpTexture, dull, flags, customShader, opacity, view);
 
       if (move || turn || size)
          M.restore();
