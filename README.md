@@ -9,10 +9,8 @@ install Node.js and npm if you haven't. Then in the command line, do
 npm install
 cd server
 npm install
+source patch
 ```
-Then in the server folder, open the file: 
-node_modules/formidable/lib/incoming_form.js
-Replace the ``os.tmpDir()`` in that file by ``'/tmp'``
 
 # How to run on your local computer
 
