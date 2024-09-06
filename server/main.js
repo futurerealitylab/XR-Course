@@ -28,6 +28,8 @@ var qrdist = -1;
 
 var objinfo = {};
 
+var trackInfo = {};
+
 
 var app = express();
 var port = process.argv[2] || 8000;
@@ -114,6 +116,21 @@ try {
 
       res.end();
    });
+});
+
+// opti-track
+app.route("/opti-track-python").post(function (req, res) {
+   trackInfo[req.body.id] = [req.body.x, req.body.y, req.body.z, req.body.qx, req.body.qy, req.body.qz, req.body.qw];
+   res.end();
+});
+
+app.route("/opti-track").post(function (req, res) {
+   var info = {};
+   for (var key in trackInfo)
+   {
+      info[key] = trackInfo[key];
+   }
+   res.send(info);
 });
 
 app.route("/spawnPythonThread").post(function(req, res) {

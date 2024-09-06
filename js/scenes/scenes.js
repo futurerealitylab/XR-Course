@@ -108,6 +108,7 @@ export default () => {
          { name: "forest"             , path: "./demoForest.js"         , public: true },
          // { name: "spatial audio test" , path: "./demoSpatialAudioWrapper.js"         , public: true },
          { name: "spatial audio wrapper" , path: "./demoSoundWrapper.js" , public: true },
+         { name: "opti-track"         , path: "./demoTrack.js"          , public: true },
       ]
    };
 }

@@ -75,6 +75,24 @@ function Server(wsPort) {
       request.send(form);
    }
 
+   this.track = () => {
+      var request = new XMLHttpRequest();
+      request.open('POST', 'opti-track');
+
+      request.onloadend = () => {
+         if (request.status >= 200 && request.status < 300) {
+            const info = request.responseText;
+            window.trackInfo = info;
+            this.broadcastGlobal('trackInfo');
+         }
+         else
+            console.log('error ' + request.status);
+         }
+
+      var form = new FormData();
+      request.send(form);
+   }
+
    this.qrcode = () => {
       var request = new XMLHttpRequest();
       request.open('POST', 'qrcode');
