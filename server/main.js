@@ -119,7 +119,7 @@ try {
 });
 
 // opti-track
-app.route("/opti-track-python").post(function (req, res) {
+app.route("/opti-track-external").post(function (req, res) {
    trackInfo[req.body.id] = [req.body.x, req.body.y, req.body.z, req.body.qx, req.body.qy, req.body.qz, req.body.qw];
    res.end();
 });

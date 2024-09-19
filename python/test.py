@@ -13,7 +13,7 @@ def receive_new_frame(data_frame: DataFrame):
         info = {'id':body.id_num,
                 'x':body.pos[0],'y':body.pos[1],'z':body.pos[2],
                 'qx': body.rot[0], 'qy': body.rot[1], 'qz': body.rot[2], 'qw':body.rot[3]}
-        res = requests.post('http://10.19.158.185:2024/opti-track-python', json=info)
+        res = requests.post('http://10.19.158.185:2024/opti-track-external', json=info)
 
 
 def receive_new_desc(desc: DataDescriptions):

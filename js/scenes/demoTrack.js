@@ -2,7 +2,7 @@
 
 import * as cg from "../render/core/cg.js";
 
-let TRACK_ITEMS = ["11"];
+let TRACK_ITEMS = ["1","2","3","4"];
 
 export const init = async model => {
    let obj = [];
@@ -12,6 +12,7 @@ export const init = async model => {
    model.animate(() => {
       server.track();
       let info = JSON.parse(trackInfo);
+      console.log(trackInfo);
 
       for (let i = 0; i < TRACK_ITEMS.length; i++) {
          let tq = info[TRACK_ITEMS[i]];
