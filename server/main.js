@@ -29,6 +29,10 @@ var qrdist = -1;
 var objinfo = {};
 
 var trackInfo = {};
+var headset_1 = "0.000,0.000,0.000,0.000,0.000,0.000,0.000";
+var headset_2 = "0.000,0.000,0.000,0.000,0.000,0.000,0.000";
+var headset_3 = "0.000,0.000,0.000,0.000,0.000,0.000,0.000";
+var headset_4 = "0.000,0.000,0.000,0.000,0.000,0.000,0.000";
 
 
 var app = express();
@@ -125,11 +129,48 @@ app.route("/opti-track-external").post(function (req, res) {
 });
 
 app.route("/opti-track").post(function (req, res) {
-   var info = {};
-   for (var key in trackInfo)
+   if (trackInfo["1"] !== undefined)
    {
-      info[key] = trackInfo[key];
+      headset_1 = "";
+      for (let i = 0; i < trackInfo["1"].length; i++)
+      {
+         headset_1 += trackInfo["1"][i].toString();
+         headset_1 += ",";
+      }
    }
+
+   if (trackInfo["2"] !== undefined)
+   {
+      headset_2 = "";
+      for (let i = 0; i < trackInfo["2"].length; i++)
+      {
+         headset_2 += trackInfo["2"][i].toString();
+         headset_2 += ",";
+      }
+   }
+
+   if (trackInfo["3"] !== undefined)
+   {
+      headset_3 = "";
+      for (let i = 0; i < trackInfo["3"].length; i++)
+      {
+         headset_3 += trackInfo["3"][i].toString();
+         headset_3 += ",";
+      }
+   }
+    
+   if (trackInfo["4"] !== undefined)
+   {
+      headset_4 = "";
+      for (let i = 0; i < trackInfo["4"].length; i++)
+      {
+         headset_4 += trackInfo["4"][i].toString();
+         headset_4 += ",";
+      }
+   }
+
+   var info = headset_1 + headset_2 + headset_3 + headset_4;
+
    res.send(info);
 });
 
