@@ -48,25 +48,25 @@
    //        pack(array, hi)     -- lowest and highest array values must be: at least 0  and at most hi.
    //        pack(array, lo, hi) -- lowest and highest array values must be: at least lo and at most hi.
 
-   export let pack = (array, lo, hi) => {
+   let pack = (array, lo, hi) => {
       if (lo === undefined) { lo = 0; hi = 1; } else if (hi === undefined) { hi = lo ; lo = 0; }
-      let C = "!#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~";
-      let enc = t => C[(C.length-1) * t >> 0] + C[(C.length-1) * ((C.length-1) * t % 1) + .5 >> 0];
+      let C = " !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~";
+      let pack = t => C[92 * t >> 0] + C[92 * (92 * t % 1) + .5 >> 0];
       let s = '';
       for (let n = 0 ; n < array.length ; n++)
-         s += enc((array[n] - lo) / (hi - lo));
+         s += pack((array[n] - lo) / (hi - lo));
       return s;
    }
 
-   // lo, hi range must match the lo, hi range of the associated call to pack().
+   // Unpack a packed array. The lo, hi range must match the lo, hi range of the corresponding call to pack().
 
-   export let unpack = (string, lo, hi) => {
+   let unpack = (string, lo, hi) => {
       if (lo === undefined) { lo = 0; hi = 1; } else if (hi === undefined) { hi = lo ; lo = 0; }
-      let C = "!#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~";
-      let dec = s => (C.indexOf(s.charAt(0)) + C.indexOf(s.charAt(1)) / (C.length-1)) / (C.length-1);
+      let C = " !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~";
+      let unpack = (a, b) => (C.indexOf(a) + C.indexOf(b) / 92) / 92;
       let a = [];
       for (let n = 0 ; n < string.length ; n += 2)
-         a.push(lo + (hi-lo) * dec(string.substring(n, n+2)));
+         a.push(lo + (hi-lo) * unpack(string.charAt(n), string.charAt(n+1)));
       return a;
    }
 
