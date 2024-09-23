@@ -13,6 +13,7 @@ export const init = async model => {
       server.track();
 
       let info = JSON.parse(trackInfo);
+      console.log(trackInfo);
 
       for (let i = 0; i < TRACK_ITEMS.length; i++) {
          let tq = info[TRACK_ITEMS[i]];
