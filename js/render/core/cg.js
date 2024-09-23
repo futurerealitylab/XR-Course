@@ -42,6 +42,34 @@
 
    export let mixf = (a,b,t,u) => a * (u===undefined ? 1-t : t) + b * (u===undefined ? t : u);
 
+   // Pack an array of floats into a compact string representation.
+
+   // Usage: pack(array)         -- lowest and highest array values must be: at least 0  and at most 1.
+   //        pack(array, hi)     -- lowest and highest array values must be: at least 0  and at most hi.
+   //        pack(array, lo, hi) -- lowest and highest array values must be: at least lo and at most hi.
+
+   export let pack = (array, lo, hi) => {
+      if (lo === undefined) { lo = 0; hi = 1; } else if (hi === undefined) { hi = lo ; lo = 0; }
+      let C = "!#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~";
+      let enc = t => C[(C.length-1) * t >> 0] + C[(C.length-1) * ((C.length-1) * t % 1) + .5 >> 0];
+      let s = '';
+      for (let n = 0 ; n < array.length ; n++)
+         s += enc((array[n] - lo) / (hi - lo));
+      return s;
+   }
+
+   // lo, hi range must match the lo, hi range of the associated call to pack().
+
+   export let unpack = (string, lo, hi) => {
+      if (lo === undefined) { lo = 0; hi = 1; } else if (hi === undefined) { hi = lo ; lo = 0; }
+      let C = "!#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~";
+      let dec = s => (C.indexOf(s.charAt(0)) + C.indexOf(s.charAt(1)) / (C.length-1)) / (C.length-1);
+      let a = [];
+      for (let n = 0 ; n < string.length ; n += 2)
+         a.push(lo + (hi-lo) * dec(string.substring(n, n+2)));
+      return a;
+   }
+
    // Rounded string representations of a floating point value
 
    export let round = (t,n) => {
