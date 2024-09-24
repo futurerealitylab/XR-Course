@@ -134,7 +134,13 @@ app.route("/opti-track").post(function (req, res) {
       headset_1 = "";
       for (let i = 0; i < trackInfo["1"].length; i++)
       {
-         headset_1 += trackInfo["1"][i].toString();
+         var fts = trackInfo["1"][i].toString();
+         if (fts.charAt(0) == '0')
+            fts = fts.slice(1, fts.length);
+         else if (fts.charAt(1) == '0')
+            fts = "-" + fts.slice(2, fts.length);
+
+         headset_1 += fts;
          headset_1 += ",";
       }
    }
@@ -144,7 +150,13 @@ app.route("/opti-track").post(function (req, res) {
       headset_2 = "";
       for (let i = 0; i < trackInfo["2"].length; i++)
       {
-         headset_2 += trackInfo["2"][i].toString();
+         var fts = trackInfo["2"][i].toString();
+         if (fts.charAt(0) == '0')
+            fts = fts.slice(1, fts.length);
+         else if (fts.charAt(1) == '0')
+            fts = "-" + fts.slice(2, fts.length);
+
+         headset_2 += fts;
          headset_2 += ",";
       }
    }
@@ -154,7 +166,13 @@ app.route("/opti-track").post(function (req, res) {
       headset_3 = "";
       for (let i = 0; i < trackInfo["3"].length; i++)
       {
-         headset_3 += trackInfo["3"][i].toString();
+         var fts = trackInfo["3"][i].toString();
+         if (fts.charAt(0) == '0')
+            fts = fts.slice(1, fts.length);
+         else if (fts.charAt(1) == '0')
+            fts = "-" + fts.slice(2, fts.length);
+
+         headset_3 += fts;
          headset_3 += ",";
       }
    }
@@ -164,7 +182,13 @@ app.route("/opti-track").post(function (req, res) {
       headset_4 = "";
       for (let i = 0; i < trackInfo["4"].length; i++)
       {
-         headset_4 += trackInfo["4"][i].toString();
+         var fts = trackInfo["4"][i].toString();
+         if (fts.charAt(0) == '0')
+            fts = fts.slice(1, fts.length);
+         else if (fts.charAt(1) == '0')
+            fts = "-" + fts.slice(2, fts.length);
+
+         headset_4 += fts;
          headset_4 += ",";
       }
    }
