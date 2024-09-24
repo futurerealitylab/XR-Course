@@ -12,9 +12,8 @@ export const init = async model => {
    model.animate(() => {
       server.track();
 
-      let info = trackInfo.split(",");
-
-      console.log(trackInfo);
+      let infoArr = trackInfo.split(",");
+      let info = cg.unpack(infoArr[2], parseFloat(infoArr[1]), parseFloat(infoArr[0]));
 
       for (let i = 0; i < TRACK_ITEMS.length; i++) {
          let tq = [parseFloat(info[i*7]), parseFloat(info[i*7+1]), parseFloat(info[i*7+2]), parseFloat(info[i*7+3]), parseFloat(info[i*7+4]), parseFloat(info[i*7+5]), parseFloat(info[i*7+6])];

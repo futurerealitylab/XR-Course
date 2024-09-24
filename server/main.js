@@ -1,4 +1,3 @@
-
 var bodyParser = require("body-parser");
 var express = require("express");
 var formidable = require("formidable");
@@ -29,10 +28,6 @@ var qrdist = -1;
 var objinfo = {};
 
 var trackInfo = {};
-var headset_1 = "0.000,0.000,0.000,0.000,0.000,0.000,0.000";
-var headset_2 = "0.000,0.000,0.000,0.000,0.000,0.000,0.000";
-var headset_3 = "0.000,0.000,0.000,0.000,0.000,0.000,0.000";
-var headset_4 = "0.000,0.000,0.000,0.000,0.000,0.000,0.000";
 
 
 var app = express();
@@ -123,77 +118,41 @@ try {
 });
 
 // opti-track
+
+let pack = (array, lo, hi) => {
+   if (lo === undefined) { lo = 0; hi = 1; } else if (hi === undefined) { hi = lo ; lo = 0; }
+   let C = " !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~";
+   let pack = t => C[92 * t >> 0] + C[92 * (92 * t % 1) + .5 >> 0];
+   let s = '';
+   for (let n = 0 ; n < array.length ; n++)
+      s += pack((array[n] - lo) / (hi - lo));
+   return s;
+}
+
 app.route("/opti-track-external").post(function (req, res) {
    trackInfo[req.body.id] = [req.body.x, req.body.y, req.body.z, req.body.qx, req.body.qy, req.body.qz, req.body.qw];
    res.end();
 });
 
 app.route("/opti-track").post(function (req, res) {
-   if (trackInfo["1"] !== undefined)
-   {
-      headset_1 = "";
-      for (let i = 0; i < trackInfo["1"].length; i++)
-      {
-         var fts = trackInfo["1"][i].toString();
-         if (fts.charAt(0) == '0')
-            fts = fts.slice(1, fts.length);
-         else if (fts.charAt(1) == '0')
-            fts = "-" + fts.slice(2, fts.length);
+   let h1_max = Math.max(...trackInfo["1"]);
+   let h1_min = Math.min(...trackInfo["1"]);
 
-         headset_1 += fts;
-         headset_1 += ",";
-      }
-   }
+   let h2_max = Math.max(...trackInfo["2"]);
+   let h2_min = Math.min(...trackInfo["2"]);
 
-   if (trackInfo["2"] !== undefined)
-   {
-      headset_2 = "";
-      for (let i = 0; i < trackInfo["2"].length; i++)
-      {
-         var fts = trackInfo["2"][i].toString();
-         if (fts.charAt(0) == '0')
-            fts = fts.slice(1, fts.length);
-         else if (fts.charAt(1) == '0')
-            fts = "-" + fts.slice(2, fts.length);
+   let h3_max = Math.max(...trackInfo["3"]);
+   let h3_min = Math.min(...trackInfo["3"]);
 
-         headset_2 += fts;
-         headset_2 += ",";
-      }
-   }
+   let h4_max = Math.max(...trackInfo["4"]);
+   let h4_min = Math.min(...trackInfo["4"]);
 
-   if (trackInfo["3"] !== undefined)
-   {
-      headset_3 = "";
-      for (let i = 0; i < trackInfo["3"].length; i++)
-      {
-         var fts = trackInfo["3"][i].toString();
-         if (fts.charAt(0) == '0')
-            fts = fts.slice(1, fts.length);
-         else if (fts.charAt(1) == '0')
-            fts = "-" + fts.slice(2, fts.length);
+   let max = Math.max(h1_max, h2_max, h3_max, h4_max);
+   let min = Math.min(h1_min, h2_min, h3_min, h4_min);
 
-         headset_3 += fts;
-         headset_3 += ",";
-      }
-   }
-    
-   if (trackInfo["4"] !== undefined)
-   {
-      headset_4 = "";
-      for (let i = 0; i < trackInfo["4"].length; i++)
-      {
-         var fts = trackInfo["4"][i].toString();
-         if (fts.charAt(0) == '0')
-            fts = fts.slice(1, fts.length);
-         else if (fts.charAt(1) == '0')
-            fts = "-" + fts.slice(2, fts.length);
+   let h1 = max.toString() + "," + min.toString() + "," + pack(trackInfo["1"].concat(trackInfo["2"].concat(trackInfo["3"].concat(trackInfo["4"]))), min, max);
 
-         headset_4 += fts;
-         headset_4 += ",";
-      }
-   }
-
-   var info = headset_1 + headset_2 + headset_3 + headset_4;
+   var info = h1;
 
    res.send(info);
 });

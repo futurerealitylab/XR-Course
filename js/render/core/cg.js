@@ -60,7 +60,7 @@
 
    // Unpack a packed array. The lo, hi range must match the lo, hi range of the corresponding call to pack().
 
-   let unpack = (string, lo, hi) => {
+   export let unpack = (string, lo, hi) => {
       if (lo === undefined) { lo = 0; hi = 1; } else if (hi === undefined) { hi = lo ; lo = 0; }
       let C = " !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~";
       let unpack = (a, b) => (C.indexOf(a) + C.indexOf(b) / 92) / 92;
