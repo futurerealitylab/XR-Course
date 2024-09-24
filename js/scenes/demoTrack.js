@@ -14,7 +14,6 @@ export const init = async model => {
 
       let info = trackInfo.split(",");
 
-      let info = JSON.parse(trackInfo);
       console.log(trackInfo);
 
       for (let i = 0; i < TRACK_ITEMS.length; i++) {
