@@ -11,7 +11,11 @@ export const init = async model => {
 
    model.animate(() => {
       server.track();
+
       let info = trackInfo.split(",");
+
+      let info = JSON.parse(trackInfo);
+      console.log(trackInfo);
 
       for (let i = 0; i < TRACK_ITEMS.length; i++) {
          let tq = [parseFloat(info[i*7]), parseFloat(info[i*7+1]), parseFloat(info[i*7+2]), parseFloat(info[i*7+3]), parseFloat(info[i*7+4]), parseFloat(info[i*7+5]), parseFloat(info[i*7+6])];
