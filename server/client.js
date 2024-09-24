@@ -77,18 +77,14 @@ function Server(wsPort) {
 
    this.track = () => {
       var request = new XMLHttpRequest();
-      request.open('POST', 'opti-track');
+      request.open('GET', 'track-info');
 
       request.onloadend = () => {
-         if (request.status >= 200 && request.status < 300) {
-            const info = request.responseText;
-            window.trackInfo = info;
-            this.broadcastGlobal('trackInfo');
-         }
-         else
-            console.log('error ' + request.status);
-         }
-
+         const info = request.responseText;
+         window.trackInfo = info;
+         this.broadcastGlobal('trackInfo');
+      }
+      
       var form = new FormData();
       request.send(form);
    }

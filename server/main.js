@@ -28,7 +28,10 @@ var qrdist = -1;
 var objinfo = {};
 
 var trackInfo = {};
-
+trackInfo["1"] = [0,0,0,0,0,0,0];
+trackInfo["2"] = [0,0,0,0,0,0,0];
+trackInfo["3"] = [0,0,0,0,0,0,0];
+trackInfo["4"] = [0,0,0,0,0,0,0];
 
 var app = express();
 var port = process.argv[2] || 8000;
@@ -131,28 +134,27 @@ let pack = (array, lo, hi) => {
 
 app.route("/opti-track-external").post(function (req, res) {
    trackInfo[req.body.id] = [req.body.x, req.body.y, req.body.z, req.body.qx, req.body.qy, req.body.qz, req.body.qw];
+   let infoArr = trackInfo["1"].concat(trackInfo["2"].concat(trackInfo["3"].concat(trackInfo["4"])));
+   let info = pack(infoArr, -2, 2);
+
+   try {
+      //    fs.writeFile(key, fields.value[0], function(err) {
+      fs.writeFile("track-info", info, function(err) {
+         if (err) {
+            console.log(err);
+         }
+         else {
+            //console.log("file written");
+         }
+      });
+   } catch(e) { console.log('FS.WRITEFILE ERROR'); }
+
    res.end();
 });
 
 app.route("/opti-track").post(function (req, res) {
-   let h1_max = Math.max(...trackInfo["1"]);
-   let h1_min = Math.min(...trackInfo["1"]);
-
-   let h2_max = Math.max(...trackInfo["2"]);
-   let h2_min = Math.min(...trackInfo["2"]);
-
-   let h3_max = Math.max(...trackInfo["3"]);
-   let h3_min = Math.min(...trackInfo["3"]);
-
-   let h4_max = Math.max(...trackInfo["4"]);
-   let h4_min = Math.min(...trackInfo["4"]);
-
-   let max = Math.max(h1_max, h2_max, h3_max, h4_max);
-   let min = Math.min(h1_min, h2_min, h3_min, h4_min);
-
-   let h1 = max.toString() + "," + min.toString() + "," + pack(trackInfo["1"].concat(trackInfo["2"].concat(trackInfo["3"].concat(trackInfo["4"]))), min, max);
-
-   var info = h1;
+   let infoArr = trackInfo["1"].concat(trackInfo["2"].concat(trackInfo["3"].concat(trackInfo["4"])));
+   let info = pack(infoArr, -1, 1);
 
    res.send(info);
 });
