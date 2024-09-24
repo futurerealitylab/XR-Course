@@ -12,11 +12,14 @@ export const init = async model => {
    model.animate(() => {
       server.track();
 
-      if (trackInfo.length == 0) return;
+      if (trackInfo.length == 0) {
+         console.log(window.timeStamp);
+         return;
+      }
 
       let info = cg.unpack(trackInfo, -2, 2);
 
-      console.log(info);
+      //console.log(info);
 
       for (let i = 0; i < TRACK_ITEMS.length; i++) {
          let tq = [parseFloat(info[i*7]), parseFloat(info[i*7+1]), parseFloat(info[i*7+2]), parseFloat(info[i*7+3]), parseFloat(info[i*7+4]), parseFloat(info[i*7+5]), parseFloat(info[i*7+6])];

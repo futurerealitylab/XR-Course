@@ -80,13 +80,15 @@ function Server(wsPort) {
       request.open('GET', 'track-info');
 
       request.onloadend = () => {
-         const info = request.responseText;
-         window.trackInfo = info;
-         this.broadcastGlobal('trackInfo');
+         try {
+            const info = request.responseText;
+            window.trackInfo = info;
+            this.broadcastGlobal('trackInfo');
+         }
+         catch (err) { console.log(err); }
       }
-      
-      var form = new FormData();
-      request.send(form);
+
+      request.send();
    }
 
    this.qrcode = () => {
