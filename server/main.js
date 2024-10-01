@@ -35,6 +35,8 @@ trackInfo["2"] = [0,0,0,0,0,0,0];
 trackInfo["3"] = [0,0,0,0,0,0,0];
 trackInfo["4"] = [0,0,0,0,0,0,0];
 
+var trackMessage = "";
+
 var app = express();
 var port = process.argv[2] || 8000;
 var wsPort = process.argv[3] || 22346;
@@ -157,9 +159,7 @@ app.route("/opti-track-external").post(function (req, res) {
 app.route("/opti-track").get(function (req, res) {
    let infoArr = trackInfo["1"].concat(trackInfo["2"].concat(trackInfo["3"].concat(trackInfo["4"])));
    let info = pack(infoArr, -1, 1);
-
-   let date = new Date();
-   res.send(date.valueOf().toString());
+   res.send(trackMessage);
 });
 
 app.route("/spawnPythonThread").post(function(req, res) {
@@ -386,10 +386,10 @@ server.listen(parseInt(port, 10), function() {
    let mode = process.argv[4] == 'https' ? 'HTTPS' : 'HTTP';
    console.log(mode + " server listening on port %d", server.address().port);
 
-   let pyshell = new PythonShell('test.py');
+   let pyshell = new PythonShell('test1.py');
     
    pyshell.on('message', function (message) {
-      console.log(message);
+      trackMessage = message;
    });
 
    pyshell.end(function (err, code, signal) {

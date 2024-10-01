@@ -13,7 +13,7 @@ def receive_new_frame(data_frame: DataFrame):
         info = {'id':body.id_num,
                 'x':body.pos[0],'y':body.pos[1],'z':body.pos[2],
                 'qx': body.rot[0], 'qy': body.rot[1], 'qz': body.rot[2], 'qw':body.rot[3]}
-        print(info)
+        print(str(time.time_ns() // 1000000))
 
 
 def receive_new_desc(desc: DataDescriptions):
