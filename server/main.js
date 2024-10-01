@@ -5,6 +5,8 @@ var fs = require("fs");
 var http = require("http");
 var path = require("path");
 
+const { PythonShell } = require('python-shell');
+
 // behave as a relay
 
 const holojam = require('holojam-node')(['relay']);
@@ -152,11 +154,12 @@ app.route("/opti-track-external").post(function (req, res) {
    res.end();
 });
 
-app.route("/opti-track").post(function (req, res) {
+app.route("/opti-track").get(function (req, res) {
    let infoArr = trackInfo["1"].concat(trackInfo["2"].concat(trackInfo["3"].concat(trackInfo["4"])));
    let info = pack(infoArr, -1, 1);
 
-   res.send(info);
+   let date = new Date();
+   res.send(date.valueOf().toString());
 });
 
 app.route("/spawnPythonThread").post(function(req, res) {
@@ -382,6 +385,19 @@ try {
 server.listen(parseInt(port, 10), function() {
    let mode = process.argv[4] == 'https' ? 'HTTPS' : 'HTTP';
    console.log(mode + " server listening on port %d", server.address().port);
+
+   let pyshell = new PythonShell('test.py');
+    
+   pyshell.on('message', function (message) {
+      console.log(message);
+   });
+
+   pyshell.end(function (err, code, signal) {
+      if (err) throw err;
+      console.log('The exit code was: ' + code);
+      console.log('The exit signal was: ' + signal);
+      console.log('finished');
+   });
 });
 
 /*
