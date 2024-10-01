@@ -5,15 +5,31 @@ from natnet_client import DataDescriptions, DataFrame, NatNetClient
 import requests
 import urllib.request
 
-
 def receive_new_frame(data_frame: DataFrame):
     global num_frames
     num_frames += 1
-    for body in data_frame.rigid_bodies:
-        info = {'id':body.id_num,
-                'x':body.pos[0],'y':body.pos[1],'z':body.pos[2],
-                'qx': body.rot[0], 'qy': body.rot[1], 'qz': body.rot[2], 'qw':body.rot[3]}
-        print(str(time.time_ns() // 1000000))
+    info = ""
+    for i in range(4):
+        info += str(body.pos[0])
+        info += ","
+        info += str(body.pos[1])
+        info += ","
+        info += str(body.pos[2])
+        info += ","
+        info += str(body.rot[0])
+        info += ","
+        info += str(body.rot[1])
+        info += ","
+        info += str(body.rot[2])
+        info += ","
+        info += str(body.rot[3])
+        info += ","
+    print(info)
+    #for body in data_frame.rigid_bodies:
+        #info = {'id':body.id_num,
+                #'x':body.pos[0],'y':body.pos[1],'z':body.pos[2],
+                #'qx': body.rot[0], 'qy': body.rot[1], 'qz': body.rot[2], 'qw':body.rot[3]}
+        #print(str(time.time_ns() // 1000000))
 
 
 def receive_new_desc(desc: DataDescriptions):
