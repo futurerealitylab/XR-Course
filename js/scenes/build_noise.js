@@ -8,16 +8,12 @@ window.bn = {
    J     : 0,
 }
 
-let dir = [];
-for (let n = 0 ; n < 25 ; n++)
-   dir.push(7 * n % 25);
-
-let y = 1.6, s = t => 1 - (3 - 2*Math.abs(t)) * t * t;
-let R = (x,z,i,j) => .5 * (C[5*(j+2)+(i+2)] * x + S[5*(j+2)+(i+2)] * z);
+let s = t => 1 - (3 - 2*Math.abs(t)) * t * t;
+let R = (x,z,i,j) => C[5*(j+2)+(i+2)] * x + S[5*(j+2)+(i+2)] * z;
 let C = [], S = [];
 for (let i = -2 ; i <= 2 ; i++)
 for (let j = -2 ; j <= 2 ; j++) {
-   let theta = 2 * Math.PI * dir[5*(j+2) + (i+2)] / 25;
+   let theta = 100*Math.sin(456*i+100*Math.sin(456*j));
    C.push(Math.cos(theta));
    S.push(Math.sin(theta));
 }
@@ -25,7 +21,7 @@ for (let j = -2 ; j <= 2 ; j++) {
 export const init = async model => {
    let handleInput = p => {
       bn.active = Math.abs(p[0]) < .25 && Math.abs(p[2]) < .25;
-      bn.above  = p[1] > y;
+      bn.above  = p[1] > 1.4;
       if (bn.active) {
          bn.I = (4 * p[0] + 1.5 >> 0) - 1;
          bn.J = (4 * p[2] + 1.5 >> 0) - 1;
@@ -39,29 +35,8 @@ export const init = async model => {
       server.broadcastGlobal('bn');
    }
 
-   let diagram = new Diagram(model, [0,y,0], .5, draw => {
+   let diagram = new Diagram(model, [0,1.4,0], .5, draw => {
       draw.outlineCanvas(false);
-
-      draw.save();
-         draw.move(0,.95,0);
-         draw.scale(.05);
-         draw.text({ color: [1,1,1], text: 'Building 2D noise' });
-	 if (bn.active) {
-            draw.scale(.7);
-	    draw.move(0,-3,0);
-            if (bn.above) {
-               draw.text({ color: [0,.25,1], text: 'kernel' });
-	       draw.move(0,-1,0);
-               draw.text({ color: [.5,0,1], text: '×' });
-	       draw.move(0,-1,0);
-               draw.text({ color: [1,0,0], text: 'linear' });
-	    }
-	    else {
-               draw.text({ color: [.5,0,1], text: 'kernel × linear → wavelet' });
-	    }
-	 }
-      draw.restore();
-
       let drawGrid = (n,rgb,X,Z,s,f) => {
          for (let i = 0 ; i <= n ; i++) {
             let x = 2 * i/n - 1;
@@ -100,4 +75,3 @@ export const init = async model => {
       diagram.update();
    });
 }
-
