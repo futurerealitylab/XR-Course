@@ -77,7 +77,7 @@ function Server(wsPort) {
 
    this.track = () => {
       var request = new XMLHttpRequest();
-      request.open('GET', 'track-info');
+      request.open('GET', 'opti-track');
 
       request.onloadend = () => {
          try {
