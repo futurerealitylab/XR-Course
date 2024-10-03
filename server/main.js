@@ -136,29 +136,16 @@ let pack = (array, lo, hi) => {
    return s;
 }
 
-app.route("/opti-track-external").post(function (req, res) {
-   trackInfo[req.body.id] = [req.body.x, req.body.y, req.body.z, req.body.qx, req.body.qy, req.body.qz, req.body.qw];
-   let infoArr = trackInfo["1"].concat(trackInfo["2"].concat(trackInfo["3"].concat(trackInfo["4"])));
-   let info = pack(infoArr, -2, 2);
-
-   try {
-      //    fs.writeFile(key, fields.value[0], function(err) {
-      fs.writeFile("track-info", info, function(err) {
-         if (err) {
-            console.log(err);
-         }
-         else {
-            //console.log("file written");
-         }
-      });
-   } catch(e) { console.log('FS.WRITEFILE ERROR'); }
+app.route("/opti-track-external").put(function (req, res) {
+   req.on('data', d => {
+      trackMessage = d.toString('utf8');
+      console.log(trackMessage);
+   });
 
    res.end();
 });
 
 app.route("/opti-track").get(function (req, res) {
-   let infoArr = trackInfo["1"].concat(trackInfo["2"].concat(trackInfo["3"].concat(trackInfo["4"])));
-   let info = pack(infoArr, -1, 1);
    res.send(trackMessage);
 });
 
@@ -386,7 +373,7 @@ server.listen(parseInt(port, 10), function() {
    let mode = process.argv[4] == 'https' ? 'HTTPS' : 'HTTP';
    console.log(mode + " server listening on port %d", server.address().port);
 
-   let pyshell = new PythonShell('test1.py');
+   /*let pyshell = new PythonShell('test.py');
     
    pyshell.on('message', function (message) {
       trackMessage = message;
@@ -397,7 +384,20 @@ server.listen(parseInt(port, 10), function() {
       console.log('The exit code was: ' + code);
       console.log('The exit signal was: ' + signal);
       console.log('finished');
-   });
+   });*/
+});
+
+const io = require("socket.io")(server);
+
+io.on('connection', (socket) => {
+	console.log("Got connection!");
+	
+	socket.on('Event', (data) => {
+		console.log("Received test Event " + data);
+	});
+	
+	soc = socket;
+	socket.emit("Event", "Sending");
 });
 
 /*

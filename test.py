@@ -8,23 +8,25 @@ import urllib.request
 def receive_new_frame(data_frame: DataFrame):
     global num_frames
     num_frames += 1
+    #if len(data_frame.rigid_bodies) != 4:
+    #    return
     info = ""
     for i in range(4):
-        info += str(body.pos[0])
+        info += str(data_frame.rigid_bodies[i].pos[0])
         info += ","
-        info += str(body.pos[1])
+        info += str(data_frame.rigid_bodies[i].pos[1])
         info += ","
-        info += str(body.pos[2])
+        info += str(data_frame.rigid_bodies[i].pos[2])
         info += ","
-        info += str(body.rot[0])
+        info += str(data_frame.rigid_bodies[i].rot[0])
         info += ","
-        info += str(body.rot[1])
+        info += str(data_frame.rigid_bodies[i].rot[1])
         info += ","
-        info += str(body.rot[2])
+        info += str(data_frame.rigid_bodies[i].rot[2])
         info += ","
-        info += str(body.rot[3])
+        info += str(data_frame.rigid_bodies[i].rot[3])
         info += ","
-    print(info)
+    print(data_frame.rigid_bodies[0].pos[0])
     #for body in data_frame.rigid_bodies:
         #info = {'id':body.id_num,
                 #'x':body.pos[0],'y':body.pos[1],'z':body.pos[2],
