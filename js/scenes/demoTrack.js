@@ -13,7 +13,7 @@ export const init = async model => {
       server.track();
       console.log(trackInfo);
 
-      /*if (trackInfo.length == 0) {
+      if (trackInfo.length == 0) {
          console.log(window.timeStamp);
          return;
       }
@@ -29,7 +29,7 @@ export const init = async model => {
          m[13] = tq[1];
          m[14] = tq[2];
          obj[i].setMatrix(m).scale(.1);      
-      }*/
+      }
       let date = new Date();
       console.log(date.valueOf());
    });
