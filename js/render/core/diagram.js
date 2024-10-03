@@ -42,9 +42,13 @@ export function Diagram(model, center, size, callback) {
    // THE CANVAS NEEDS TO BE SCALED LARGE ENOUGH TO HOLD A 2x2x2 CUBE AT ANY ORIENTATION.
 
    this.update = () => {
-      for (let view = 0 ; view < 2 ; view++)
+      for (let view = 0 ; view < 2 ; view++) {
          obj[view].setMatrix(createBeamMatrix(center,center))
-	          .scale(size,size,.00013);
+                  .scale(size,size,.00013);
+      
+         // Force a redraw by calling the texture function directly, otherwise we should make sure everything is well-initialized at the start.
+         draw(view);
+      }
    }
 
    // PROJECT A 3D POINT ONTO THE CANVAS, AS SEEN FROM THE USER'S (LEFT OR RIGHT) EYE.
