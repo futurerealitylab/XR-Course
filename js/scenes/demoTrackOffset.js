@@ -28,10 +28,11 @@ export const init = async model => {
       let R_real = cg.mFromQuaternion(R_real_quat);
 
       // Step 2: Get user's pose from XR headset
-      let headsetPose = {
-         position: [headPose[12], headPose[13], headPose[14]],
-         orientation: cg.quatFromMatrix(headPose)
-      };
+      let headsetPose = model.getHeadsetPose();
+      if (!headsetPose) {
+         console.log("Headset pose not available");
+         return;
+      }
       let P_xr = headsetPose.position;
       let R_xr = cg.mFromQuaternion(headsetPose.orientation);
 

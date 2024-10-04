@@ -3802,7 +3802,7 @@ function Node(_form) {
 	    for (let i = 0 ; i < 32 ; i++) {
 	       tri(0,2+(i+1)%32,2+i);
 	       tri(1,2+i,2+(i+1)%32);
-            }
+	    }
             n += 34;
 	    break;
 	 case 'pyramidY':
@@ -3815,7 +3815,7 @@ function Node(_form) {
 	    for (let i = 0 ; i < 4 ; i++) {
 	       tri(0,2+(i+1)%4,2+i);
 	       tri(1,2+i,2+(i+1)%4);
-            }
+	    }
             n += 6;
 	    break;
          default:
@@ -4456,6 +4456,20 @@ function Node(_form) {
          "matrix": this.getGlobalMatrix(),
       }
       return json;
+   }
+
+   this.getHeadsetPose = () => {
+      if (this.pose && this.pose.transform) {
+         return {
+            position: [
+               this.pose.transform.position.x,
+               this.pose.transform.position.y,
+               this.pose.transform.position.z
+            ],
+            orientation: this.pose.transform.orientation
+         };
+      }
+      return null;
    }
 }
 
