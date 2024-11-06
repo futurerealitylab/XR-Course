@@ -42,10 +42,11 @@ if (! window.audioContext) {
                          .catch(err => console.log('error:', err));
 }
 
+window.tabletopStates = {};
+
 export const init = async model => {
    server.neverLoadOrSave();
    console.log('running init');
-   const tabletopStates = {};
    document.getElementById('active-demo').innerHTML = "Tabletop demo active";
    const onConnection = (dataConnection) => {
       window.conns[dataConnection.peer] = {
@@ -489,6 +490,7 @@ export const init = async model => {
 */
       const wizardId = window['peers']?.wizardId;
       if (window.peer.open) {
+
          if (wizardId && !window.wizardConn) {
             const conn = window.peer.connect(wizardId);
             console.log('connecting to wizard: ', wizardId);
@@ -521,7 +523,7 @@ export const init = async model => {
             })
          }
       }
-      
+
 
       // SUPPRESS ALL BILLBOARDS OF OTHER USERS
 
@@ -554,6 +556,7 @@ export const init = async model => {
          removeObject(i);
 
       let focus = tabletopStates.focus ? tabletopStates.focus[clientID] : null;
+
       if (tabletopStates.objects)
          for (let id in tabletopStates.objects)
             buildObject(id, tabletopStates.objects[id], focus);
