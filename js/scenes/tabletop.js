@@ -384,7 +384,8 @@ export const init = async model => {
    inputEvents.onPress   = hand => sendEvent(hand, HP[hand] = inputEvents.pos(hand), 'press'  );
    inputEvents.onDrag    = hand => sendEvent(hand, HP[hand] = inputEvents.pos(hand), 'drag'   );
    inputEvents.onRelease = hand => sendEvent(hand, HP[hand] = inputEvents.pos(hand), 'release');
-
+   inputEvents.onDoublePress   = hand => sendEvent(hand, HP[hand] = inputEvents.pos(hand), 'doublepress'  );
+   
    // REMOVE A VIEWABLE 3D OBJECT
 
    let removeObject = id => {

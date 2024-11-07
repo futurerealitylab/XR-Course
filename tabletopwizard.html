@@ -94,6 +94,11 @@
                else
                   drawingPress(client, part);
                break;
+            case 'doublepress':
+               state['isDoublePressed' + part] = true;
+               let foundObj = findAt(state[part]);
+               objects[foundObj.id].color = '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');;
+               break;
             case 'drag':                                  // DRAG AN OBJECT TO MOVE IT.
                if (state[part]) {
 

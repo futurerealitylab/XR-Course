@@ -13,14 +13,15 @@ export function InputEvents() {
    this.onPress   = hand => { if (isDebug) console.log('onPress', hand); }
    this.onDrag    = (hand, elapsed) => { if (isDebug) console.log('onDrag'   , hand, elapsed); }
    this.onRelease = (hand, elapsed) => { if (isDebug) console.log('onRelease', hand, elapsed); }
+   this.onDoublePress = hand => { if (isDebug) console.log('onDoublePress', hand); }
 
    let pinchUp     = { left: 100, right: 100 };
    let altPinchUp  = { left: 100, right: 100 };
 
    // pressTime IS TIME SINCE ONSET OF PRESS. -1 INDICATES NOT PRESSING.
 
-   let handInfo = { left : { pressTime: -1, pressPos: [], altPressTime: -1 },
-                    right: { pressTime: -1, pressPos: [], altPressTime: -1 } };
+   let handInfo = { left : { pressTime: -1, pressPos: [], altPressTime: -1, lastPressTime: 0 },
+                    right: { pressTime: -1, pressPos: [], altPressTime: -1, lastPressTime: 0 } };
 
    this.isPressed = hand => handInfo[hand].pressTime > 0;
 
@@ -34,7 +35,12 @@ export function InputEvents() {
 
    this.update = () => {
       let press = hand => {
-         handInfo[hand].pressTime = now();
+         let currentTime = now();
+         if (currentTime - handInfo[hand].lastPressTime < 0.3) {  // Double press detected if within 0.3 seconds
+            this.onDoublePress(hand);
+         }
+         handInfo[hand].lastPressTime = currentTime;
+         handInfo[hand].pressTime = currentTime;
          handInfo[hand].pressPos = pos[hand];
          this.onPress(hand);
       }
@@ -62,14 +68,14 @@ export function InputEvents() {
       for (let i = 0 ; i < eventTypes.length ; i++)
          switch (eventTypes[i]) {
 
-	    // PRESSING TRIGGERS
+            // PRESSING TRIGGERS
 
             case 'L0_press'  : press('left'); break;
             case 'R0_press'  : press('right'); break;
             case 'L0_release': release('left'); break;
             case 'R0_release': release('right'); break;
 
-	    // PRESSING JOYSTICKS
+            // PRESSING JOYSTICKS
 
             case 'L3_press'  : altPress('left'); break;
             case 'R3_press'  : altPress('right'); break;
@@ -94,8 +100,8 @@ export function InputEvents() {
          altPressed = true;
          let T = isAltL ? pos.left : pos.right;
          if (P)
-	    for (let i = 0 ; i < 3 ; i++)
-	       worldCoords[12+i] += Math.max(-0.05, Math.min(T[i] - P[i], 0.05));
+            for (let i = 0 ; i < 3 ; i++)
+               worldCoords[12+i] += Math.max(-0.05, Math.min(T[i] - P[i], 0.05));
          P = T.slice();
          clay.root().setMatrix(worldCoords);
          global.gltfRoot.matrix = worldCoords;
@@ -110,15 +116,15 @@ export function InputEvents() {
          let L = pos.left;
          let R = pos.right;
          let X = cg.subtract(R, L);
-	     if (isFlipped)
-	       X = cg.scale(X, -1);
+         if (isFlipped)
+            X = cg.scale(X, -1);
          X = cg.normalize([ X[0], 0, X[2] ]);
          let Z = cg.cross(X, [0,1,0]);
          let T = cg.mix(L, R, .5);
-	 let wy = worldCoords[13];
+         let wy = worldCoords[13];
          worldCoords = [ X[0],X[1],X[2],0, 0,1,0,0, Z[0],Z[1],Z[2],0, T[0],wy,T[2],1 ];
-	 if (y !== undefined)
-	    worldCoords[13] += Math.max(-0.05, Math.min(T[1] - y, 0.05));
+         if (y !== undefined)
+            worldCoords[13] += Math.max(-0.05, Math.min(T[1] - y, 0.05));
          y = T[1];
          clay.root().setMatrix(worldCoords);
          global.gltfRoot.matrix = worldCoords;
@@ -131,12 +137,12 @@ export function InputEvents() {
       if (!isAltL && !isAltR) {
          if (altPressed) {
             altPressed = false;
-              sync.setOriginPos(worldCoords);
+            sync.setOriginPos(worldCoords);
          }
 
          timestep += 1;
          if (timestep % 20 == 0) {
-             sync.syncBound();
+            sync.syncBound();
          }
 
          clay.root().setMatrix(worldCoords);
@@ -144,8 +150,6 @@ export function InputEvents() {
          inverseWorldCoords = cg.mInverse(worldCoords);
          clay.inverseRootMatrix = inverseWorldCoords;
       }
-
-      //console.log(worldCoords);
    }
 
    let P, y, pos = {};
@@ -155,4 +159,3 @@ export function InputEvents() {
 }
 
 window.worldCoords = cg.mIdentity();
-
