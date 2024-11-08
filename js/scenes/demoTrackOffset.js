@@ -57,22 +57,11 @@ export const init = async model => {
       M_xr[13] = P_xr[1];
       M_xr[14] = P_xr[2];
 
-      // Try these modifications one at a time:
+      let M_xr_inv = cg.mInverse(M_xr);
+      let T = cg.mMultiply(M_xr_inv, M_real);
 
-      // Option 1: Reverse multiplication order
-      let M_real_inv = cg.mInverse(M_real);
-      let T = cg.mMultiply(M_real_inv, M_xr);
-
-      
-      // let M_xr_inv = cg.mInverse(M_xr);
-      // let T = cg.mMultiply(M_real, M_xr_inv);
-
-      // Option 3: Invert final transformation
-      // let T = cg.mInverse(cg.mMultiply(M_xr, M_real_inv));
-
-      console.log('Real Matrix:', M_real);
-      console.log('XR Matrix:', M_xr);
-      console.log('Final Transform:', T);
+      // Step 4: Apply the transformation to the XR world
+      //model.setMatrix(T);
 
       clay.root().setMatrix(T);
       global.gltfRoot.matrix = T;
