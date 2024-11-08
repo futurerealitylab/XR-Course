@@ -24,8 +24,8 @@ export const init = async model => {
       for (let i = 0; i < 7; i++) {
          tq.push(parseFloat(info[i]));
       }
-      let P_real = [tq[0], tq[1], tq[2]];
-      let R_real_quat = { x: tq[3], y: tq[4], z: tq[5], w: tq[6] };
+      let P_real = [tq[7], tq[8], tq[9]];
+      let R_real_quat = { x: tq[10], y: tq[11], z: tq[12], w: tq[13] };
       let R_real = cg.mFromQuaternion(R_real_quat);
 
       // Step 2: Get user's pose from XR headset
