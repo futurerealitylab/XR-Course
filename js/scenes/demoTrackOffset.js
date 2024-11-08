@@ -33,6 +33,16 @@ export const init = async model => {
       let R_xr = headMatrix.slice(); // Copy the rotation part of the matrix
       R_xr[12] = R_xr[13] = R_xr[14] = 0; // Clear translation components
 
+      // Debug logs
+      console.log('Head Matrix:', headMatrix);
+      console.log('XR Position:', P_xr);
+      console.log('XR Rotation Matrix:', R_xr);
+
+      // You can also check the individual components
+      console.log('XR Position - X:', P_xr[0].toFixed(3), 
+                              'Y:', P_xr[1].toFixed(3), 
+                              'Z:', P_xr[2].toFixed(3));
+
       // Step 3: Compute the offset transformation
       let M_real = cg.mIdentity();
       M_real = cg.mMultiply(M_real, R_real);
