@@ -52,10 +52,16 @@ export const init = async model => {
       // M_real[14] = P_real[2];
 
       let T = cg.mIdentity();
+      // the rotatt
+      let R_xr_Inv = cg.mInverse(R_xr);
+      T = cg.mMultiply(R_xr_Inv, R_real);
+      
       T[12] = P_real[0] - P_xr[0];
       T[13] = P_real[1] - P_xr[1];
       T[14] = P_real[2] - P_xr[2];
+
       
+
 
       // let M_xr = cg.mIdentity();
       // M_xr = cg.mMultiply(M_xr, R_xr);
