@@ -21,7 +21,7 @@ export const init = async model => {
       // Step 1: Get user's pose from Optitrack
       let info = cg.unpack(trackInfo, -2, 2);
       let tq = [];
-      for (let i = 0; i < 7; i++) {
+      for (let i = 0; i < 28; i++) {
          tq.push(parseFloat(info[i]));
       }
       let P_real = [tq[7], tq[8], tq[9]];
