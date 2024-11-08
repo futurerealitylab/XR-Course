@@ -53,7 +53,12 @@ export const init = async model => {
       let T = cg.mMultiply(M_real, M_xr_inv);
 
       // Step 4: Apply the transformation to the XR world
-      model.setMatrix(T);
+      //model.setMatrix(T);
+
+      clay.root().setMatrix(T);
+      global.gltfRoot.matrix = T;
+      let inverseT = cg.mInverse(T);
+      clay.inverseRootMatrix = inverseT;
 
       // Transform the objects according to Optitrack data
       for (let i = 0; i < TRACK_ITEMS.length; i++) {
