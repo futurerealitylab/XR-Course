@@ -1,9 +1,8 @@
-// DEMONSTRATION OF ALIGNING THE XR WORLD WITH THE REAL WORLD USING OPTITRACK DATA
-
-import * as cg from "../render/core/cg.js";
+// DEMONSTRATION OF GETTING RIGID BODY INFO FROM THE OPTITRACK
 import * as global from "../global.js";
+import * as cg from "../render/core/cg.js";
 
-let TRACK_ITEMS = ["1","2","3","4"];
+let TRACK_ITEMS = ["1","2","3","4","5"];
 
 export const init = async model => {
    let obj = [];
@@ -12,90 +11,35 @@ export const init = async model => {
 
    model.animate(() => {
       server.track();
+      console.log(trackInfo);
 
       if (trackInfo.length == 0) {
          console.log(window.timeStamp);
          return;
       }
 
-      // Step 1: Get user's pose from Optitrack
       let info = cg.unpack(trackInfo, -2, 2);
-      let tq = [];
-      for (let i = 0; i < 28; i++) {
-         tq.push(parseFloat(info[i]));
-      }
-      let P_real = [tq[14], tq[15], tq[16]];
-      let R_real_quat = { x: tq[17], y: tq[18], z: tq[19], w: tq[20] };
-      let R_real = cg.mFromQuaternion(R_real_quat);
 
-      // Step 2: Get user's pose from XR headset
-      let headMatrix = cg.mMultiply(clay.inverseRootMatrix, clay.root().inverseViewMatrix(0));
-      let P_xr = headMatrix.slice(12, 15); // Extract position from matrix
-      let R_xr = headMatrix.slice(); // Copy the rotation part of the matrix
-      R_xr[12] = R_xr[13] = R_xr[14] = 0; // Clear translation components
+      //console.log(info);
 
-      // Debug logs
-      console.log('Head Matrix:', headMatrix);
-      console.log('XR Position:', P_xr);
-      console.log('XR Rotation Matrix:', R_xr);
-
-      // You can also check the individual components
-      console.log('XR Position - X:', P_xr[0].toFixed(3), 
-                              'Y:', P_xr[1].toFixed(3), 
-                              'Z:', P_xr[2].toFixed(3));
-
-      // Step 3: Compute the offset transformation
-      // let M_real = cg.mIdentity();
-      // M_real = cg.mMultiply(M_real, R_real);
-      // M_real[12] = P_real[0];
-      // M_real[13] = P_real[1];
-      // M_real[14] = P_real[2];
-
-      let T = cg.mIdentity();
-      // the rotatt
-      //let R_xr_Inv = cg.mInverse(R_xr);
-      let R_real_Inv = cg.mInverse(R_real);
-      // T = cg.mMultiply(R_xr_Inv, R_real);
-      T = cg.mMultiply(R_xr, R_real_Inv);
-      
-      T[12] = P_real[0] - P_xr[0];
-      T[13] = P_real[1] - P_xr[1];
-      T[14] = P_real[2] - P_xr[2];
-
-      // let M_xr = cg.mIdentity();
-      // M_xr = cg.mMultiply(M_xr, R_xr);
-      // M_xr[12] = P_xr[0];
-      // M_xr[13] = P_xr[1];
-      // M_xr[14] = P_xr[2];
-
-      // let M_xr_inv = cg.mInverse(M_xr);
-      // let T = cg.mMultiply(M_xr_inv, M_real);
-
-      // Step 4: Apply the transformation to the XR world
-      //model.setMatrix(T);
-
-      clay.root().setMatrix(T);
-      global.gltfRoot.matrix = T;
-      let inverseT = cg.mInverse(T);
-      clay.inverseRootMatrix = inverseT;
-
-      // Transform the objects according to Optitrack data
       for (let i = 0; i < TRACK_ITEMS.length; i++) {
-         let index = i * 7;
-         let tq = [
-            parseFloat(info[index]),
-            parseFloat(info[index+1]),
-            parseFloat(info[index+2]),
-            parseFloat(info[index+3]),
-            parseFloat(info[index+4]),
-            parseFloat(info[index+5]),
-            parseFloat(info[index+6])
-         ];
+         let tq = [parseFloat(info[i*7]), parseFloat(info[i*7+1]), parseFloat(info[i*7+2]), parseFloat(info[i*7+3]), parseFloat(info[i*7+4]), parseFloat(info[i*7+5]), parseFloat(info[i*7+6])];
          let m = cg.mFromQuaternion({ x:tq[3], y:tq[4], z:tq[5], w:tq[6] });
          m[12] = tq[0];
          m[13] = tq[1];
          m[14] = tq[2];
          obj[i].setMatrix(m).scale(.1);      
       }
+      //let date = new Date();
+      //console.log(date.valueOf());
+      let q = [parseFloat(info[28]), parseFloat(info[29]), parseFloat(info[30]), parseFloat(info[31]), parseFloat(info[32]), parseFloat(info[33]), parseFloat(info[34])];
+      let T = cg.mFromQuaternion({ x:q[3], y:q[4], z:q[5], w:q[6] });
+      T[12] = q[0];
+      T[13] = q[1];
+      T[14] = q[2];
+      clay.root().setMatrix(T);
+      global.gltfRoot.matrix = T;
+      inverseWorldCoords = cg.mInverse(T);
+      clay.inverseRootMatrix = inverseWorldCoords;
    });
 }
