@@ -56,7 +56,7 @@ export const init = async model => {
       //let R_xr_Inv = cg.mInverse(R_xr);
       let R_real_Inv = cg.mInverse(R_real);
       // T = cg.mMultiply(R_xr_Inv, R_real);
-      T = cg.mMultiply(R_real_Inv, R_xr);
+      T = cg.mMultiply(R_xr, R_real_Inv);
       
       T[12] = P_real[0] - P_xr[0];
       T[13] = P_real[1] - P_xr[1];
