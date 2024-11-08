@@ -28,13 +28,10 @@ export const init = async model => {
       let R_real = cg.mFromQuaternion(R_real_quat);
 
       // Step 2: Get user's pose from XR headset
-      let headsetPose = model.getHeadsetPose();
-      if (!headsetPose) {
-         console.log("Headset pose not available");
-         return;
-      }
-      let P_xr = headsetPose.position;
-      let R_xr = cg.mFromQuaternion(headsetPose.orientation);
+      let headMatrix = cg.mMultiply(clay.inverseRootMatrix, clay.root().inverseViewMatrix(0));
+      let P_xr = headMatrix.slice(12, 15); // Extract position from matrix
+      let R_xr = headMatrix.slice(); // Copy the rotation part of the matrix
+      R_xr[12] = R_xr[13] = R_xr[14] = 0; // Clear translation components
 
       // Step 3: Compute the offset transformation
       let M_real = cg.mIdentity();
