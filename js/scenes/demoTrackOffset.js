@@ -1,5 +1,5 @@
 // DEMONSTRATION OF GETTING RIGID BODY INFO FROM THE OPTITRACK
-import * as global from "../../global.js";
+import * as global from "../global.js";
 import * as cg from "../render/core/cg.js";
 
 let TRACK_ITEMS = ["1","2","3","4","5"];
