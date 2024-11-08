@@ -1,6 +1,7 @@
 // DEMONSTRATION OF ALIGNING THE XR WORLD WITH THE REAL WORLD USING OPTITRACK DATA
 
 import * as cg from "../render/core/cg.js";
+import * as global from "../global.js";
 
 let TRACK_ITEMS = ["1","2","3","4"];
 
