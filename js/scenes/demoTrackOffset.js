@@ -45,20 +45,26 @@ export const init = async model => {
                               'Z:', P_xr[2].toFixed(3));
 
       // Step 3: Compute the offset transformation
-      let M_real = cg.mIdentity();
-      M_real = cg.mMultiply(M_real, R_real);
-      M_real[12] = P_real[0];
-      M_real[13] = P_real[1];
-      M_real[14] = P_real[2];
+      // let M_real = cg.mIdentity();
+      // M_real = cg.mMultiply(M_real, R_real);
+      // M_real[12] = P_real[0];
+      // M_real[13] = P_real[1];
+      // M_real[14] = P_real[2];
 
-      let M_xr = cg.mIdentity();
-      M_xr = cg.mMultiply(M_xr, R_xr);
-      M_xr[12] = P_xr[0];
-      M_xr[13] = P_xr[1];
-      M_xr[14] = P_xr[2];
+      let T = cg.mIdentity();
+      T[12] = P_real[0] - P_xr[0];
+      T[13] = P_real[1] - P_xr[1];
+      T[14] = P_real[2] - P_xr[2];
+      
 
-      let M_xr_inv = cg.mInverse(M_xr);
-      let T = cg.mMultiply(M_xr_inv, M_real);
+      // let M_xr = cg.mIdentity();
+      // M_xr = cg.mMultiply(M_xr, R_xr);
+      // M_xr[12] = P_xr[0];
+      // M_xr[13] = P_xr[1];
+      // M_xr[14] = P_xr[2];
+
+      // let M_xr_inv = cg.mInverse(M_xr);
+      // let T = cg.mMultiply(M_xr_inv, M_real);
 
       // Step 4: Apply the transformation to the XR world
       //model.setMatrix(T);
