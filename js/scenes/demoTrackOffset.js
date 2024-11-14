@@ -2,7 +2,7 @@
 import * as global from "../global.js";
 import * as cg from "../render/core/cg.js";
 
-let TRACK_ITEMS = ["1","2","3","4","5"];
+let TRACK_ITEMS = ["1","2","3","4"];
 
 export const init = async model => {
    let obj = [];
@@ -11,7 +11,6 @@ export const init = async model => {
 
    model.animate(() => {
       server.track();
-      console.log(trackInfo);
 
       if (trackInfo.length == 0) {
          console.log(window.timeStamp);
@@ -22,24 +21,21 @@ export const init = async model => {
 
       //console.log(info);
 
-      for (let i = 0; i < TRACK_ITEMS.length; i++) {
-         let tq = [parseFloat(info[i*7]), parseFloat(info[i*7+1]), parseFloat(info[i*7+2]), parseFloat(info[i*7+3]), parseFloat(info[i*7+4]), parseFloat(info[i*7+5]), parseFloat(info[i*7+6])];
-         let m = cg.mFromQuaternion({ x:tq[3], y:tq[4], z:tq[5], w:tq[6] });
-         m[12] = tq[0];
-         m[13] = tq[1];
-         m[14] = tq[2];
-         obj[i].setMatrix(m).scale(.1);      
-      }
-      //let date = new Date();
-      //console.log(date.valueOf());
-      let q = [parseFloat(info[28]), parseFloat(info[29]), parseFloat(info[30]), parseFloat(info[31]), parseFloat(info[32]), parseFloat(info[33]), parseFloat(info[34])];
+      let q = [parseFloat(info[0]), parseFloat(info[1]), parseFloat(info[2]), parseFloat(info[3]), parseFloat(info[4]), parseFloat(info[5]), parseFloat(info[6])];
       let T = cg.mFromQuaternion({ x:q[3], y:q[4], z:q[5], w:q[6] });
-      T[12] = q[0];
-      T[13] = q[1];
-      T[14] = q[2];
-      clay.root().setMatrix(T);
-      global.gltfRoot.matrix = T;
-      inverseWorldCoords = cg.mInverse(T);
+      
+      let headMatrix = cg.mMultiply(clay.inverseRootMatrix,
+                                    cg.mix(clay.root().inverseViewMatrix(0),
+                                           clay.root().inverseViewMatrix(1), .5));
+
+      let worldCoords = cg.mMultiply(T, cg.mInverse(headMatrix));
+      worldCoords[12] = P_xr[0];
+      worldCoords[13] = P_xr[1];
+      worldCoords[14] = P_xr[2];
+
+      clay.root().setMatrix(worldCoords);
+      global.gltfRoot.matrix = worldCoords;
+      inverseWorldCoords = cg.mInverse(worldCoords);
       clay.inverseRootMatrix = inverseWorldCoords;
    });
 }
