@@ -29,13 +29,21 @@ export const init = async model => {
                                            clay.root().inverseViewMatrix(1), .5));
 
       let worldCoords = cg.mMultiply(T, cg.mInverse(headMatrix));
-      worldCoords[12] = P_xr[0];
-      worldCoords[13] = P_xr[1];
-      worldCoords[14] = P_xr[2];
+      worldCoords[12] = headMatrix[12] - T[0];
+      worldCoords[13] = headMatrix[13] - T[1];
+      worldCoords[14] = headMatrix[14] - T[2];
+      
+      let test1 = q[0] * q[0] + q[1] * q[1] + q[2] * q[2];
+      let x = global.gltfRoot.matrix[12];
+      let y = global.gltfRoot.matrix[13];
+      let z = global.gltfRoot.matrix[14];
+      let test2 = (headMatrix[12] - x) * (headMatrix[12] - x) + (headMatrix[13] - y) * (headMatrix[13] - y) + (headMatrix[14] - z) * (headMatrix[14] - z);
+      console.log(test2);
+      console.log(test1);
 
-      clay.root().setMatrix(worldCoords);
+      /*clay.root().setMatrix(worldCoords);
       global.gltfRoot.matrix = worldCoords;
-      inverseWorldCoords = cg.mInverse(worldCoords);
-      clay.inverseRootMatrix = inverseWorldCoords;
+      let inverseWorldCoords = cg.mInverse(worldCoords);
+      clay.inverseRootMatrix = inverseWorldCoords;*/
    });
 }
