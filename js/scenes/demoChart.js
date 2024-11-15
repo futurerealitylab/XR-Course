@@ -13,10 +13,10 @@ function preloadSounds() {
         loadSound('../../media/sound/SFXs/demoChart/SFX_Chart_Hologram_Mono_LP_01.wav', buffer => chartSoundBuffer = buffer)
     ])
     .then(() => {
-        console.log('All sounds loaded successfully');
+        //console.log('All sounds loaded successfully');
     })
     .catch(error => {
-        console.error('An error occurred while loading sounds:', error);
+        //console.error('An error occurred while loading sounds:', error);
     });
 }
 

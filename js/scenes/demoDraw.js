@@ -19,10 +19,10 @@ function preloadSounds() {
 
     ])
     .then(() => {
-        console.log('All sounds loaded successfully');
+        //console.log('All sounds loaded successfully');
     })
     .catch(error => {
-        console.error('An error occurred while loading sounds:', error);
+        //console.error('An error occurred while loading sounds:', error);
     });
 }
 
@@ -295,7 +295,7 @@ export const init = async model => {
    }
 
    model.animate(() => {
-      console.log(strokes.length);
+      //console.log(strokes.length);
       if (isDrawing) {
          let curves = [];
 	 for (let n = 0 ; n < strokes.length ; n++)

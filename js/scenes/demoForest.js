@@ -26,10 +26,10 @@ function preloadSounds() {
         loadSound('../../media/sound/SFXs/demoForest/SFX_Forest_Bird_Mono_04.wav', buffer => birdSoundBuffer_04 = buffer)
     ])
     .then(() => {
-        console.log('All sounds loaded successfully');
+        //console.log('All sounds loaded successfully');
     })
     .catch(error => {
-        console.error('An error occurred while loading sounds:', error);
+        //console.error('An error occurred while loading sounds:', error);
     });
 }
 
@@ -123,12 +123,10 @@ export const init = async model => {
                      playSoundAtPosition(deleteSoundBuffer, [objPos[12], objPos[13], objPos[14]]);
                      stopLoopingSound();
                      model.remove(emptyObj);
-                     console.log('delete bird sound');
+                     //console.log('delete bird sound');
                      if (counter > 0)
                      {
                         counter = counter - 1;
-                        console.log('counter');
-                        console.log(counter);
                      }
 
                   }
@@ -148,8 +146,6 @@ export const init = async model => {
                         playLoopingSoundAtPosition(birdSoundBuffer_01, [objPos[12], objPos[13], objPos[14]]);
                         model.remove(emptyObj);
                         counter = counter + 1;
-                        console.log('counter');
-                        console.log(counter);
                      }
                      else if (counter == 1)
                      {
@@ -158,8 +154,6 @@ export const init = async model => {
                         playLoopingSoundAtPosition02(birdSoundBuffer_02, [objPos[12], objPos[13], objPos[14]]);
                         model.remove(emptyObj);
                         counter = counter + 1;
-                        console.log('counter');
-                        console.log(counter);
                      }
                      else if (counter == 2)
                      {
@@ -168,8 +162,6 @@ export const init = async model => {
                         playLoopingSoundAtPosition03(birdSoundBuffer_03, [objPos[12], objPos[13], objPos[14]]);
                         model.remove(emptyObj);
                         counter = counter + 1;
-                        console.log('counter');
-                        console.log(counter);
                      }
                      else if (counter == 3)
                      {
@@ -178,14 +170,9 @@ export const init = async model => {
                         playLoopingSoundAtPosition04(birdSoundBuffer_04, [objPos[12], objPos[13], objPos[14]]);
                         model.remove(emptyObj);
                         counter = counter + 1;
-                        console.log('counter');
-                        console.log(counter);
                      }
                   }
                   birds[msg.id] = msg.pos;
-                  console.log('list length');
-                  console.log(birds.length);
-
                }
             }
          }

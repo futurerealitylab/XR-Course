@@ -25,10 +25,10 @@ function preloadSounds() {
 
     ])
     .then(() => {
-        console.log('All sounds loaded successfully');
+        //console.log('All sounds loaded successfully');
     })
     .catch(error => {
-        console.error('An error occurred while loading sounds:', error);
+        //console.error('An error occurred while loading sounds:', error);
     });
 }
 
@@ -127,7 +127,7 @@ export const init = async model => {
                      let objPos = emptyObj.getGlobalMatrix();
                      playSoundAtPosition(deleteSoundBuffer, [objPos[12], objPos[13], objPos[14]]);
                      model.remove(emptyObj);
-                     console.log('delete ball sound');
+                     //console.log('delete ball sound');
 
                   }
                }
@@ -143,7 +143,7 @@ export const init = async model => {
                      let objPos = emptyObj.getGlobalMatrix();
                      playSoundAtPosition(createSoundBuffer, [objPos[12], objPos[13], objPos[14]]);
                      model.remove(emptyObj);
-                     console.log('add ball sound');
+                     //console.log('add ball sound');
                   }
                }
                balls[msg.id] = msg.pos;
