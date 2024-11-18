@@ -10,10 +10,10 @@ function preloadSounds() {
         loadStereoSound('../../media/sound/SFXs/demoMoon/Amb_Moon_Stereo_LP_01.wav', buffer => moonSoundBuffer = buffer)
     ])
     .then(() => {
-        console.log('Moon sound loaded successfully');
+        //console.log('Moon sound loaded successfully');
     })
     .catch(error => {
-        console.error('An error occurred while loading sounds:', error);
+        //console.error('An error occurred while loading sounds:', error);
     });
 }
 

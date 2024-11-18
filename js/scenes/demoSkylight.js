@@ -10,10 +10,10 @@ function preloadSounds() {
         loadStereoSound('../../media/sound/SFXs/demoSkylight/Amb_Skylight_Stereo_LP_01.wav', buffer => skylightSoundBuffer = buffer)
     ])
     .then(() => {
-        console.log('Skylight sound loaded successfully');
+        //console.log('Skylight sound loaded successfully');
     })
     .catch(error => {
-        console.error('An error occurred while loading sounds:', error);
+        //console.error('An error occurred while loading sounds:', error);
     });
 }
 

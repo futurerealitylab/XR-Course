@@ -10,10 +10,10 @@ function preloadSounds() {
         loadStereoSound('../../media/sound/SFXs/demoGallery/Amb_Gallery_Stereo_LP_01.wav', buffer => gallerySoundBuffer = buffer)
     ])
     .then(() => {
-        console.log('Gallery sound loaded successfully');
+        //console.log('Gallery sound loaded successfully');
     })
     .catch(error => {
-        console.error('An error occurred while loading sounds:', error);
+        //console.error('An error occurred while loading sounds:', error);
     });
 }
 
