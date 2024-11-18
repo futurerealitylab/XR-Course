@@ -840,6 +840,16 @@ function updateInputSources(session, frame, refSpace) {
             headPose.transform.matrix;
 
         for (let source of session.inputSources) {
+            if (source.gamepad && "hapticActuators" in source.gamepad && source.gamepad.hapticActuators != null && source.gamepad.hapticActuators.length > 0) {
+                for (let j = 0; j < source.gamepad.buttons.length; ++j) {
+                  if (source.gamepad.buttons[j].pressed) {
+                    // Vibrate the gamepad using to the value of the button as
+                    // the vibration intensity, normalized to 0.0..1.0 range.
+                    source.gamepad.hapticActuators[0].pulse(1, 100);
+                    break;
+                  }
+                }
+            }
             if (!window.handtracking && source.handedness && source.gamepad) {
                 // if (source.gamepad.buttons[3].pressed) {
                 //     console.log("source.gamepad.buttons[3].pressed", source.gamepad.buttons[3].pressed);
