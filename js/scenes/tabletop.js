@@ -5,6 +5,11 @@ import { Wheelie } from "../render/core/wheelie.js";
 import { controllerMatrix } from "../render/core/controllerInput.js";
 import { g2 } from "../util/g2.js";
 
+//FLAGS
+let enableMenu = false;
+
+
+
 // INITIALIZE THE MODEL
 
 console.log('running tabletop.js');
@@ -362,20 +367,23 @@ export const init = async model => {
       case 'move':
          if (part == 'left' || part == 'right') {
             handPos[part] = p;
-            menuHint = ! isOnTable(handPos.left) && ! isOnTable(handPos.right);
+            if(enableMenu)
+               menuHint = ! isOnTable(handPos.left) && ! isOnTable(handPos.right);
+            else
+               menuHint = false;
          }
          break;
       case 'press':
-         if (menuHint)
+         if (menuHint && enableMenu)
             menuShow = true;
          break;
       case 'release':
-         if (menuShow)
+         if (menuShow && enableMenu)
             menuAction();
          menuShow = false;
          break;
       }
-      menu.ignore = ! menuHint && ! menuShow;
+      menu.ignore = ! menuHint && ! menuShow || !enableMenu;
    }
 
    // ON HAND EVENTS, UPDATE MY HAND STATE TO THE MODEL
