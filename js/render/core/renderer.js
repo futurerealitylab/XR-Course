@@ -1552,12 +1552,12 @@ export class Renderer {
               .scale(window.isMenuClosed?.0001:.045);
               if(window.useGuide){
                 obj.color([1,0,0]);
-                obj.info('<guide exit> ');
+                //obj.info('<guide exit> ');
               }
               else{
                 obj.color(lHit && lcb.down || rHit && rcb.down ? [.3,.5,1] :
                   lHit || rHit ? [1,0,1] : [.2,.5,1]);
-                obj.info('<guide enter> ');
+                //obj.info('<guide enter> ');
               }
              }
              else{
@@ -1645,6 +1645,7 @@ export class Renderer {
       }
     }
 
+    window.useGuide = false;
 
   }
 
