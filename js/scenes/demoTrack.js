@@ -24,10 +24,10 @@ export const init = async model => {
 
       for (let i = 0; i < TRACK_ITEMS.length; i++) {
          let tq = [parseFloat(info[i*7]), parseFloat(info[i*7+1]), parseFloat(info[i*7+2]), parseFloat(info[i*7+3]), parseFloat(info[i*7+4]), parseFloat(info[i*7+5]), parseFloat(info[i*7+6])];
-         let m = cg.mFromQuaternion({ x:tq[3], y:tq[4], z:tq[5], w:tq[6] });
+         let m = cg.mFromQuaternion({ x:-tq[3], y:-tq[4], z:tq[5], w:tq[6] });
          m[12] = tq[0]+1.038;
          m[13] = tq[1]-0.01;
-         m[14] = tq[2]-0.212;
+         m[14] = -tq[2]-0.212;
          obj[i].setMatrix(m).scale(.1);      
       }
       //let date = new Date();
