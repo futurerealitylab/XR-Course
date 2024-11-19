@@ -37,6 +37,14 @@
 <script src="js/util/peerjs.min.js"></script>
 <script style='width:100%'>
 
+   //FLAGS
+   let enableDrawing = false;
+
+
+
+
+
+
    const peer = new Peer();
    console.log('retrying peerserver');
    clientConnections = {};
@@ -91,7 +99,7 @@
                   if (! isAlreadyGrabbed) 
                      state[part].id = found.id;
                }
-               else
+               else if(enableDrawing)
                   drawingPress(client, part);
                break;
             case 'doublepress':
@@ -129,7 +137,7 @@
 
                   // MOVE OR DRAW A DRAWING
 
-                  else
+                  else if(enableDrawing)
                      drawingDrag(client, part, msg.event.x, msg.event.y);
 
                   state[part].x = msg.event.x;
@@ -137,7 +145,8 @@
                }
                break;
             case 'release':
-               drawingRelease(client, part);
+               if(enableDrawing)
+                  drawingRelease(client, part);
                state['isPressed' + part] = false;
                if (state[part])
                   delete state[part].id;
