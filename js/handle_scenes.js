@@ -158,6 +158,11 @@ const addDemoButtons = (demoNames, scenesInit) => {
                                  .turnY(Math.PI/6)
                                  .scale(.045);
       */
+      let title = clay.model.add()
+      .move(-1,1.7+.3,-.7)
+      .turnY(Math.PI/6)
+      .scale(.4)
+      .text('FRL Tabletop System', .05);
    }
 
    if (window.onlyScene)
