@@ -152,11 +152,12 @@ const addDemoButtons = (demoNames, scenesInit) => {
                                  .move(-1,1.7+.1,-.7)
                                  .turnY(Math.PI/6)
                                  .scale(.045);
-
+      /*
       clay.vrWidgets.add('label').info('<guide>')
                                  .move(-1.75,1.7+.1,-.7)
                                  .turnY(Math.PI/6)
                                  .scale(.045);
+      */
    }
 
    if (window.onlyScene)
