@@ -180,5 +180,6 @@ defineThings = () => {
    defineThing('ethanol:molecule'  , args => { return new Shape([]); });
    defineThing('morphine:molecule' , args => { return new Shape([]); });
    defineThing('quinine:molecule'  , args => { return new Shape([]); });
+   defineThing('gltf:molecule', args => { return new Shape([]); });
 }
 

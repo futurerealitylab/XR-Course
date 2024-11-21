@@ -4,6 +4,11 @@ import { RobotPicker } from "../render/core/robotPicker.js";
 import { Wheelie } from "../render/core/wheelie.js";
 import { controllerMatrix } from "../render/core/controllerInput.js";
 import { g2 } from "../util/g2.js";
+import * as global from "../global.js";
+import { Gltf2Node } from "../render/nodes/gltf2.js";
+
+// load gltf model
+let flower = new Gltf2Node({ url: './media/gltf/sunflower/sunflower.gltf' });
 
 // INITIALIZE THE MODEL
 
@@ -45,6 +50,11 @@ if (! window.audioContext) {
 window.tabletopStates = {};
 
 export const init = async model => {
+   // add gltf model to scene
+   // flower.translation = [0, 1.16, 0]; // 1.16 is pedestal height
+   flower.scale = [0.1, 0.1, 0.1];
+   global.gltfRoot.addNode(flower);
+
    server.neverLoadOrSave();
    console.log('running init');
    document.getElementById('active-demo').innerHTML = "Tabletop demo active";
@@ -408,10 +418,16 @@ export const init = async model => {
       removeObject(id);
       let thing = things[objInfo.type];
       let obj = objs.child(id);
-      if (thing.items.length == 0) {
+      let isGltf = objInfo.type === 'gltf';
+      if (thing.items.length == 0 && !isGltf) {
          addMolecule(obj, objInfo.type).move(xf(objInfo.x)/objScale,.45/objScale,xf(objInfo.y)/objScale)
                                        .turnY(objInfo.angle * Math.PI/180)
                                        .opacity(isInFocus ? .7 : 1);
+         return;
+      }
+
+      if(isGltf) {
+         flower.translation = [xf(objInfo.x)/1,tableHeight,xf(objInfo.y)/1];
          return;
       }
 
@@ -468,7 +484,6 @@ export const init = async model => {
    //let wheelieState = 0;
 
    model.animate(() => {
-
       if (! robot.root.ignore) {
          let t = model.time / 2;
 	 let h = Math.abs(Math.sin(2*t));

@@ -471,15 +471,15 @@
    // DETERMINE WHETHER A PIXEL IS WITHIN AN OBJECT
 
    let isWithin = (obj, p) => {
-
       let x = obj.x, y = obj.y, angle = obj.angle, thing = things[obj.type];
 
       let c = Math.cos(-angle * Math.PI / 180);
       let s = Math.sin(-angle * Math.PI / 180);
 
       // IF THE OBJECT HAS NO GEOMETRY, IT'S A MOLECULE
+      let isGltf = obj.type === 'gltf';
 
-      if (thing.items.length == 0) {
+      if (thing.items.length == 0 && !isGltf) {
          let x = p.x - obj.x;
          let y = p.y - obj.y;
          let px =  c * x + s * y + obj.x;
@@ -503,6 +503,15 @@
       // RETURN TRUE IF THE PIXEL IS IN ANY OF THE OBJECT'S COMPONENT SHAPES
 
       let scale = w/2 * thingsScale;
+
+      if(isGltf) {
+            let gltfSize = 20;
+            let x = obj.x;
+            let y = obj.y;
+            if (X >= x - gltfSize && X < x + gltfSize && Y > y - gltfSize && Y < y + gltfSize)
+               return true;
+         }
+
       for (let n = 0 ; n < thing.items.length ; n++) {
          let item = thing.items[n];
          let x = scale * item.m[0] + obj.x;
@@ -529,10 +538,12 @@
    // FIND WHICH OBJECT IS AT A PIXEL
 
    let findAt = p => {
-      if (isOnTable(p))
+      if (isOnTable(p)) {
          for (let id in objects)
             if (isWithin(objects[id], p))
                return { id: id, p: p };
+      }
+         
       return { id: -1, p: p };
    }
 
@@ -1431,7 +1442,8 @@
                   break;
                }
             }
-            if (thing.items.length == 0) {
+            let isGltf = obj.type === 'gltf';
+            if (thing.items.length == 0 && !isGltf) {
                let info = moleculesInfo[obj.type];
                rotatedDrawing(ctx, obj.x, obj.y, obj.angle, () => {
                   ctx.strokeStyle = hex([.25,.25,.25]) + '40';
