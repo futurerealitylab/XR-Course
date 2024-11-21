@@ -11,10 +11,10 @@ function preloadSounds() {
         loadStereoSound('../../media/sound/SFXs/demoSnow/Amb_Snow_Stereo_LP_01.wav', buffer => snowSoundBuffer = buffer)
     ])
     .then(() => {
-        console.log('Snow sound loaded successfully');
+        //console.log('Snow sound loaded successfully');
     })
     .catch(error => {
-        console.error('An error occurred while loading snow sounds:', error);
+        //console.error('An error occurred while loading snow sounds:', error);
     });
 }
 
@@ -25,7 +25,7 @@ preloadSounds();
 export const init = async model => {
 
    playStereoAudio(snowSoundBuffer);
-   console.log('Test sound model');
+   //console.log('Test sound model');
 
 
    let N = 10000;
@@ -76,7 +76,7 @@ export const init = async model => {
 
    model.animate(() => {
 
-      console.log('Test sound animate');
+      //console.log('Test sound animate');
 
 
       time+=0.016;

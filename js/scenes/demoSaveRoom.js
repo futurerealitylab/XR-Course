@@ -31,7 +31,7 @@ export const init = async model => {
            button1State = 'saved';
        },
    );
-   console.log('button1Box', button1Box);
+   //console.log('button1Box', button1Box);
    button1Box.move(-.06,.6,0).scale(.02);
 
    let slider1Box = uiBox('slider', model,

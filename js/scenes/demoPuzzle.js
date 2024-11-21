@@ -11,10 +11,10 @@ function preloadSounds() {
         loadSound('../../media/sound/SFXs/demoPuzzle/SFX_Puzzle_Move_Mono_01.wav', buffer => moveSoundBuffer = buffer)
     ])
     .then(() => {
-        console.log('All puzzle sounds loaded successfully');
+        //console.log('All puzzle sounds loaded successfully');
     })
     .catch(error => {
-        console.error('An error occurred while loading sounds:', error);
+        //console.error('An error occurred while loading sounds:', error);
     });
 }
 
