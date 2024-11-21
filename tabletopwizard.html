@@ -477,7 +477,7 @@
       let s = Math.sin(-angle * Math.PI / 180);
 
       // IF THE OBJECT HAS NO GEOMETRY, IT'S A MOLECULE
-      let isGltf = obj.type === 'gltf';
+      let isGltf = groups.gltf && groups.gltf.hasOwnProperty(obj.type);
 
       if (thing.items.length == 0 && !isGltf) {
          let x = p.x - obj.x;
@@ -1442,7 +1442,9 @@
                   break;
                }
             }
-            let isGltf = obj.type === 'gltf';
+     
+    
+            let isGltf = groups.gltf && groups.gltf.hasOwnProperty(obj.type);
             if (thing.items.length == 0 && !isGltf) {
                let info = moleculesInfo[obj.type];
                rotatedDrawing(ctx, obj.x, obj.y, obj.angle, () => {

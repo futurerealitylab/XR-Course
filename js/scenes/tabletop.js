@@ -9,6 +9,7 @@ import { Gltf2Node } from "../render/nodes/gltf2.js";
 
 // load gltf model
 let flower = new Gltf2Node({ url: './media/gltf/sunflower/sunflower.gltf' });
+let buddha = new Gltf2Node({ url: './media/gltf/buddha_statue_broken/scene.gltf' });
 
 // INITIALIZE THE MODEL
 
@@ -53,7 +54,9 @@ export const init = async model => {
    // add gltf model to scene
    // flower.translation = [0, 1.16, 0]; // 1.16 is pedestal height
    flower.scale = [0.1, 0.1, 0.1];
+   buddha.scale = [0.5, 0.5, 0.5];
    global.gltfRoot.addNode(flower);
+   global.gltfRoot.addNode(buddha);
 
    server.neverLoadOrSave();
    console.log('running init');
@@ -418,7 +421,7 @@ export const init = async model => {
       removeObject(id);
       let thing = things[objInfo.type];
       let obj = objs.child(id);
-      let isGltf = objInfo.type === 'gltf';
+      let isGltf = groups.gltf && groups.gltf.hasOwnProperty(objInfo.type);
       if (thing.items.length == 0 && !isGltf) {
          addMolecule(obj, objInfo.type).move(xf(objInfo.x)/objScale,.45/objScale,xf(objInfo.y)/objScale)
                                        .turnY(objInfo.angle * Math.PI/180)
@@ -426,8 +429,12 @@ export const init = async model => {
          return;
       }
 
-      if(isGltf) {
+      if(objInfo.type == "flower") {
          flower.translation = [xf(objInfo.x)/1,tableHeight,xf(objInfo.y)/1];
+         return;
+      }
+      if(objInfo.type == "buddha") {
+         buddha.translation = [xf(objInfo.x)/1,tableHeight,xf(objInfo.y)/1];
          return;
       }
 
