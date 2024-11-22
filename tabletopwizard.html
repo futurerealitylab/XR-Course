@@ -1,1596 +1,1592 @@
 <body bgcolor=#808080>
-<TABLE width=100% height=100%><TR align=center valign=middle><TD>
-
-<table bgcolor=white border=0 cellpadding=0 cellspacing=0>
-<tr valign=top>
-<td><table>
-    <tr><td>
-        <center><canvas id=angleCanvas width=100 height=100</canvas>
-    <tr><td valign=top width=200 id=datalog>
-    </table>
-<td>
-   <canvas id=canvas1></canvas>
-<td valign=top width=20>&nbsp;
-<td valign=top width=200>
-   <font face=courier><b>
-   </b>
-   <div id=palette></div>
-   <p>
-      <p> <b>drag mouse</b> to move
-      <br>an object or drawing
-      <p> <b>command+move mouse</b>
-      <br>to draw a drawing
-      <p> <b>shift+move mouse</b>
-      <br>to turn an object
-      <p> <b>delete key</b> to delete
-      <p> <b>. key</b> to animate
-      <p> <b>/ key</b> to toggle text
-<td valign=top width=10>&nbsp;
-</table>
-
-</TABLE>
-<script src=server/client.js></script>
-<script src=js/wizard/things.js></script>
-<script src=js/wizard/lib.js></script>
-<script src=js/wizard/agent.js></script>
-<script src=js/wizard/molecules.js></script>
-<script src="js/util/peerjs.min.js"></script>
-<script style='width:100%'>
-
-   //FLAGS
-   let enableDrawing = false;
-
-
-
-
-
-
-   const peer = new Peer();
-   console.log('retrying peerserver');
-   clientConnections = {};
-   peer.on('disconnected', () => {
-      peer.reconnect();
-      console.log('retrying peerserver');
-   });
-   peer.on('open', () => {
-      window['peers'].wizardId = peer.id;
-      console.log(window['peers'])
-   });
-   peer.on('connection', (dataConnection) => {
-      clientConnections[dataConnection.peer] = {
-         open: false,
-         conn: dataConnection,
-      };
-      dataConnection.on('open', () => {
-         clientConnections[dataConnection.peer].open = true;
-         console.log('Client peer-to-peer connection established: ', dataConnection.peer);
-         window['peers'].clientIds = Object.keys(clientConnections);
-      })
-      dataConnection.on('close', () => {
-         delete clientConnections[dataConnection.peer];
-         console.log('Client peer-to-peer connection closed: ', dataConnection.peer);
-         window['peers'].clientIds = Object.keys(clientConnections);
-      })
-      dataConnection.on('data', (msg) => {
-         let client = msg.client;
-         if (! clientState[client])
-            clientState[client] = {};
-         clientState[client].active = 100;
-         let state = clientState[client];
-         switch (msg.op) {
-         case 'speaking':
-            state.isSpeaking = msg.status;
-            break;
-         case 'event':
-            let part = msg.part;
-            switch (msg.event.type) {
-            case 'move':
-               state[part] = msg.event;
-               break;
-            case 'press':
-               state['isPressed' + part] = true;
-               let found = findAt(state[part]);
-               if (found.id >= 0) {
-                  let isAlreadyGrabbed = false;
-                  for (let c in clientState)
-                     if (c != clientID)
-                        isAlreadyGrabbed ||= c != client && (clientState[c].left.id == found.id ||
-                                                             clientState[c].right.id == found.id);
-                  if (! isAlreadyGrabbed) 
-                     state[part].id = found.id;
-               }
-               else if(enableDrawing)
-                  drawingPress(client, part);
-               break;
-            case 'doublepress':
-               state['isDoublePressed' + part] = true;
-               let foundObj = findAt(state[part]);
-               objects[foundObj.id].color = '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');;
-               break;
-            case 'drag':                                  // DRAG AN OBJECT TO MOVE IT.
-               if (state[part]) {
-
-                  // IGNORE DRAG EVENTS THAT ARE NOT OVER THE TABLE
-
-                  let x = msg.event.x - w/2;
-                  let y = msg.event.y - w/2;
-                  if (Math.sqrt(x*x + y*y) > w/2)
-                     break;
-
-                  let dx = msg.event.x - state[part].x;
-                  let dy = msg.event.y - state[part].y;
-
-                  // MOVE AN OBJECT
-
-                  if (state[part].id !== undefined) {
-                     let L = state.left, R = state.right;    // IF BOTH HANDS GRAB THE SAME
-                     if (part=='left' && L.id == R.id) {     // OBJECT, THEN SIMULTANEOUSLY
-                        objects[L.id].x = (L.x + R.x) / 2;   // MOVE AND TURN THE OBJECT.
-                        objects[L.id].y = (L.y + R.y) / 2;
-                        objects[L.id].angle = -Math.atan2(R.y-L.y, R.x-L.x) * 180 / Math.PI;
-                     }
-                     else {                                  // ELSE JUST MOVE THE OBJECT.
-                        objects[state[part].id].x += dx;
-                        objects[state[part].id].y += dy;
-                     }
-                  }
-
-                  // MOVE OR DRAW A DRAWING
-
-                  else if(enableDrawing)
-                     drawingDrag(client, part, msg.event.x, msg.event.y);
-
-                  state[part].x = msg.event.x;
-                  state[part].y = msg.event.y;
-               }
-               break;
-            case 'release':
-               if(enableDrawing)
-                  drawingRelease(client, part);
-               state['isPressed' + part] = false;
-               if (state[part])
-                  delete state[part].id;
-               break;
-            }
-            break;
-         }
-      })
-   });
+   <TABLE width=100% height=100%><TR align=center valign=middle><TD>
    
-
-   // START SPEECH RECOGNITION
-
-   let speechRecognition = new webkitSpeechRecognition();
-   speechRecognition.continuous = true;
-   speechRecognition.lang = 'en-US';
-   speechRecognition.interimResults = false;
-   speechRecognition.maxAlternatives = 1;
-   speechRecognition.onresult = e => console.log(window.speech = e.results[e.resultIndex][0].transcript);
-   speechRecognition.onend = () => speechRecognition.start();
-   speechRecognition.start();
-
-   // MAKE A LIST OF SPEECH-RECOGNIZABLE THINGS
-
-   let things_and_groups = {};
-      for (let thing in things)
-         things_and_groups[thing] = 1;
-      for (let groupName in groups)
-         things_and_groups[groupName] = 1;
-
-   // SET THE SIZE OF THE DISPLAY CANVAS
-
-   canvas1.width  = canvasWidth;
-   canvas1.height = canvasWidth;
-
-   // DECLARE VARIABLES
-
-   let colorIndex = 0, currentColor = 'white',
-       angleIndex = 0, currentAngle = 0;
-   let w = canvas1.width, h = canvas1.height;
-   let id = -1, pp, isShift = false, isMeta = false, isMinus = false, showAgents = true;
-   let speakingClient;
-   let clientState = {};
-   let isAnyObjectInFocus = false;
-   let isAnimating = false, animateT = 0, animateTime = 0;
-   let showSpeech = true;
-
-   let enableSpeechAddObj = true;
-   let enableSpeechDeletObj = true;
-
-   // RETRIEVE MEASUREMENTS OF ONE ATOM OF A MOLECULE
-
-   let atomXYR = (obj,n) => {
-      let P = moleculesInfo[obj.type].positions;
-      let scale = w/2 * thingsScale;
-      return [ .6 * scale * P[n][0] + obj.x,
-               .6 * scale * P[n][2] + obj.y,
-               .6 * scale * getAtomInfo(obj.type, n).radius / 150 ];
-   }
-
-   // STANDARD COLORS AND A FUNCTION TO CONVERT RGB TO HEX CODE
-
-   let color = 'white brown red orange yellow green blue magenta violet black'.split(' ');
-   let rgb = [[1,1,1],[.2,.05,.025],[1,0,0],[1,.15,0],[1,1,0],[0,.5,0],[0,.25,1],[.25,0,1],[1,0,.25],[0,0,0]];
-   let hx1 = n => '0123456789abcdef'.charAt(n);
-   let hx2 = n => hx1(n>>4) + hx1(n&15);
-   let hx3 = r => hx2(255 * Math.sqrt(r) >> 0);
-   let hex = rgb => '#' + hx3(rgb[0]) + hx3(rgb[1]) + hx3(rgb[2]);
-
-   {
-      // SHOW THE COLOR PALETTE
-
-      let s = '<center>&nbsp;<br><b>KEY TO SET COLOR</b>';
-      s += '<table bgcolor=#d0d0d0><tr><td><big>';
-      for (let n = 0 ; n < 10 ; n++)
-         s += '<font color=' + hex(rgb[n]) + '>' + n + '</font>';
-      s += '</table><p>';
-      currentColor = hex(rgb[0]);
-
-      // LIST THE OBJECT SHAPES
-
-      s += '<table><tr><td><b><center>KEY TO ADD OBJECT</center></b>';
-      let ch = 65;
-      for (let name in things)
-         s += '&nbsp;' + String.fromCharCode(ch++)
-            + '&nbsp;' + name.replace('_',' ') + '&nbsp;</font><br>';
-      s += '</table>';
-      palette.innerHTML = s;
-   }
-
-   // CONNECT TO THE SERVER
-
-   let server = new Server(2024);
-   server.alwaysLoadFromStorage();
-   server.init('tabletop', {});
-   server.init('peers', {});
-   let objects  = {};
-   let drawings = {};
-
-   let agent = new Agent();
-
-   let agents = { 0: agent };
-   let agentsInfo = { 0: { x:0, y:0, h:0 } };
-/*
-   let agents = { };
-   let agentsInfo = { };
-*/
-   // CHANGE THE CURRENT ANGLE BY SOME DELTA
-
-   let changeAngle = (angle, delta) => (3600 + angle + delta) % 360;
-   let turn = delta => currentAngle = changeAngle(currentAngle, delta);
-
-   // CHANGE THE CURRENT COLOR
-
-   let setColor = rgb => {
-      currentColor = hex(rgb);
-      let id = find().id;
-      let obj = objects[id];
-      if (obj)
-         obj.color = currentColor;
-   }
-
-   let isBelowDrawingHeight = (client, hand) => {
-      if (client == clientID)
-         return isMeta;
-      return clientState[client][hand].b;
-   }
-
-   let isAnyoneLookingAtTheTable = () => {
-      for (let client in clientState)
-         if (isOnTable(clientState[client].head))
-            return true;
-      return false;
-   }
-
-   // ADD A NEW OBJECT OF A SPECIFIED SHAPE AT THE CURSOR
-
-   let addObject = (name, client) => {
-
-      // FIND AN UNUSED ID
-
-      let id = 0;
-      for ( ; id < 100 ; id++)
-         if (objects[id] === undefined)
-            break;
-
-      // FIND WHERE TO PLACE THE NEW OBJECT
-
-      let p = pp;
-      if (client !== undefined && clientState[client]) {
-         let checkPart = part => {
-            if (! isOnTable(p))
-               p = findAt(clientState[client][part]).p;
-         }
-         checkPart('left');
-         checkPart('right');
-         checkPart('head');
-      }
-      p = isOnTable(p) ? p : pp;
-
-      // ADD THE OBJECT TO THE MODEL
-
-      objects[id] = {
-         type: name,
-         x: p.x+.5>>0, y: p.y+.5>>0,
-         color: currentColor,
-         angle: currentAngle,
-      }
-
-      tabletop.objects = objects;
-   }
-
-   // RESPOND TO KEYBOARD EVENTS
-
-   let kc = [0,0,0,0,0,0,0,0,0,0];
-
-   let mixColors = () => {
-      let c = [0,0,0], n = 0;
-      for (let i = 0 ; i < kc.length ; i++)
-         if (kc[i]) {
-            for (let j = 0 ; j < 3 ; j++)
-               c[j] += 1 - rgb[i][j];
-            n++;
-         }
-      setColor([1 - c[0]/n, 1 - c[1]/n, 1 - c[2]/n]);
-      for (let i = 0 ; i < kc.length ; i++)
-         kc[i] = 0;
-   }
-
-   document.addEventListener('keydown', e => {
-      switch (e.key) {
-      case 'Shift':
-         isShift = true;
-	 id = findAt(pp).id;
-/*
-         DISABLING MANUAL ROTATION OF STROKES BECAUSE OF NUMERIC ERRORS.
-	 MAYBE THE PROPER SOLUTION IS TO KEEP THE INTERNAL REPRESENTATION
-	 IN FULL FLOATING POINT, AND ONLY SEND A COPY, WITH FRACTIONAL
-	 PARTS REMOVED, TO THE CLIENTS.
-
-	 if (id == -1)
-            for (let id in drawings)
-               if (isPointOnDrawing(pp, drawings[id]))
-                  clientState[clientID].selectedDrawingleft = id;
-*/
-	 break;
-      case 'Meta':
-         isMeta = true;
-	 drawingPress(clientID, 'left');
-	 break;
-      case '-':
-         isMinus = true;
-	 break;
-      }
-
-      if (e.keyCode >= 48 && e.keyCode < 58)
-         kc[e.keyCode - 48] = 1;
-   });
-
-   let animationTargets = [];
-
-   let startAnimation = () => {
-      animationTargets = [];
-      for (let did in drawings) {
-         let stroke = drawings[did].strokes[0];
-	 let found = findAt({ x: stroke[0], y: stroke[1] });
-	 if (found.id >= 0) {
-	    let obj = objects[found.id];
-	    animationTargets.push({ id: found.id, did: did, x: obj.x, y: obj.y });
-         }
-      }
-      animateT = 0;
-      isAnimating = true;
-   }
-
-   let evalAnimation = () => {
-      if (isAnimating) {
-         for (let n = 0 ; n < animationTargets.length ; n++) {
-	    let target = animationTargets[n];
-	    let stroke = drawings[target.did].strokes[0];
-	    let p0 = sampleStroke(stroke, 0);
-	    let p1 = sampleStroke(stroke, animateT);
-	    let obj = objects[target.id];
-	    obj.x = target.x + p1.x - p0.x;
-	    obj.y = target.y + p1.y - p0.y;
-	 }
-      }
-      if (animateT >= 1) {
-         for (let n = 0 ; n < animationTargets.length ; n++) {
-            let target = animationTargets[n];
-            let obj = objects[target.id];
-            obj.x = target.x;
-            obj.y = target.y;
-         }
-         animateT = 0;
-         animateTime = 0;
-         isAnimating = false;
-      }
-   }
-
-   document.addEventListener('keyup', e => {
-      switch (e.key) {
-      case 'Shift': isShift = false; id = -1; break;
-      case 'Meta': drawingRelease(clientID, 'left'); isMeta = false; break;
-      case 'a': showAgents = ! showAgents; break;
-      case '-': isMinus = false; break;
-      case '.': startAnimation(); break;
-      case '/': showSpeech = ! showSpeech; break;
-      case 'Backspace':
-         let i = findAt(pp).id;
-         if (i >= 0)
-            delete objects[i];
-         else
-            for (let id in drawings)
-               if (isClientAtDrawing(clientID, drawings[id]))
-                  delete drawings[id];
-         break;
-      default:
-
-         // IF RELEASING A NUMBER KEY
-
-         if (e.keyCode >= 48 && e.keyCode < 58) {
-            let id = e.keyCode - 48;
-
-            // DELETE AN OBJECT IF HOLDING DOWN THE '-' KEY
-
-            if (isMinus)
-               delete objects[id];
-
-            // ELSE MIX COLORS BY COMBINING NUMBER KEYS
-
-            else {
-               kc[id] = 2;
-               let nDown = 0;
-               for (let i = 0 ; i < 10 ; i++)
-                  nDown += kc[i] == 1;
-               if (nDown == 0)
-                  mixColors();
-            }
-         }
-
-         // ELSE TYPE A LETTER KEY TO ADD AN OBJECT
-
-         else {
-            let n = 0, i = e.keyCode - 65;
-            for (let name in things)
-               if (n++ == i) {
-                  addObject(name, clientID);
+   <table bgcolor=white border=0 cellpadding=0 cellspacing=0>
+   <tr valign=top>
+   <td><table>
+       <tr><td>
+           <center><canvas id=angleCanvas width=100 height=100</canvas>
+       <tr><td valign=top width=200><textarea id=textbox rows=10 cols=28></textarea>
+       <tr><td valign=top width=200 id=datalog>
+       </table>
+   <td>
+      <canvas id=canvas1></canvas>
+   <td valign=top width=20>&nbsp;
+   <td valign=top width=200>
+      <font face=courier><b>
+      </b>
+      <div id=palette></div>
+      <p>
+         <p> <b>drag mouse</b> to move
+         <br>an object or drawing
+         <p> <b>command+move mouse</b>
+         <br>to draw a drawing
+         <p> <b>shift+move mouse</b>
+         <br>to turn an object
+         <p> <b>delete key</b> to delete
+         <p> <b>. key</b> to animate
+         <p> <b>/ key</b> to toggle text
+   <td valign=top width=10>&nbsp;
+   </table>
+   
+   </TABLE>
+   <script src=server/client.js></script>
+   <script src=js/wizard/things.js></script>
+   <script src=js/wizard/lib.js></script>
+   <script src=js/wizard/agent.js></script>
+   <script src=js/wizard/molecules.js></script>
+   <script src="js/util/peerjs.min.js"></script>
+   <script style='width:100%'>
+   
+   // INITIALIZE AUDIO VOLUME DETECTION
+   
+      const peer = new Peer();
+      console.log('retrying peerserver');
+      clientConnections = {};
+      peer.on('disconnected', () => {
+         peer.reconnect();
+         console.log('retrying peerserver');
+      });
+      peer.on('open', () => {
+         window['peers'].wizardId = peer.id;
+         console.log(window['peers'])
+      });
+      peer.on('connection', (dataConnection) => {
+         clientConnections[dataConnection.peer] = {
+            open: false,
+            conn: dataConnection,
+         };
+         dataConnection.on('open', () => {
+            clientConnections[dataConnection.peer].open = true;
+            console.log('Client peer-to-peer connection established: ', dataConnection.peer);
+            window['peers'].clientIds = Object.keys(clientConnections);
+         })
+         dataConnection.on('close', () => {
+            delete clientConnections[dataConnection.peer];
+            console.log('Client peer-to-peer connection closed: ', dataConnection.peer);
+            window['peers'].clientIds = Object.keys(clientConnections);
+         })
+         dataConnection.on('data', (msg) => {
+            let client = msg.client;
+            if (! clientState[client])
+               clientState[client] = {};
+            clientState[client].active = 100;
+            let state = clientState[client];
+            switch (msg.op) {
+            case 'speaking':
+               state.isSpeaking = msg.status;
+               break;
+            case 'event':
+               let part = msg.part;
+               switch (msg.event.type) {
+               case 'move':
+                  state[part] = msg.event;
+                  break;
+               case 'press':
+                  state['isPressed' + part] = true;
+                  let found = findAt(state[part]);
+                  if (found.id >= 0) {
+                     let isAlreadyGrabbed = false;
+                     for (let c in clientState)
+                        if (c != clientID)
+                           isAlreadyGrabbed ||= c != client && (clientState[c].left.id == found.id ||
+                                                                clientState[c].right.id == found.id);
+                     if (! isAlreadyGrabbed) 
+                        state[part].id = found.id;
+                  }
+                  else
+                     drawingPress(client, part);
+                  break;
+               case 'drag':                                  // DRAG AN OBJECT TO MOVE IT.
+                  if (state[part]) {
+   
+                     // IGNORE DRAG EVENTS THAT ARE NOT OVER THE TABLE
+   
+                     let x = msg.event.x - w/2;
+                     let y = msg.event.y - w/2;
+                     if (Math.sqrt(x*x + y*y) > w/2)
+                        break;
+   
+                     let dx = msg.event.x - state[part].x;
+                     let dy = msg.event.y - state[part].y;
+   
+                     // MOVE AN OBJECT
+   
+                     if (state[part].id !== undefined) {
+                        let L = state.left, R = state.right;    // IF BOTH HANDS GRAB THE SAME
+                        if (part=='left' && L.id == R.id) {     // OBJECT, THEN SIMULTANEOUSLY
+                           objects[L.id].x = (L.x + R.x) / 2;   // MOVE AND TURN THE OBJECT.
+                           objects[L.id].y = (L.y + R.y) / 2;
+                           objects[L.id].angle = -Math.atan2(R.y-L.y, R.x-L.x) * 180 / Math.PI;
+                        }
+                        else {                                  // ELSE JUST MOVE THE OBJECT.
+                           objects[state[part].id].x += dx;
+                           objects[state[part].id].y += dy;
+                        }
+                     }
+   
+                     // MOVE OR DRAW A DRAWING
+   
+                     else
+                        drawingDrag(client, part, msg.event.x, msg.event.y);
+   
+                     state[part].x = msg.event.x;
+                     state[part].y = msg.event.y;
+                  }
+                  break;
+               case 'release':
+                  drawingRelease(client, part);
+                  state['isPressed' + part] = false;
+                  if (state[part])
+                     delete state[part].id;
                   break;
                }
-         }
-
-         break;
-     }
-   });
-
-   // GET THE (X,Y) POSITION ON THE CANVAS FOR THIS EVENT
-
-   let getP = e => {
-      let r = canvas1.getBoundingClientRect();
-      return { x: e.clientX - r.left, y: e.clientY - r.top };
-   }
-
-   // DETERMINE WHETHER A PIXEL IS ON THE TABLE
-
-   let isOnTable = p => {
-      if (! p)
-         return false;
-      let x = (p.x - w / 2) / (w / 2);
-      let y = (p.y - w / 2) / (w / 2);
-      return x * x + y * y < 1;
-   }
-
-   // DETERMINE WHETHER A PIXEL IS WITHIN AN OBJECT
-
-   let isWithin = (obj, p) => {
-      let x = obj.x, y = obj.y, angle = obj.angle, thing = things[obj.type];
-
-      let c = Math.cos(-angle * Math.PI / 180);
-      let s = Math.sin(-angle * Math.PI / 180);
-
-      // IF THE OBJECT HAS NO GEOMETRY, IT'S A MOLECULE
-      let isGltf = groups.gltf && groups.gltf.hasOwnProperty(obj.type);
-
-      if (thing.items.length == 0 && !isGltf) {
-         let x = p.x - obj.x;
-         let y = p.y - obj.y;
-         let px =  c * x + s * y + obj.x;
-         let py = -s * x + c * y + obj.y;
-         for (let n = 0 ; n < moleculesInfo[obj.type].positions.length ; n++) {
-            let xyr = atomXYR(obj, n);
-            let dx = xyr[0] - px;
-            let dy = xyr[1] - py;
-            if (dx * dx + dy * dy < 4 * xyr[2] * xyr[2])
-               return true;
-         }
-         return false;
+               break;
+            }
+         })
+      });
+      
+   
+      // START SPEECH RECOGNITION
+   /*
+      let speechRecognition = new webkitSpeechRecognition();
+      speechRecognition.continuous = true;
+      speechRecognition.lang = 'en-US';
+      speechRecognition.interimResults = false;
+      speechRecognition.maxAlternatives = 1;
+      speechRecognition.onresult = e => console.log(window.speech = e.results[e.resultIndex][0].transcript);
+      speechRecognition.onend = () => speechRecognition.start();
+      speechRecognition.start();
+   */
+      // MAKE A LIST OF SPEECH-RECOGNIZABLE THINGS
+   
+      let things_and_groups = {};
+         for (let thing in things)
+            things_and_groups[thing] = 1;
+         for (let groupName in groups)
+            things_and_groups[groupName] = 1;
+   
+      // SET THE SIZE OF THE DISPLAY CANVAS
+   
+      canvas1.width  = canvasWidth;
+      canvas1.height = canvasWidth;
+   
+      // DECLARE VARIABLES
+   
+      let colorIndex = 0, currentColor = 'white',
+          angleIndex = 0, currentAngle = 0;
+      let w = canvas1.width, h = canvas1.height;
+      let id = -1, pp, isEnter = false, isShift = false, isControl = false, isMeta = false, isMinus = false, showAgents = true;
+      let speakingClient;
+      let clientState = {};
+      let isAnyObjectInFocus = false;
+      let isAnimating = false, animateT = 0, animateTime = 0;
+      let showSpeech = true;
+   
+      // RETRIEVE MEASUREMENTS OF ONE ATOM OF A MOLECULE
+   
+      let atomXYR = (obj,n) => {
+         let P = moleculesInfo[obj.type].positions;
+         let scale = w/2 * thingsScale;
+         return [ .6 * scale * P[n][0] + obj.x,
+                  .6 * scale * P[n][2] + obj.y,
+                  .6 * scale * getAtomInfo(obj.type, n).radius / 150 ];
       }
-
-      // ROTATE THE PIXEL AROUND THE OBJECT'S CENTER OPPOSITE TO THE OBJECT'S ROTATION
-
-      let M = [ c, -s, s, c, x-c*x-s*y, y+s*x-c*y ];
-      let X = M[0] * p.x + M[2] * p.y + M[4];
-      let Y = M[1] * p.x + M[3] * p.y + M[5];
-
-      // RETURN TRUE IF THE PIXEL IS IN ANY OF THE OBJECT'S COMPONENT SHAPES
-
-      let scale = w/2 * thingsScale;
-
-      if(isGltf) {
-            let gltfSize = 20;
-            let x = obj.x;
-            let y = obj.y;
-            if (X >= x - gltfSize && X < x + gltfSize && Y > y - gltfSize && Y < y + gltfSize)
-               return true;
-         }
-
-      for (let n = 0 ; n < thing.items.length ; n++) {
-         let item = thing.items[n];
-         let x = scale * item.m[0] + obj.x;
-         let y = scale * item.m[2] + obj.y;
-         let w = scale * item.s[0];
-         let h = scale * item.s[2];
-         switch (item.type) {
-         case 'cube':
-            if (X >= x-w && X < x+w && Y > y-h && Y < y+h)
-               return true;
-            break;
-         case 'tubeY':
-         case 'sphere':
-            let dx = (X - x) / w;
-            let dy = (Y - y) / h;
-            if (dx * dx + dy * dy < 1)
-               return true;
-            break;
-         }
+   
+      // STANDARD COLORS AND A FUNCTION TO CONVERT RGB TO HEX CODE
+   
+      let color = 'white brown red orange yellow green blue magenta violet black'.split(' ');
+      let rgb = [[1,1,1],[.2,.05,.025],[1,0,0],[1,.15,0],[1,1,0],[0,.5,0],[0,.25,1],[.25,0,1],[1,0,.25],[0,0,0]];
+      let hx1 = n => '0123456789abcdef'.charAt(n);
+      let hx2 = n => hx1(n>>4) + hx1(n&15);
+      let hx3 = r => hx2(255 * Math.sqrt(r) >> 0);
+      let hex = rgb => '#' + hx3(rgb[0]) + hx3(rgb[1]) + hx3(rgb[2]);
+   
+      {
+         // SHOW THE COLOR PALETTE
+   
+         let s = '<center>&nbsp;<br><b>KEY TO SET COLOR</b>';
+         s += '<table bgcolor=#d0d0d0><tr><td><big>';
+         for (let n = 0 ; n < 10 ; n++)
+            s += '<font color=' + hex(rgb[n]) + '>' + n + '</font>';
+         s += '</table><p>';
+         currentColor = hex(rgb[0]);
+   
+         // LIST THE OBJECT SHAPES
+   
+         s += '<table><tr><td><b><center>KEY TO ADD OBJECT</center></b>';
+         let ch = 65;
+         for (let name in things)
+            s += '&nbsp;' + String.fromCharCode(ch++)
+               + '&nbsp;' + name.replace('_',' ') + '&nbsp;</font><br>';
+         s += '</table>';
+         palette.innerHTML = s;
       }
-      return false;
-   }
-
-   // FIND WHICH OBJECT IS AT A PIXEL
-
-   let findAt = p => {
-      if (isOnTable(p)) {
-         for (let id in objects)
-            if (isWithin(objects[id], p))
-               return { id: id, p: p };
-      }
-         
-      return { id: -1, p: p };
-   }
-
-   // FIND WHICH OBJECT IS AT A PART OF A CLIENT
-
-   let findPartOfClient = (part, client) => {
-      let found = findAt(clientState[client][part]);
-      if (found.id >= 0)
-         found.client = client;
-      return found;
-   }
-
-   // FIND WHICH OBJECT IS AT A PART OF EITHER ONE OR ALL CLIENTS
-
-   let findPart = (part, client) => {
-      if (client !== undefined && clientState[client] !== undefined)
-         return findPartOfClient(part, client);
-      let found = { id: -1, p: { x: 0, y: 0 }, client: -1 };
-      for (let client in clientState)
-         if ((found = findPartOfClient(part, client)).id >= 0)
-            break;
-      return found;
-   }
-
-   // FIND WHAT OBJECT IS AT ANY PART OF A CLIENT
-
-   let find = client => {
-      let found = { id: findAt(pp).id, p: pp };
-      if (found.id == -1) found = findPart('left' , client);
-      if (found.id == -1) found = findPart('right', client);
-      if (found.id == -1) found = findPart('head' , client);
-      return found;
-   }
-
-   // ----------------------------------- RESPOND TO MOUSE EVENTS
-
-   // ON MOUSE DOWN, TRY TO SELECT AN OBJECT
-
-   let isMouseDown = false;
-
-   canvas1.onmousedown = e => {
-      isMouseDown = true;
-      id = find().id;
-      if (id == -1) {
-         drawingPress(clientID, 'left');
-         clientState[clientID].left = getP(e);
-      }
-   }
-
-   // ON MOUSE MOVE, DO LOTS OF THINGS
-
-   canvas1.onmousemove = e => {
-      let p = getP(e);
-
-      // HANDLE INTERACTION WITH DRAWINGS
-
-      let isDrawing = (isMeta || isMouseDown || isShift) && id == -1;
-      if (isDrawing) {
-         if (isShift) {
-	    let id = clientState[clientID].selectedDrawingleft;
-	    if (id >= 0)
-               drawingTurn(id, p.x - pp.x);
-	 }
-	 else
-            drawingDrag(clientID, 'left', p.x, p.y);
-      }
-      clientState[clientID].left = p;
-      if (isDrawing) {
-         pp = p;
-         return;
-      }
-
-      // HANDLE INTERACTION WITH OBJECTS
-
-      let obj = objects[isShift && id>=0 ? id : find().id]; // IF SHIFT USE SELECTED OBJECT,
-		                                            // ELSE USE OBJECT AT THE CURSOR
-      if (obj) {                             // IF AN OBJECT IS SELECTED
-         currentAngle = obj.angle;           // THEN SET CURRENT ANGLE AND COLOR TO MATCH IT
-         currentColor = obj.color;
-      }
-      if (objects[id] !== undefined) {       // IF THERE IS A SELECTED OBJECT
+   
+      // CONNECT TO THE SERVER
+   
+      let server = new Server(2024);
+      server.alwaysLoadFromStorage();
+      server.init('tabletop', {});
+      server.init('peers', {});
+      let objects  = {};
+      let drawings = {};
+   
+      let agent = new Agent();
+   
+      let agents = { 0: agent };
+      let agentsInfo = { 0: { x:0, y:0, h:0 } };
+   /*
+      let agents = { };
+      let agentsInfo = { };
+   */
+      // CHANGE THE CURRENT ANGLE BY SOME DELTA
+   
+      let changeAngle = (angle, delta) => (3600 + angle + delta) % 360;
+      let turn = delta => currentAngle = changeAngle(currentAngle, delta);
+   
+      // CHANGE THE CURRENT COLOR
+   
+      let setColor = rgb => {
+         currentColor = hex(rgb);
+         let id = find().id;
          let obj = objects[id];
-         if (isShift) {                      // THEN IF SHIFT KEY IS DOWN
-            turn(p.x - pp.x);
-            obj.angle = currentAngle;        //      THEN ROTATE SELECTED OBJECT
-         }
-         else {                              //      ELSE TRANSLATE SELECTED OBJECT
-            let x = obj.x + p.x - pp.x;
-            let y = obj.y + p.y - pp.y;
-            if (isOnTable({x: x, y: y})) {
-               obj.x = x;
-               obj.y = y;
-            }
-         }
+         if (obj)
+            obj.color = currentColor;
       }
-      else if (isShift)                      // ELSE IF SHIFT KEY IS DOWN
-         turn(p.x - pp.x);                   //      THEN ROTATE CURRENT ANGLE
-
-      pp = p;
-   }
-
-   // ON MOUSE UP, UNSELECT OBJECT
-
-   canvas1.onmouseup = e => {
-      if (id == -1)
-         drawingRelease(clientID, 'left');
-      isMouseDown = false;
-      id = -1;
-   }
-
-   // -----------------------------------
-
-   // RETURN BLACK OR WHITE -- WHICHEVER IS MOST DIFFERENT FROM COLOR ARG
-
-   let blackOrWhite = color => {
-      let h = 0;
-      for (let k = 0 ; k < 3 ; k++) {
-         let c = color.charCodeAt(2*k+1);
-         h += (c < 64 ? c-48 : c-96+10) * (k==0 ? 1 : k==1 ? 1.3 : .7);
+   
+      let isBelowDrawingHeight = (client, hand) => {
+         if (client == clientID)
+            return isMeta;
+         return clientState[client][hand].b;
       }
-      return h > 30 ? 'black' : 'white';
-   }
-
-   // DRAW SOMETHING WITH A TRANSLATION + ROTATION
-
-   let rotatedDrawing = (ctx,x,y,angle,drawingProc) => {
-      let c = Math.cos(angle * Math.PI / 180);
-      let s = Math.sin(angle * Math.PI / 180);
-      ctx.save();
-         ctx.setTransform(c, -s, s, c, x-c*x-s*y, y+s*x-c*y);
-         drawingProc();
-      ctx.restore();
-   }
-
-   // CHECK FOR ANY CLIENT FOCUSING ON A DRAWING
-
-   let isPointOnDrawing = (p, drawing) => {
-      if (p === undefined)
-         return false;
-      for (let n = 0 ; n < drawing.strokes.length ; n++) {
-         let stroke = drawing.strokes[n];
-         for (let k = 0 ; k < stroke.length ; k += 2) {
-            let x = p.x - stroke[k];
-            let y = p.y - stroke[k+1];
-            if (x*x + y*y < w/50 * w/50)
-               return true;
-         }
-      }
-      return false;
-   }
-
-   // CHECK IF EITHER ONE OR ALL PARTS OF A CLIENT TOUCH A DRAWING
-
-   let isClientAtDrawing = (client, drawing, part) => {
-      if (client === undefined)
-         client = clientID;
-      if (client == clientID)
-         return isPointOnDrawing(pp, drawing);
-      if (part === undefined) {
-         for (let part in {left:1, right:1, head:1}) 
-            if (isClientAtDrawing(client, drawing, part))
+   
+      let isAnyoneLookingAtTheTable = () => {
+         for (let client in clientState)
+            if (isOnTable(clientState[client].head))
                return true;
          return false;
       }
-      return isPointOnDrawing(clientState[client][part], drawing);
-   }
-
-   // HANDLE DRAWING EVENTS
-
-   let drawingPress = (client, part) => {
-      let state = clientState[client];
-
-      // IF ABOVE DRAWING HEIGHT, SELECT AN EXISTING DRAWING
-
-      delete state['selectedDrawing' + part];
-
-      if (! isBelowDrawingHeight(client, part)) {
-         for (let id in drawings)
-            if (isClientAtDrawing(client, drawings[id], part))
-               state['selectedDrawing' + part] = id;
+   
+      // ADD A NEW OBJECT OF A SPECIFIED SHAPE AT THE CURSOR
+   
+      let addObject = (name, client) => {
+   
+         // FIND AN UNUSED ID
+   
+         let id = 0;
+         for ( ; id < 100 ; id++)
+            if (objects[id] === undefined)
+               break;
+   
+         // FIND WHERE TO PLACE THE NEW OBJECT
+   
+         let p = pp;
+         if (client !== undefined && clientState[client]) {
+            let checkPart = part => {
+               if (! isOnTable(p))
+                  p = findAt(clientState[client][part]).p;
+            }
+            checkPart('left');
+            checkPart('right');
+            checkPart('head');
+         }
+         p = isOnTable(p) ? p : pp;
+   
+         // ADD THE OBJECT TO THE MODEL
+   
+         objects[id] = {
+            type: name,
+            x: p.x+.5>>0, y: p.y+.5>>0,
+            color: currentColor,
+            angle: currentAngle,
+         }
+   
+         tabletop.objects = objects;
       }
-
-      // IF AT OR BELOW DRAWING HEIGHT, START A NEW STROKE
-
-      else {
-         let id = 1;
-         for ( ; id < 100 && drawings[id] ; id++)
-            ;
-         drawings[id] = { ids: {}, strokes: [[]] };
-         state['drawing' + part] = id;
+   
+      // RESPOND TO KEYBOARD EVENTS
+   
+      let kc = [0,0,0,0,0,0,0,0,0,0];
+   
+      let mixColors = () => {
+         let c = [0,0,0], n = 0;
+         for (let i = 0 ; i < kc.length ; i++)
+            if (kc[i]) {
+               for (let j = 0 ; j < 3 ; j++)
+                  c[j] += 1 - rgb[i][j];
+               n++;
+            }
+         setColor([1 - c[0]/n, 1 - c[1]/n, 1 - c[2]/n]);
+         for (let i = 0 ; i < kc.length ; i++)
+            kc[i] = 0;
       }
-   }
-
-   let drawingDrag = (client, part, x, y) => {
-      let state = clientState[client];
-
-      // DRAG SELECTED DRAWING
-
-      if (state['selectedDrawing' + part]) {
-         let id = state['selectedDrawing' + part];
-         let strokes = drawings[id].strokes;
-         for (let i = 0 ; i < strokes.length ; i++) {
-            let stroke = strokes[i];
-            for (let k = 0 ; k < stroke.length ; k += 2) {
-               stroke[k  ] += x - state[part].x;
-               stroke[k+1] += y - state[part].y;
+   
+      document.addEventListener('keydown', e => {
+         switch (e.key) {
+         case 'Enter':
+            isEnter = true;
+       break;
+         case 'Shift':
+            isShift = true;
+       id = findAt(pp).id;
+       break;
+         case 'Control':
+            isControl = true;
+       break;
+         case 'Meta':
+            isMeta = true;
+       drawingPress(clientID, 'left');
+       break;
+         case '-':
+            isMinus = true;
+       break;
+         }
+   
+         if (e.keyCode >= 48 && e.keyCode < 58)
+            kc[e.keyCode - 48] = 1;
+      });
+   
+      let animationTargets = [];
+   
+      let startAnimation = () => {
+         animationTargets = [];
+         for (let did in drawings) {
+            let stroke = drawings[did].strokes[0];
+       let found = findAt({ x: stroke[0], y: stroke[1] });
+       if (found.id >= 0) {
+          let obj = objects[found.id];
+          animationTargets.push({ id: found.id, did: did, x: obj.x, y: obj.y });
             }
          }
+         animateT = 0;
+         isAnimating = true;
       }
-
-      // OR APPEND TO A STROKE
-
-      else if (state['drawing' + part]) {
-         let id = state['drawing' + part];
-         let strokes = drawings[id].strokes;
-         let stroke = strokes[strokes.length - 1];
-         stroke.push(x, y);
+   
+      let evalAnimation = () => {
+         if (isAnimating) {
+            for (let n = 0 ; n < animationTargets.length ; n++) {
+          let target = animationTargets[n];
+          let stroke = drawings[target.did].strokes[0];
+          let p0 = sampleStroke(stroke, 0);
+          let p1 = sampleStroke(stroke, animateT);
+          let obj = objects[target.id];
+          obj.x = target.x + p1.x - p0.x;
+          obj.y = target.y + p1.y - p0.y;
+       }
+         }
+         if (animateT >= 1) {
+            for (let n = 0 ; n < animationTargets.length ; n++) {
+               let target = animationTargets[n];
+               let obj = objects[target.id];
+               obj.x = target.x;
+               obj.y = target.y;
+            }
+            animateT = 0;
+            animateTime = 0;
+            isAnimating = false;
+         }
       }
-   }
-
-   let drawingRelease = (client, part) => {
-      let state = clientState[client];
-      if (! state)
-         return;
-      delete state['selectedDrawing' + part];
-      if (! state['drawing' + part])
-         return;
-
-      let sid = state['drawing' + part];
-      delete state['drawing' + part];
-      let stroke = drawings[sid].strokes[0];
-
-      // IF THE STROKE IS TOO SHORT, DELETE IT
-
-      if (stroke.length < 40) {
-         delete drawings[sid];
-	 return;
+   
+      document.addEventListener('keyup', e => {
+         switch (e.key) {
+         case 'Enter': isEnter = false; pp = {x:w/2, y:h/2}; break;
+         case 'Shift': isShift = false; id = -1; break;
+         case 'Control': isControl = false; break;
+         case 'Meta': drawingRelease(clientID, 'left'); isMeta = false; break;
+         case '-': isMinus = false; break;
+         case '.': startAnimation(); break;
+         case '/': showSpeech = ! showSpeech; break;
+         case 'Backspace':
+            let i = findAt(pp).id;
+            if (i >= 0)
+               delete objects[i];
+            else
+               for (let id in drawings)
+                  if (isClientAtDrawing(clientID, drawings[id]))
+                     delete drawings[id];
+            break;
+         default:
+   
+            if (! isControl)
+          return;
+   
+            // CONTROL-SPACE TOGGLES SHOWING AGENTS
+   
+            if (e.keyCode == 32) {
+               showAgents = ! showAgents;
+          return;
+            }
+   
+            // IF RELEASING A NUMBER KEY
+   
+            if (e.keyCode >= 48 && e.keyCode < 58) {
+               let id = e.keyCode - 48;
+   
+               // DELETE AN OBJECT IF HOLDING DOWN THE '-' KEY
+   
+               if (isMinus)
+                  delete objects[id];
+   
+               // ELSE MIX COLORS BY COMBINING NUMBER KEYS
+   
+               else {
+                  kc[id] = 2;
+                  let nDown = 0;
+                  for (let i = 0 ; i < 10 ; i++)
+                     nDown += kc[i] == 1;
+                  if (nDown == 0)
+                     mixColors();
+               }
+            }
+   
+            // ELSE TYPE A LETTER KEY TO ADD AN OBJECT
+   
+            else {
+               let n = 0, i = e.keyCode - 65;
+               for (let name in things)
+                  if (n++ == i) {
+                     addObject(name, clientID);
+                     break;
+                  }
+            }
+   
+            break;
+        }
+      });
+   
+      // GET THE (X,Y) POSITION ON THE CANVAS FOR THIS EVENT
+   
+      let getP = e => {
+         let r = canvas1.getBoundingClientRect();
+         return { x: e.clientX - r.left, y: e.clientY - r.top };
       }
-
-      // IF THE STROKE HAS A VERY LONG GAP, DELETE IT
-
-      for (let i = 0 ; i < stroke.length - 2 ; i += 2) {
-         let dx = stroke[i+2] - stroke[i],
-             dy = stroke[i+3] - stroke[i+1];
-         if (dx * dx + dy * dy > 100 * 100) {
-            delete drawings[sid];
+   
+      // DETERMINE WHETHER A PIXEL IS ON THE TABLE
+   
+      let isOnTable = p => {
+         if (! p)
+            return false;
+         let x = (p.x - w / 2) / (w / 2);
+         let y = (p.y - w / 2) / (w / 2);
+         return x * x + y * y < 1;
+      }
+   
+      // DETERMINE WHETHER A PIXEL IS WITHIN AN OBJECT
+   
+      let isWithin = (obj, p) => {
+   
+         let x = obj.x, y = obj.y, angle = obj.angle, thing = things[obj.type];
+   
+         let c = Math.cos(-angle * Math.PI / 180);
+         let s = Math.sin(-angle * Math.PI / 180);
+   
+         // IF THE OBJECT HAS NO GEOMETRY, IT'S A MOLECULE
+   
+         if (thing.items.length == 0) {
+            let x = p.x - obj.x;
+            let y = p.y - obj.y;
+            let px =  c * x + s * y + obj.x;
+            let py = -s * x + c * y + obj.y;
+            for (let n = 0 ; n < moleculesInfo[obj.type].positions.length ; n++) {
+               let xyr = atomXYR(obj, n);
+               let dx = xyr[0] - px;
+               let dy = xyr[1] - py;
+               if (dx * dx + dy * dy < 4 * xyr[2] * xyr[2])
+                  return true;
+            }
+            return false;
+         }
+   
+         // ROTATE THE PIXEL AROUND THE OBJECT'S CENTER OPPOSITE TO THE OBJECT'S ROTATION
+   
+         let M = [ c, -s, s, c, x-c*x-s*y, y+s*x-c*y ];
+         let X = M[0] * p.x + M[2] * p.y + M[4];
+         let Y = M[1] * p.x + M[3] * p.y + M[5];
+   
+         // RETURN TRUE IF THE PIXEL IS IN ANY OF THE OBJECT'S COMPONENT SHAPES
+   
+         let scale = w/2 * thingsScale;
+         for (let n = 0 ; n < thing.items.length ; n++) {
+            let item = thing.items[n];
+            let x = scale * item.m[0] + obj.x;
+            let y = scale * item.m[2] + obj.y;
+            let w = scale * item.s[0];
+            let h = scale * item.s[2];
+            switch (item.type) {
+            case 'cube':
+               if (X >= x-w && X < x+w && Y > y-h && Y < y+h)
+                  return true;
+               break;
+            case 'tubeY':
+            case 'sphere':
+               let dx = (X - x) / w;
+               let dy = (Y - y) / h;
+               if (dx * dx + dy * dy < 1)
+                  return true;
+               break;
+            }
+         }
+         return false;
+      }
+   
+      // FIND WHICH OBJECT IS AT A PIXEL
+   
+      let findAt = p => {
+         if (isOnTable(p))
+            for (let id in objects)
+               if (isWithin(objects[id], p))
+                  return { id: id, p: p };
+         return { id: -1, p: p };
+      }
+   
+      // FIND WHICH OBJECT IS AT A PART OF A CLIENT
+   
+      let findPartOfClient = (part, client) => {
+         let found = findAt(clientState[client][part]);
+         if (found.id >= 0)
+            found.client = client;
+         return found;
+      }
+   
+      // FIND WHICH OBJECT IS AT A PART OF EITHER ONE OR ALL CLIENTS
+   
+      let findPart = (part, client) => {
+         if (client !== undefined && clientState[client] !== undefined)
+            return findPartOfClient(part, client);
+         let found = { id: -1, p: { x: 0, y: 0 }, client: -1 };
+         for (let client in clientState)
+            if ((found = findPartOfClient(part, client)).id >= 0)
+               break;
+         return found;
+      }
+   
+      // FIND WHAT OBJECT IS AT ANY PART OF A CLIENT
+   
+      let find = client => {
+         let found = { id: findAt(pp).id, p: pp };
+         if (found.id == -1) found = findPart('left' , client);
+         if (found.id == -1) found = findPart('right', client);
+         if (found.id == -1) found = findPart('head' , client);
+         return found;
+      }
+   
+      // ----------------------------------- RESPOND TO MOUSE EVENTS
+   
+      // ON MOUSE DOWN, TRY TO SELECT AN OBJECT
+   
+      let isMouseDown = false;
+   
+      canvas1.onmousedown = e => {
+         isMouseDown = true;
+         id = find().id;
+         if (id == -1) {
+            drawingPress(clientID, 'left');
+            clientState[clientID].left = getP(e);
+         }
+      }
+   
+      // ON MOUSE MOVE, DO LOTS OF THINGS
+   
+      canvas1.onmousemove = e => {
+         let p = getP(e);
+   
+         // HANDLE INTERACTION WITH DRAWINGS
+   
+         let isDrawing = (isMeta || isMouseDown || isShift) && id == -1;
+         if (isDrawing) {
+            if (isShift) {
+          let id = clientState[clientID].selectedDrawingleft;
+          if (id >= 0)
+                  drawingTurn(id, p.x - pp.x);
+       }
+       else
+               drawingDrag(clientID, 'left', p.x, p.y);
+         }
+         clientState[clientID].left = p;
+         if (isDrawing) {
+            pp = p;
             return;
          }
-      }
-
-      // IF THE STROKE INTERSECTS AN EXISTING DRAWING, MERGE IT INTO THAT DRAWING
-
-      if (drawings[sid].strokes.length == 1)
-         for (let id in drawings)
-            if (id != sid)
-               for (let i = 0 ; i < stroke.length ; i += 2)
-                  if (isPointOnDrawing({ x: stroke[i], y: stroke[i+1] }, drawings[id])) {
-                     drawings[id].strokes.push(stroke);
-                     delete drawings[sid];
-                     return;
-                  }
-   }
-
-   // TURN A DRAWING ABOUT ITS CENTER
-
-   let drawingTurn = (id, angle) => {
-
-      // COMPUTE CENTER POINT
-
-      let cx = 0, cy = 0, count = 0;
-      for (let i = 0 ; i < drawings[id].strokes.length ; i++) {
-         let stroke = drawings[id].strokes[i];
-	 for (let j = 0 ; j < stroke.length ; j++)
-	    stroke[j] = stroke[j] + .5 >> 0;
-	 for (let j = 0 ; j < stroke.length ; j += 2) {
-	    cx += stroke[j  ];
-	    cy += stroke[j+1];
-	    count++;
+   
+         // HANDLE INTERACTION WITH OBJECTS
+   
+         let obj = objects[isShift && id>=0 ? id : find().id]; // IF SHIFT USE SELECTED OBJECT,
+                                                     // ELSE USE OBJECT AT THE CURSOR
+         if (obj) {                             // IF AN OBJECT IS SELECTED
+            currentAngle = obj.angle;           // THEN SET CURRENT ANGLE AND COLOR TO MATCH IT
+            currentColor = obj.color;
          }
-      }
-      cx /= count;
-      cy /= count;
-
-      // ROTATE ALL STROKES ABOUT THE CENTER OF THE DRAWING
-
-      let C = Math.cos(angle * Math.PI / 180);
-      let S = Math.sin(angle * Math.PI / 180);
-      for (let i = 0 ; i < drawings[id].strokes.length ; i++) {
-         let stroke = drawings[id].strokes[i];
-	 for (let j = 0 ; j < stroke.length ; j += 2) {
-	    let x = stroke[j  ] - cx;
-	    let y = stroke[j+1] - cy;
-	    stroke[j  ] = cx + C * x - S * y;
-	    stroke[j+1] = cy + S * x + C * y;
+         if (objects[id] !== undefined) {       // IF THERE IS A SELECTED OBJECT
+            let obj = objects[id];
+            if (isShift) {                      // THEN IF SHIFT KEY IS DOWN
+               turn(p.x - pp.x);
+               obj.angle = currentAngle;        //      THEN ROTATE SELECTED OBJECT
+            }
+            else {                              //      ELSE TRANSLATE SELECTED OBJECT
+               let x = obj.x + p.x - pp.x;
+               let y = obj.y + p.y - pp.y;
+               if (isOnTable({x: x, y: y})) {
+                  obj.x = x;
+                  obj.y = y;
+               }
+            }
          }
+         else if (isShift)                      // ELSE IF SHIFT KEY IS DOWN
+            turn(p.x - pp.x);                   //      THEN ROTATE CURRENT ANGLE
+   
+         pp = p;
       }
-   }
-
-   // DRAW ONE ANIMATION FRAME
-
-   const onFrame = () => {
-      let time = Date.now() / 1000;
-
-      if (isAnimating) {
-         if (animateTime > 0)
-	    animateT += (time - animateTime) / 3;
-         animateTime = time;
-         evalAnimation();
+   
+      // ON MOUSE UP, UNSELECT OBJECT
+   
+      canvas1.onmouseup = e => {
+         if (id == -1)
+            drawingRelease(clientID, 'left');
+         isMouseDown = false;
+         id = -1;
       }
-
-      if (peer.open) {
-         window['peers'].wizardId = peer.id;
-         window['peers'].clientIds = Object.keys(clientConnections);
-      } else {
-         delete window['peers']['wizardId'];
-         delete window['peers']['clientIds'];
+   
+      // -----------------------------------
+   
+      // RETURN BLACK OR WHITE -- WHICHEVER IS MOST DIFFERENT FROM COLOR ARG
+   
+      let blackOrWhite = color => {
+         let h = 0;
+         for (let k = 0 ; k < 3 ; k++) {
+            let c = color.charCodeAt(2*k+1);
+            h += (c < 64 ? c-48 : c-96+10) * (k==0 ? 1 : k==1 ? 1.3 : .7);
+         }
+         return h > 30 ? 'black' : 'white';
       }
-      
-      server.broadcastGlobal('peers');
-
-      if (window.clientID !== undefined && clientState[clientID] === undefined)
-         clientState[clientID] = {};
-
-      // KEEP TRACK OF WHO SPOKE MOST RECENTLY
-
-      for (let client in clientState)
-         if (clientState[client].isSpeaking)
-            speakingClient = client;
-
-      // RESPOND TO ANY SPEECH COMMANDS IF EITHER THE CURSOR IS OVER THE TABLE
-      // OR IF ANY CLIENT IS LOOKING AT THE TABLE OR AN OBJECT IS SELECTED
-
-      if (window.speech && (isOnTable(pp) || isAnyoneLookingAtTheTable() || isAnyObjectInFocus)) {
-
-         let match = pattern => {
-            let words = pattern.split('|');
-            for (let i = 0 ; i < words.length ; i++)
-               if (speech.indexOf(words[i]) >= 0)
+   
+      // DRAW SOMETHING WITH A TRANSLATION + ROTATION
+   
+      let rotatedDrawing = (ctx,x,y,angle,drawingProc) => {
+         let c = Math.cos(angle * Math.PI / 180);
+         let s = Math.sin(angle * Math.PI / 180);
+         ctx.save();
+            ctx.setTransform(c, -s, s, c, x-c*x-s*y, y+s*x-c*y);
+            drawingProc();
+         ctx.restore();
+      }
+   
+      // CHECK FOR ANY CLIENT FOCUSING ON A DRAWING
+   
+      let isPointOnDrawing = (p, drawing) => {
+         if (p === undefined)
+            return false;
+         for (let n = 0 ; n < drawing.strokes.length ; n++) {
+            let stroke = drawing.strokes[n];
+            for (let k = 0 ; k < stroke.length ; k += 2) {
+               let x = p.x - stroke[k];
+               let y = p.y - stroke[k+1];
+               if (x*x + y*y < w/50 * w/50)
+                  return true;
+            }
+         }
+         return false;
+      }
+   
+      // CHECK IF EITHER ONE OR ALL PARTS OF A CLIENT TOUCH A DRAWING
+   
+      let isClientAtDrawing = (client, drawing, part) => {
+         if (client === undefined)
+            client = clientID;
+         if (client == clientID)
+            return isPointOnDrawing(pp, drawing);
+         if (part === undefined) {
+            for (let part in {left:1, right:1, head:1}) 
+               if (isClientAtDrawing(client, drawing, part))
                   return true;
             return false;
          }
-
-         speech = speech.toLowerCase()
-                        .replace('dark','black')
-                        .replace('light','white')
-                        .replace('people','person')
-                        .replace('read','red')
-                        ;
-
-         // ------- RESPOND TO SPEECH BY CHOOSING A SET OF OBJECTS TO WORK ON -------
-
-         // LIST ALL COLORS AND SHAPES IN THE SPEECH, IN THE ORDER THEY ARE MENTIONED
-
-         let parsed = '' + speech;
-         let filler = '------------------------';
-         let sortItems = (items, extract) => {
-            let A = [];
-            A.minIndex = 1000;
-            for (let item in items) {
-               let matched = extract(item);
-               let i = parsed.indexOf(matched);
-               if (i >= 0) {
-                  A.minIndex = Math.min(A.minIndex, i);
-                  A.push([i, item]);
-                  parsed = parsed.substring(0, i)
-                         + filler.substring(0, matched.length)
-                         + parsed.substring(i + matched.length);
-               }
-            }
-            A.sort((a,b) => a[0] - b[0]);
-            for (let i = 0 ; i < A.length ; i++)
-               A[i] = A[i][1];
-            return A;
-         }
-
-         let C = sortItems(color , c => color[c]);
-         let S = sortItems(things_and_groups, name => name);
-
-         let matches = (obj, key) => {
-            if (obj.type == key)
-               return true;
-            if (groups[key])
-               for (let type in groups[key])
-                  if (obj.type == type)
-                     return true;
-            return false;
-         }
-
-         // MAKE A LIST OF OBJECT IDS IN VARIOUS WAYS IN RESPONSE TO SPEECH
-
-         let idList = [];
-
-         // id = -1 INDICATES ALL DRAWINGS
-
-         if (speech.indexOf('drawing') >= 0)
-            idList.push(-1);
-
-         // LIST EVERYTHING
-
-         if (match('everything')) {
-            S.minIndex = Math.min(S.minIndex, speech.indexOf('everything'));
-            for (let id in objects)
-               idList.push(id);
-            idList.push(-1);    // EVERYTHING INCLUDES ALL DRAWINGS
-         }
-
-         // OR LIST MULTIPLE OBJECTS OF A GIVEN SHAPE
-
-         else if (match('every|all') && S.length > 0) {
-            for (let id in objects)            // OR ELSE EVERY OBJECT OF A GIVEN SHAPE
-               if (matches(objects[id], S[0]))
-                  idList.push(id);
-
-            if (C.length && C.minIndex < S.minIndex) {   // THEN OPTIONALLY FILTER BY COLOR
-               let newList = [];
-               for (let i = 0 ; i < idList.length ; i++) {
-                  let id = idList[i], obj = objects[id];
-                  if (obj.color === hex(rgb[C[0]]))
-                     newList.push(id);
-               }
-               idList = newList;
-            }
-         }
-
-         // OR LIST A SINGLE OBJECT WITH GIVEN COLOR AND SHAPE
-
-         else if (C.length && S.length && C.minIndex < S.minIndex) {
-            for (let id in objects)
-               if (matches(objects[id], S[0]) && objects[id].color == hex(rgb[C[0]])) {
-                  idList.push(id);
-                  break;
-               }
-         }
-
-         // OR LIST A SINGLE OBJECT WITH GIVEN SHAPE
-
-         else if (S.length) {
-            for (let id in objects)
-               if (matches(objects[id], S[0])) {
-                  idList.push(id);
-                  break;
-               }
-         }
-
-         // OR LIST THE OBJECT BEING POINTED AT
-
-         else {
-            let id = find(speakingClient).id;
-            if (id >= 0)
-               idList.push(id);
-         }
-
-         // ----- RESPOND TO SPEECH BY PERFORMING OPERATIONS ON OBJECTS ------
-
-         // "remove every green table"
-         // "remove the chair"
-
-         // REMOVE THINGS
-
-         if (enableSpeechDeletObj && ('remove|delete|disappear')) {
-
-            // REMOVE OBJECTS
-
-            for (let i = 0 ; i < idList.length ; i++)
-               if (idList[i] == -1)
-                  for (let id in drawings)          // REMOVE ALL DRAWINGS
-                     delete drawings[id];
-               else
-                  delete objects[idList[i]];
-
-            // REMOVE ANY DRAWING THAT THE SPEAKER IS POINTING TO
-
+         return isPointOnDrawing(clientState[client][part], drawing);
+      }
+   
+      // HANDLE DRAWING EVENTS
+   
+      let drawingPress = (client, part) => {
+         let state = clientState[client];
+   
+         // IF ABOVE DRAWING HEIGHT, SELECT AN EXISTING DRAWING
+   
+         delete state['selectedDrawing' + part];
+   
+         if (! isBelowDrawingHeight(client, part)) {
             for (let id in drawings)
-               if (isClientAtDrawing(speakingClient, drawings[id]))
-                  delete drawings[id];
+               if (isClientAtDrawing(client, drawings[id], part))
+                  state['selectedDrawing' + part] = id;
          }
-
-         // SET COLOR
-
-         let isColor = false;
-         for (let i = 0 ; i < color.length ; i++)
-            if (kc[i] = speech.indexOf(color[i]) >= 0)
-               isColor = true;
-         if (isColor)
-            mixColors();
-
-         // ADD AN OBJECT
-
-         // "add a blue table"
-         // "add a chair"
-
-         if (enableSpeechAddObj && match('add|and|had|at')) {
-            if (S.length > 0) {
-               let success = false;
-               for (let name in things)
-                  if (S[0] == name) {
-                     addObject(name, speakingClient);
-                     success = true;
-                     break;
-                  }
-               if (! success)
-                  for (let groupName in groups)
-                     if (S[0] == groupName) {
-                        let group = groups[groupName], groupSize = 0, count = 0;
-                        for (let type in group)
-                           groupSize++;
-                        let randomSelection = groupSize * Math.random() >> 0;
-                        for (let type in group)
-                           if (count++ == randomSelection) {
-                              addObject(type, speakingClient);
-                              break;
-                           }
-                        break;
-                     }
+   
+         // IF AT OR BELOW DRAWING HEIGHT, START A NEW STROKE
+   
+         else {
+            let id = 1;
+            for ( ; id < 100 && drawings[id] ; id++)
+               ;
+            drawings[id] = { ids: {}, strokes: [[]] };
+            state['drawing' + part] = id;
+         }
+      }
+   
+      let drawingDrag = (client, part, x, y) => {
+         let state = clientState[client];
+   
+         // DRAG SELECTED DRAWING
+   
+         if (state['selectedDrawing' + part]) {
+            let id = state['selectedDrawing' + part];
+            let strokes = drawings[id].strokes;
+            for (let i = 0 ; i < strokes.length ; i++) {
+               let stroke = strokes[i];
+               for (let k = 0 ; k < stroke.length ; k += 2) {
+                  stroke[k  ] += x - state[part].x;
+                  stroke[k+1] += y - state[part].y;
+               }
             }
          }
-
-         // MOVE OBJECTS FORWARD, BACK, LEFT OR RIGHT
-
-         // "move every desk left three feet"
-         // "move the blue chair back"
-
-         if (match('move')) {
-            let dir = 'forward left back right'.split(' ');
-            for (let n = 0 ; n < dir.length ; n++)
-               if (speech.indexOf(dir[n]) >= 0) {
-                  let dist = 1;
-                  let j = speech.search(/[0-9]/);
-                  if (j >= 0)
-                     dist = parseInt(speech.substring(j));
-                  dist *= w / 4 * thingsScale;
+   
+         // OR APPEND TO A STROKE
+   
+         else if (state['drawing' + part]) {
+            let id = state['drawing' + part];
+            let strokes = drawings[id].strokes;
+            let stroke = strokes[strokes.length - 1];
+            stroke.push(x, y);
+         }
+      }
+   
+      let drawingRelease = (client, part) => {
+         let state = clientState[client];
+         if (! state)
+            return;
+         delete state['selectedDrawing' + part];
+         if (! state['drawing' + part])
+            return;
+   
+         let sid = state['drawing' + part];
+         delete state['drawing' + part];
+         let stroke = drawings[sid].strokes[0];
+   
+         // IF THE STROKE IS TOO SHORT, DELETE IT
+   
+         if (stroke.length < 40) {
+            delete drawings[sid];
+       return;
+         }
+   
+         // IF THE STROKE HAS A VERY LONG GAP, DELETE IT
+   
+         for (let i = 0 ; i < stroke.length - 2 ; i += 2) {
+            let dx = stroke[i+2] - stroke[i],
+                dy = stroke[i+3] - stroke[i+1];
+            if (dx * dx + dy * dy > 100 * 100) {
+               delete drawings[sid];
+               return;
+            }
+         }
+   
+         // IF THE STROKE INTERSECTS AN EXISTING DRAWING, MERGE IT INTO THAT DRAWING
+   
+         if (drawings[sid].strokes.length == 1)
+            for (let id in drawings)
+               if (id != sid)
+                  for (let i = 0 ; i < stroke.length ; i += 2)
+                     if (isPointOnDrawing({ x: stroke[i], y: stroke[i+1] }, drawings[id])) {
+                        drawings[id].strokes.push(stroke);
+                        delete drawings[sid];
+                        return;
+                     }
+      }
+   
+      // TURN A DRAWING ABOUT ITS CENTER
+   
+      let drawingTurn = (id, angle) => {
+   
+         // COMPUTE CENTER POINT
+   
+         let cx = 0, cy = 0, count = 0;
+         for (let i = 0 ; i < drawings[id].strokes.length ; i++) {
+            let stroke = drawings[id].strokes[i];
+       for (let j = 0 ; j < stroke.length ; j++)
+          stroke[j] = stroke[j] + .5 >> 0;
+       for (let j = 0 ; j < stroke.length ; j += 2) {
+          cx += stroke[j  ];
+          cy += stroke[j+1];
+          count++;
+            }
+         }
+         cx /= count;
+         cy /= count;
+   
+         // ROTATE ALL STROKES ABOUT THE CENTER OF THE DRAWING
+   
+         let C = Math.cos(angle * Math.PI / 180);
+         let S = Math.sin(angle * Math.PI / 180);
+         for (let i = 0 ; i < drawings[id].strokes.length ; i++) {
+            let stroke = drawings[id].strokes[i];
+       for (let j = 0 ; j < stroke.length ; j += 2) {
+          let x = stroke[j  ] - cx;
+          let y = stroke[j+1] - cy;
+          stroke[j  ] = cx + C * x - S * y;
+          stroke[j+1] = cy + S * x + C * y;
+            }
+         }
+      }
+   
+      // DRAW ONE ANIMATION FRAME
+   
+      let previous_textbox_value = '';
+      let time_of_last_textbox_change = -1;
+      let text_buffer = '';
+   
+      const onFrame = () => {
+         let time = Date.now() / 1000;
+   
+         if (textbox.value != previous_textbox_value) {
+            let L0 = previous_textbox_value.length;
+            let L1 = textbox.value.length;
+            text_buffer += textbox.value.substring(L0, L1);
+       previous_textbox_value = textbox.value.substring(0,L1);
+       time_of_last_textbox_change = time;
+         }
+         if (time - time_of_last_textbox_change > 1) {
+            window.speech = text_buffer;
+       text_buffer = '';
+         }
+   
+         if (isAnimating) {
+            if (animateTime > 0)
+          animateT += (time - animateTime) / 3;
+            animateTime = time;
+            evalAnimation();
+         }
+   
+         if (peer.open) {
+            window['peers'].wizardId = peer.id;
+            window['peers'].clientIds = Object.keys(clientConnections);
+         } else {
+            delete window['peers']['wizardId'];
+            delete window['peers']['clientIds'];
+         }
+         
+         server.broadcastGlobal('peers');
+   
+         if (window.clientID !== undefined && clientState[clientID] === undefined)
+            clientState[clientID] = {};
+   
+         // KEEP TRACK OF WHO SPOKE MOST RECENTLY
+   
+         for (let client in clientState)
+            if (clientState[client].isSpeaking)
+               speakingClient = client;
+   
+         // RESPOND TO ANY TYPED OR DICTATED TEXT IF THE WIZARD TYPES "ENTER" OR IF THE CURSOR IS OVER THE TABLE
+         // OR IF ANY CLIENT IS LOOKING AT THE TABLE OR IF AN OBJECT IS SELECTED
+   
+         if (window.speech && (isEnter || isOnTable(pp) || isAnyoneLookingAtTheTable() || isAnyObjectInFocus)) {
+         //if (window.speech) {
+   
+            let match = pattern => {
+               let words = pattern.split('|');
+               for (let i = 0 ; i < words.length ; i++)
+                  if (speech.indexOf(words[i]) >= 0)
+                     return true;
+               return false;
+            }
+   
+            speech = speech.toLowerCase()
+                           .replace('dark','black')
+                           .replace('light','white')
+                           .replace('people','person')
+                           .replace('read','red')
+                           ;
+   
+            // ------- RESPOND TO SPEECH BY CHOOSING A SET OF OBJECTS TO WORK ON -------
+   
+            // LIST ALL COLORS AND SHAPES IN THE SPEECH, IN THE ORDER THEY ARE MENTIONED
+   
+            let parsed = '' + speech;
+            let filler = '------------------------';
+            let sortItems = (items, extract) => {
+               let A = [];
+               A.minIndex = 1000;
+               for (let item in items) {
+                  let matched = extract(item);
+                  let i = parsed.indexOf(matched);
+                  if (i >= 0) {
+                     A.minIndex = Math.min(A.minIndex, i);
+                     A.push([i, item]);
+                     parsed = parsed.substring(0, i)
+                            + filler.substring(0, matched.length)
+                            + parsed.substring(i + matched.length);
+                  }
+               }
+               A.sort((a,b) => a[0] - b[0]);
+               for (let i = 0 ; i < A.length ; i++)
+                  A[i] = A[i][1];
+               return A;
+            }
+   
+            let C = sortItems(color , c => color[c]);
+            let S = sortItems(things_and_groups, name => name);
+   
+            let matches = (obj, key) => {
+               if (obj.type == key)
+                  return true;
+               if (groups[key])
+                  for (let type in groups[key])
+                     if (obj.type == type)
+                        return true;
+               return false;
+            }
+   
+            // MAKE A LIST OF OBJECT IDS IN VARIOUS WAYS IN RESPONSE TO SPEECH
+   
+            let idList = [];
+   
+            // id = -1 INDICATES ALL DRAWINGS
+   
+            if (speech.indexOf('drawing') >= 0)
+               idList.push(-1);
+   
+            // LIST EVERYTHING
+   
+            if (match('everything')) {
+               S.minIndex = Math.min(S.minIndex, speech.indexOf('everything'));
+               for (let id in objects)
+                  idList.push(id);
+               idList.push(-1);    // EVERYTHING INCLUDES ALL DRAWINGS
+            }
+   
+            // OR LIST MULTIPLE OBJECTS OF A GIVEN SHAPE
+   
+            else if (match('every|all') && S.length > 0) {
+               for (let id in objects)            // OR ELSE EVERY OBJECT OF A GIVEN SHAPE
+                  if (matches(objects[id], S[0]))
+                     idList.push(id);
+   
+               if (C.length && C.minIndex < S.minIndex) {   // THEN OPTIONALLY FILTER BY COLOR
+                  let newList = [];
                   for (let i = 0 ; i < idList.length ; i++) {
                      let id = idList[i], obj = objects[id];
-                     let angle = obj.angle + 90 * n;
-                     obj.y = obj.y + dist * Math.cos(angle * Math.PI / 180);
-                     obj.x = obj.x + dist * Math.sin(angle * Math.PI / 180);
+                     if (obj.color === hex(rgb[C[0]]))
+                        newList.push(id);
+                  }
+                  idList = newList;
+               }
+            }
+   
+            // OR LIST A SINGLE OBJECT WITH GIVEN COLOR AND SHAPE
+   
+            else if (C.length && S.length && C.minIndex < S.minIndex) {
+               for (let id in objects)
+                  if (matches(objects[id], S[0]) && objects[id].color == hex(rgb[C[0]])) {
+                     idList.push(id);
+                     break;
+                  }
+            }
+   
+            // OR LIST A SINGLE OBJECT WITH GIVEN SHAPE
+   
+            else if (S.length) {
+               for (let id in objects)
+                  if (matches(objects[id], S[0])) {
+                     idList.push(id);
+                     break;
+                  }
+            }
+   
+            // OR LIST THE OBJECT BEING POINTED AT
+   
+            else {
+               let id = find(speakingClient).id;
+               if (id >= 0)
+                  idList.push(id);
+            }
+   
+            // ----- RESPOND TO SPEECH BY PERFORMING OPERATIONS ON OBJECTS ------
+   
+            // "remove every green table"
+            // "remove the chair"
+   
+            // REMOVE THINGS
+   
+            if (match('remove|delete|disappear')) {
+   
+               // REMOVE OBJECTS
+   
+               for (let i = 0 ; i < idList.length ; i++)
+                  if (idList[i] == -1)
+                     for (let id in drawings)          // REMOVE ALL DRAWINGS
+                        delete drawings[id];
+                  else
+                     delete objects[idList[i]];
+   
+               // REMOVE ANY DRAWING THAT THE SPEAKER IS POINTING TO
+   
+               for (let id in drawings)
+                  if (isClientAtDrawing(speakingClient, drawings[id]))
+                     delete drawings[id];
+            }
+   
+            // SET COLOR
+   
+            let isColor = false;
+            for (let i = 0 ; i < color.length ; i++)
+               if (kc[i] = speech.indexOf(color[i]) >= 0)
+                  isColor = true;
+            if (isColor)
+               mixColors();
+   
+            // ADD AN OBJECT
+   
+            // "add a blue table"
+            // "add a chair"
+   
+            if (match('add|and|had|at')) {
+               if (S.length > 0) {
+                  let success = false;
+                  for (let name in things)
+                     if (S[0] == name) {
+                        addObject(name, speakingClient);
+                        success = true;
+                        break;
+                     }
+                  if (! success)
+                     for (let groupName in groups)
+                        if (S[0] == groupName) {
+                           let group = groups[groupName], groupSize = 0, count = 0;
+                           for (let type in group)
+                              groupSize++;
+                           let randomSelection = groupSize * Math.random() >> 0;
+                           for (let type in group)
+                              if (count++ == randomSelection) {
+                                 addObject(type, speakingClient);
+                                 break;
+                              }
+                           break;
+                        }
+               }
+            }
+   
+            // MOVE OBJECTS FORWARD, BACK, LEFT OR RIGHT
+   
+            // "move every desk left three feet"
+            // "move the blue chair back"
+   
+            if (match('move')) {
+               let dir = 'forward left back right'.split(' ');
+               for (let n = 0 ; n < dir.length ; n++)
+                  if (speech.indexOf(dir[n]) >= 0) {
+                     let dist = 1;
+                     let j = speech.search(/[0-9]/);
+                     if (j >= 0)
+                        dist = parseInt(speech.substring(j));
+                     dist *= w / 4 * thingsScale;
+                     for (let i = 0 ; i < idList.length ; i++) {
+                        let id = idList[i], obj = objects[id];
+                        let angle = obj.angle + 90 * n;
+                        obj.y = obj.y + dist * Math.cos(angle * Math.PI / 180);
+                        obj.x = obj.x + dist * Math.sin(angle * Math.PI / 180);
+                     }
+                  }
+            }
+   
+            // TURN OBJECTS
+   
+            // "turn the blue chair left 45 degrees"
+            // "turn everything"
+            // "turn every table 60 degrees"
+   
+            if (match('turn|rotate')) {
+               let sgn = speech.indexOf('left') >= 0 ? 1 : -1;
+               let delta = 90;
+               let j = speech.search(/[0-9]/);
+               if (j >= 0)
+                  delta = parseInt(speech.substring(j));
+               for (let i = 0 ; i < idList.length ; i++) {
+                  let id = idList[i], obj = objects[id];
+             if (id == -1) {
+   
+                // ROTATE ALL THE DRAWINGS
+   
+                for (let id in drawings)
+              drawingTurn(id, delta);
+             }
+             else
+                     obj.angle = changeAngle(obj.angle, sgn * delta);
+               }
+            }
+   
+            // RELOCATE THE OBJECT THAT I AM LOOKING AT TO WHERE I AM POINTING
+   
+            if (match('put that there')) {
+               let H = findPart('head', speakingClient);
+               if (H.client >= 0) {
+                  let P = clientState[H.client].left;
+                  if (! isOnTable(P))
+                     P = clientState[H.client].right;
+                  if (isOnTable(P)) {
+                     let id = H.id, obj = objects[id];
+                     obj.x = P.x;
+                     obj.y = P.y;
                   }
                }
-         }
-
-         // TURN OBJECTS
-
-         // "turn the blue chair left 45 degrees"
-         // "turn everything"
-         // "turn every table 60 degrees"
-
-         if (match('turn|rotate')) {
-            let sgn = speech.indexOf('left') >= 0 ? 1 : -1;
-            let delta = 90;
-            let j = speech.search(/[0-9]/);
-            if (j >= 0)
-               delta = parseInt(speech.substring(j));
-            for (let i = 0 ; i < idList.length ; i++) {
-               let id = idList[i], obj = objects[id];
-	       if (id == -1) {
-
-	          // ROTATE ALL THE DRAWINGS
-
-	          for (let id in drawings)
-		     drawingTurn(id, delta);
-	       }
-	       else
-                  obj.angle = changeAngle(obj.angle, sgn * delta);
             }
-         }
-
-         // RELOCATE THE OBJECT THAT I AM LOOKING AT TO WHERE I AM POINTING
-
-         if (match('put that there')) {
-            let H = findPart('head', speakingClient);
-            if (H.client >= 0) {
-               let P = clientState[H.client].left;
-               if (! isOnTable(P))
-                  P = clientState[H.client].right;
-               if (isOnTable(P)) {
-                  let id = H.id, obj = objects[id];
-                  obj.x = P.x;
-                  obj.y = P.y;
+   
+            // COPY THE OBJECT THAT I AM LOOKING AT TO WHERE I AM POINTING
+   
+            if (match('copy|duplicate')) {
+               let H = findPart('head', speakingClient);
+               if (H.client >= 0) {
+                  let P = clientState[H.client].left;
+                  if (! isOnTable(P))
+                     P = clientState[H.client].right;
+                  if (isOnTable(P)) {
+                     let id = H.id, obj = objects[id];
+                     addObject(obj.type, speakingClient);
+                  }
                }
             }
-         }
-
-         // COPY THE OBJECT THAT I AM LOOKING AT TO WHERE I AM POINTING
-
-         if (match('copy|duplicate')) {
-            let H = findPart('head', speakingClient);
-            if (H.client >= 0) {
-               let P = clientState[H.client].left;
-               if (! isOnTable(P))
-                  P = clientState[H.client].right;
-               if (isOnTable(P)) {
-                  let id = H.id, obj = objects[id];
-                  addObject(obj.type, speakingClient);
+   
+            // TRANSFORM THE SHAPE OR COLOR OF AN OBJECT
+   
+            if (match('make|let')) {
+   
+               // TRANSFORM THE COLOR OF OBJECTS
+   
+               // "make every table green"
+   
+               if (C.length == 1 && S.length > 0 && C.minIndex > S.minIndex) {
+                  for (let id in objects)
+                     if (matches(objects[id], S[0]))
+                        objects[id].color = hex(rgb[C[0]]);
                }
-            }
-         }
-
-         // TRANSFORM THE SHAPE OR COLOR OF AN OBJECT
-
-         if (match('make|let')) {
-
-            // TRANSFORM THE COLOR OF OBJECTS
-
-            // "make every table green"
-
-            if (C.length == 1 && S.length > 0 && C.minIndex > S.minIndex) {
-               for (let id in objects)
-                  if (matches(objects[id], S[0]))
-                     objects[id].color = hex(rgb[C[0]]);
-            }
-
-            // "make every red object green"
-            // "make every red desk green"
-            // "make the red desk green"
-
-            if (C.length == 2) {
-               for (let id in objects)
-                  if (S.length == 0) {
-                     if (objects[id].color == hex(rgb[C[0]]))
+   
+               // "make every red object green"
+               // "make every red desk green"
+               // "make the red desk green"
+   
+               if (C.length == 2) {
+                  for (let id in objects)
+                     if (S.length == 0) {
+                        if (objects[id].color == hex(rgb[C[0]]))
+                           objects[id].color = hex(rgb[C[1]]);
+                     }
+                     else if (objects[id].type == S[0] && objects[id].color == hex(rgb[C[0]]))
                         objects[id].color = hex(rgb[C[1]]);
-                  }
-                  else if (objects[id].type == S[0] && objects[id].color == hex(rgb[C[0]]))
-                     objects[id].color = hex(rgb[C[1]]);
-            }
-
-            // "make everything green"
-            // "make every desk green"
-            // "make the blue chair yellow"
-
-            if (C.length == 1 && C.minIndex > S.minIndex) {
-               for (let id in objects)
-                  if (S.length == 0)
-                     objects[id].color = hex(rgb[C[0]]);
-                  else if (objects[id].type == S[0])
-                     objects[id].color = hex(rgb[C[0]]);
-            }
-
-            // TRANSFORM THE SHAPE OF OBJECTS
-
-            // "make every desk a chair"
-            // "make every green desk a chair"
-
-            if (S.length == 2) {
-               for (let id in objects) {
-                  if (C.length == 0) {
-                     if (objects[id].type == S[0])
+               }
+   
+               // "make everything green"
+               // "make every desk green"
+               // "make the blue chair yellow"
+   
+               if (C.length == 1 && C.minIndex > S.minIndex) {
+                  for (let id in objects)
+                     if (S.length == 0)
+                        objects[id].color = hex(rgb[C[0]]);
+                     else if (objects[id].type == S[0])
+                        objects[id].color = hex(rgb[C[0]]);
+               }
+   
+               // TRANSFORM THE SHAPE OF OBJECTS
+   
+               // "make every desk a chair"
+               // "make every green desk a chair"
+   
+               if (S.length == 2) {
+                  for (let id in objects) {
+                     if (C.length == 0) {
+                        if (objects[id].type == S[0])
+                           objects[id].type = S[1];
+                     }
+                     else if (objects[id].type == S[0] && objects[id].color == hex(rgb[C[0]]))
                         objects[id].type = S[1];
                   }
-                  else if (objects[id].type == S[0] && objects[id].color == hex(rgb[C[0]]))
-                     objects[id].type = S[1];
                }
             }
+   
+       if (match('animate'))
+          startAnimation();
+   
+            tabletop.speech = speech;
+   
+            speech = '';
          }
-
-	 if (match('animate'))
-	    startAnimation();
-
-         tabletop.speech = speech;
-
-         speech = '';
-      }
-
-      //---------------- GATHER UPDATED STATE DATA TO SHARE WITH CLIENTS
-
-      if (tabletop.objects)
-         objects = tabletop.objects;
-
-      // WHAT OBJECT, IF ANY, IS IN FOCUS FOR EACH CLIENT'S HANDS AND GAZE?
-
-      isAnyObjectInFocus = false;
-      tabletop.focus = {};
-      for (let client in clientState) {
-         let ids = {}, found;
-         for (let part in clientState[client])
-            if ((found = findAt(clientState[client][part])).id >= 0)
-               ids[part] = found.id;
-         if (Object.keys(ids).length > 0) {
-            tabletop.focus[client] = ids;
-            isAnyObjectInFocus = true;
-         }
-      }
-
-      // ADD DRAWINGS TO THE STATE DATA
-
-      if (tabletop.drawings)
-         drawings = tabletop.drawings;
-
-      // TAG EACH DRAWING BY WHICH CLIENTS ARE POINTING TO IT
-
-      for (let id in drawings) {
-         let drawing = drawings[id];
-         drawing.ids = {};
-         for (let client in clientState)
-            if (isClientAtDrawing(client, drawing))
-               drawing.ids[client] = 1;
-         for (let i = 0 ; i < drawing.strokes.length ; i++) {
-            let stroke = drawing.strokes[i];
-            for (let k = 0 ; k < stroke.length ; k++)
-               stroke[k] = stroke[k] >> 0;
-         }
-      }
-      tabletop.drawings = drawings;
-
-      // ADD AGENTS TO THE STATE DATA
-
-      if (tabletop.agents)
-         agentsInfo = tabletop.agents;
-
-      for (let id in agentsInfo) {
-         let agentInfo = agentsInfo[id];
-	 let agent = agents[id];
-
-	 if (agent.state === undefined)
-	    agent.state = 0;
-         if (agent.isAtTarget()) {
-	    agent.state = (agent.state + 1) % 4;
-	    agent.setTarget([ .4 * Math.cos(Math.PI/2 * agent.state),
-	                      .4 * Math.sin(Math.PI/2 * agent.state) ]);
-	    let p = agent.getPos();
-	    let h = (agent.getHeading() + 1000 * Math.PI) % (2 * Math.PI);
-	    agentInfo.x = -1000 * p[1] >> 0;
-	    agentInfo.y =  1000 * p[0] >> 0;
-	    agentInfo.h =  1000 * h    >> 0;
-	 }
-
-         agent.update(time);
-      }
-
-      tabletop.agents = agentsInfo;
-//    console.log(tabletop.agents);
-
-      // ADD AVATARS TO THE STATE DATA
-
-      tabletop.avatars = {};
-      for (let client in clientState)
-         tabletop.avatars[client] = clientState[client].avatar;
-
-      // SEND THE CURRENT STATE TO EVERY CLIENT
-
-      Object.values(clientConnections).forEach((client) => {
-         const {drawings, focus, objects, speech, agents} = window.tabletop;
-         client.conn.send({drawings, focus, objects, speech, agents});  
-      })
-
-      //---------------- INCORPORATE STATE DATA FROM CLIENTS
-
-      server.sync('tabletop', msgs => {
-         if (Object.keys(tabletop).length > 0 && tabletop.objects)
+   
+         //---------------- GATHER UPDATED STATE DATA TO SHARE WITH CLIENTS
+   
+         if (tabletop.objects)
             objects = tabletop.objects;
-         if (Object.keys(tabletop).length > 0 && tabletop.drawings)
+   
+         // WHAT OBJECT, IF ANY, IS IN FOCUS FOR EACH CLIENT'S HANDS AND GAZE?
+   
+         isAnyObjectInFocus = false;
+         tabletop.focus = {};
+         for (let client in clientState) {
+            let ids = {}, found;
+            for (let part in clientState[client])
+               if ((found = findAt(clientState[client][part])).id >= 0)
+                  ids[part] = found.id;
+            if (Object.keys(ids).length > 0) {
+               tabletop.focus[client] = ids;
+               isAnyObjectInFocus = true;
+            }
+         }
+   
+         // ADD DRAWINGS TO THE STATE DATA
+   
+         if (tabletop.drawings)
             drawings = tabletop.drawings;
-      });
-
-      // MAKE THE PEOPLE MOVE
-
-      let turnAwayFrom = (obj, p) => {
-         let dx = p.x - obj.x;
-         let dy = p.y - obj.y;
-         let d = Math.sqrt(dx * dx + dy * dy);
-         if (d < .15 * w) {
-            let dir = Math.atan2(dx, dy) * 180 / Math.PI;
-            while (dir - obj.angle > 180) dir -= 360;
-            while (obj.angle - dir > 180) dir += 360;
-            let da = dir - obj.angle;
-            let s = Math.sign(da);
-            da = Math.abs(da);
-            if (da < 150)
-               obj.angle = changeAngle(obj.angle, -.03 * s * Math.max(da, 10));
-         }
-      }
-
-      for (let id in objects) {
-         let obj = objects[id];
-         if (obj.type == 'guy' || obj.type == 'gal') {
-            obj.x += Math.sin(obj.angle * Math.PI / 180);
-            obj.y += Math.cos(obj.angle * Math.PI / 180);
-            for (let i in objects)
-               if (i != id)
-                  turnAwayFrom(obj, objects[i]);
-            let x = obj.x / (w/2) - 1;
-            let y = obj.y / (w/2) - 1;
-            let r = Math.sqrt(x * x + y * y);
-            let edgePoint = { x: w/2 * (x / r + 1),
-                              y: w/2 * (y / r + 1) };
-            turnAwayFrom(obj, edgePoint);
-         }
-      }
-
-      // ADD DISK DRAWING METHODS TO A CANVAS 2D DRAWING CONTEXT
-
-      let addMethods = ctx => {
-         ctx.strokeDisk = (x,y,r) => { ctx.beginPath(); ctx.arc(x,y,r,0,2*Math.PI); ctx.stroke(); }
-         ctx.fillDisk   = (x,y,r) => { ctx.beginPath(); ctx.arc(x,y,r,0,2*Math.PI); ctx.fill  (); }
-         return ctx;
-      }
-
-      // LIST THE LOCATIONS OF ALL ACTIVE OBJECTS AND CLIENTS ON THE WEB PAGE
-
-      let s = '<TABLE><TR><TD><font face=helvetica>';
-      s += '<table cellspacing=0 cellpadding=3>';
-      s += '<tr><td><td width=104><th>x y angle';
-      for (let id in objects) {
-         let obj = objects[id];
-         let fc = '<font color=' + obj.color + '>';
-         s += '<tr>'
-            +     '<td valign=top><font color=black>' + id
-            +     '<td valign=top><font color=black>' + obj.type.replace(' ','_')
-            +     '<td><center><table cellpadding=0 cellspacing=0 border=1 bordercolor='
-            +         obj.color + '><tr><td>' + (obj.x>>0) + '&nbsp;' + (obj.y>>0) + '&nbsp;' + (obj.angle>>0)
-            +         '</table></center>';
-      }
-      s += '</table>';
-      s += '<br></TABLE><font face=helvetica>';
-      s += '<b>&nbsp;CLIENTS</b><p>';
-      s += '<table cellspacing=0><tr><th width=15>&nbsp;<th width=60>left<th width=60>right<th width=60>head';
-      for (let client in clientState) {
-         let state = clientState[client];
-         if (! state.left || ! state.right)
-            continue;
-         let fc = '<font color=' + color[client] + '>';
-         s += '<tr bgcolor=' + ( clientState.isSpeaking   ? 'black'   :
-                                 client == speakingClient ? '#a0a0a0' :
-                                                            '#d0d0d0' ) + '>'
-
-            + '<td align=center><small>' + fc + client
-            + '<td align=center><small>' + fc + state.left.x  + ',' + state.left.y
-            + '<td align=center><small>' + fc + state.right.x + ',' + state.right.y
-            + '<td align=center><small>' + fc + (state.head ? state.head.x : '---')
-                                        + ',' + (state.head ? state.head.y : '---')
-            + '<br></small>';
-      }
-      s += '</table></TABLE>';
-      datalog.innerHTML = s;
-
-      // DRAW THE ANGLE+COLOR INDICATOR
-
-      let x = 50, y = 53;
-      let actx = addMethods(angleCanvas.getContext('2d'));
-      actx.fillStyle = currentColor;
-      actx.fillDisk(x,y,40);
-      actx.strokeStyle = 'black';
-      actx.stroke();
-      actx.fillStyle = blackOrWhite(currentColor);
-      rotatedDrawing(actx, x,y,currentAngle, () => {
-         actx.beginPath();
-         actx.moveTo(x-10,y-30);
-         actx.lineTo(x+10,y-30);
-         actx.lineTo(x,y+33);
-         actx.fill();
-      });
-
-      // DRAW THE BACKGROUND
-
-      let ctx = addMethods(canvas1.getContext('2d'));
-      ctx.fillStyle = 'black';
-      ctx.fillRect(0,0,w,h);
-      ctx.font = '20px Helvetica';
-      ctx.fillStyle = 'white';
-      ctx.textAlign = 'left';
-      ctx.fillText(isOnTable(pp) ? 'ON TABLE' : 'OFF TABLE', 5, 24);
-      ctx.fillStyle = '#d0d0d0';
-      ctx.fillDisk(w/2,h/2,w/2);
-
-      // DRAW ALL THE OBJECTS
-
-      let textHeight = 12;
-      ctx.textAlign = 'center';
-      ctx.textVerticalAlign = 'center';
-      ctx.fillStyle = currentColor;
-      let found = findAt(pp);
-      for (let id in objects) {
-
-         // DRAW EACH OBJECT AS A SET OF COLORED ROTATED POLYGONS
-
-         let obj = objects[id];
-         let thing = things[obj.type];
-         let scale = w/2 * thingsScale;
-         rotatedDrawing(ctx, obj.x, obj.y, obj.angle, () => {
-            for (let n = 0 ; n < thing.items.length ; n++) {
-               let item = thing.items[n];
-               let x = scale * item.m[0] + obj.x;
-               let y = scale * item.m[2] + obj.y;
-               let w = scale * item.s[0];
-               let h = scale * item.s[2];
-               ctx.lineWidth = id == found.id ? 4 : 2;
-               ctx.strokeStyle = obj.color;
-               switch (item.type) {
-               case 'cube':
-                  ctx.strokeRect(x-w,y-h,2*w,2*h);
-                  break;
-               case 'tubeY':
-               case 'sphere':
-                  ctx.beginPath();
-                  ctx.ellipse(x,y,w,h,0,0,2*Math.PI);
-                  ctx.stroke();
-                  break;
-               }
-            }
-     
-    
-            let isGltf = groups.gltf && groups.gltf.hasOwnProperty(obj.type);
-            if (thing.items.length == 0 && !isGltf) {
-               let info = moleculesInfo[obj.type];
-               rotatedDrawing(ctx, obj.x, obj.y, obj.angle, () => {
-                  ctx.strokeStyle = hex([.25,.25,.25]) + '40';
-                  ctx.lineWidth = 4;
-                  for (let i = 0 ; i < info.links.length ; i++)
-                  for (let j = 0 ; j < info.links[i].length ; j++) {
-                     let a = atomXYR(obj, i),
-                         b = atomXYR(obj, info.links[i][j]);
-                     ctx.beginPath();
-                     ctx.moveTo(a[0], a[1]);
-                     ctx.lineTo(b[0], b[1]);
-                     ctx.stroke();
-                  }
-                  ctx.lineWidth = id == found.id ? 1 : .5;
-                  for (let n = 0 ; n < info.positions.length ; n++) {
-                     let xyr = atomXYR(obj, n);
-                     let a = getAtomInfo(obj.type, n);
-                     ctx.fillStyle = hex(a.color) + (id==found.id ? '20' : '10');
-                     ctx.strokeStyle = hex(a.color);
-                     ctx.beginPath();
-                     ctx.arc(xyr[0],xyr[1],xyr[2],0,2*Math.PI);
-                     ctx.fill();
-                     ctx.stroke();
-                  }
-               });
-            }
-         });
-
-         // SHOW THE OBJECT'S SHAPE
-
-         if (obj.type) {
-            let textHeight = id==found.id ? 15 : 12;
-            ctx.font = textHeight + 'px Courier';
-            ctx.fillStyle = 'black';
-            let lines = obj.type.split(' ');
-            let y = n => (textHeight + 2) * (n + 3/4 - lines.length/2);
-            for (let n = 0 ; n < lines.length ; n++)
-               ctx.fillText(lines[n],obj.x,obj.y+y(n));
-         }
-      }
-
-      // SHOW THE CLIENT STATE FOR ALL CLIENTS
-
-      for (let client in clientState) {
-
-         // REMOVE ANY INACTIVE CLIENTS
-
-         if (--clientState[client].active == 0) {
-            delete clientState[client];
-            continue;
-         }
-
-         // SHOW POSITIONS OF LEFT, RIGHT, HEAD FOR THIS CLIENT
-
-         let state = clientState[client];
-         for (let part in state) {
-            let isPressed = state['isPressed' + part];
-            ctx.fillStyle = hex(rgb[client]) + '40';
-            let r = w/2 / 50;
-            let event = state[part];
-            switch (part) {
-            case 'head':
-               ctx.fillRect(event.x - .35*r, event.y - 2*r, .7*r, 4*r);
-               ctx.fillRect(event.x - 2*r, event.y - .35*r, 4*r, .7*r);
-               break;
-            case 'left':
-            case 'right':
-               let isDrawing = isBelowDrawingHeight(client, part);
-               if (isPressed || isMouseDown || isMeta) {
-                  ctx.fillStyle = hex(rgb[client]) + '80';
-                  r *= .75;
-               }
-               ctx.fillDisk(event.x, event.y, 2*r, 2*r);
-               if (isDrawing) {
-                  ctx.fillStyle = isPressed ? '#000000' : '#00000040';
-                  ctx.fillDisk(event.x, event.y, .4*r, .4*r);
-               }
-               break;
-            }
-         }
-      }
-
-      // SHOW DRAWINGS
-
-      ctx.save();
-         ctx.strokeStyle = 'black';
-         ctx.fillStyle = 'black';
-         ctx.setLineDash([3,9]);
-         ctx.lineCap = 'square';
+   
+         // TAG EACH DRAWING BY WHICH CLIENTS ARE POINTING TO IT
+   
          for (let id in drawings) {
-            let isSelected = isClientAtDrawing(clientID, drawings[id]);
-            ctx.lineWidth = (isSelected ? .006 : .003) * w;
-            let strokes = drawings[id].strokes;
-            for (let n = 0 ; n < strokes.length ; n++) {
-               let stroke = strokes[n];
-               ctx.beginPath();
-               ctx.moveTo(stroke[0],stroke[1]);
-               for (let k = 2 ; k < stroke.length ; k += 2)
-                  ctx.lineTo(stroke[k],stroke[k+1]);
-               ctx.stroke();
-	       ctx.fillDisk(stroke[0], stroke[1], (isSelected ? .007 : .0045) * w);
-            }     
-         }     
-      ctx.restore();
-
-      // SHOW SPEECH
-
-      if (showSpeech) {
-	 ctx.font = '14px Courier';
+            let drawing = drawings[id];
+            drawing.ids = {};
+            for (let client in clientState)
+               if (isClientAtDrawing(client, drawing))
+                  drawing.ids[client] = 1;
+            for (let i = 0 ; i < drawing.strokes.length ; i++) {
+               let stroke = drawing.strokes[i];
+               for (let k = 0 ; k < stroke.length ; k++)
+                  stroke[k] = stroke[k] >> 0;
+            }
+         }
+         tabletop.drawings = drawings;
+   
+         // ADD AGENTS TO THE STATE DATA
+   
+         if (tabletop.agents)
+            agentsInfo = tabletop.agents;
+   
+         for (let id in agentsInfo) {
+            let agentInfo = agentsInfo[id];
+       let agent = agents[id];
+   
+       if (agent.state === undefined)
+          agent.state = 0;
+            if (agent.isAtTarget()) {
+          agent.state = (agent.state + 1) % 4;
+          agent.setTarget([ .4 * Math.cos(Math.PI/2 * agent.state),
+                            .4 * Math.sin(Math.PI/2 * agent.state) ]);
+          let p = agent.getPos();
+          let h = (agent.getHeading() + 1000 * Math.PI) % (2 * Math.PI);
+          agentInfo.x = -1000 * p[1] >> 0;
+          agentInfo.y =  1000 * p[0] >> 0;
+          agentInfo.h =  1000 * h    >> 0;
+       }
+   
+            agent.update(time);
+         }
+   
+         tabletop.agents = agentsInfo;
+   //    console.log(tabletop.agents);
+   
+         // ADD AVATARS TO THE STATE DATA
+   
+         tabletop.avatars = {};
+         for (let client in clientState)
+            tabletop.avatars[client] = clientState[client].avatar;
+   
+         // SEND THE CURRENT STATE TO EVERY CLIENT
+   
+         Object.values(clientConnections).forEach((client) => {
+            const {drawings, focus, objects, speech, agents} = window.tabletop;
+            client.conn.send({drawings, focus, objects, speech, agents});  
+         })
+   
+         //---------------- INCORPORATE STATE DATA FROM CLIENTS
+   
+         server.sync('tabletop', msgs => {
+            if (Object.keys(tabletop).length > 0 && tabletop.objects)
+               objects = tabletop.objects;
+            if (Object.keys(tabletop).length > 0 && tabletop.drawings)
+               drawings = tabletop.drawings;
+         });
+   
+         // MAKE THE PEOPLE MOVE
+   
+         let turnAwayFrom = (obj, p) => {
+            let dx = p.x - obj.x;
+            let dy = p.y - obj.y;
+            let d = Math.sqrt(dx * dx + dy * dy);
+            if (d < .15 * w) {
+               let dir = Math.atan2(dx, dy) * 180 / Math.PI;
+               while (dir - obj.angle > 180) dir -= 360;
+               while (obj.angle - dir > 180) dir += 360;
+               let da = dir - obj.angle;
+               let s = Math.sign(da);
+               da = Math.abs(da);
+               if (da < 150)
+                  obj.angle = changeAngle(obj.angle, -.03 * s * Math.max(da, 10));
+            }
+         }
+   
+         for (let id in objects) {
+            let obj = objects[id];
+            if (obj.type == 'guy' || obj.type == 'gal') {
+               obj.x += Math.sin(obj.angle * Math.PI / 180);
+               obj.y += Math.cos(obj.angle * Math.PI / 180);
+               for (let i in objects)
+                  if (i != id)
+                     turnAwayFrom(obj, objects[i]);
+               let x = obj.x / (w/2) - 1;
+               let y = obj.y / (w/2) - 1;
+               let r = Math.sqrt(x * x + y * y);
+               let edgePoint = { x: w/2 * (x / r + 1),
+                                 y: w/2 * (y / r + 1) };
+               turnAwayFrom(obj, edgePoint);
+            }
+         }
+   
+         // ADD DISK DRAWING METHODS TO A CANVAS 2D DRAWING CONTEXT
+   
+         let addMethods = ctx => {
+            ctx.strokeDisk = (x,y,r) => { ctx.beginPath(); ctx.arc(x,y,r,0,2*Math.PI); ctx.stroke(); }
+            ctx.fillDisk   = (x,y,r) => { ctx.beginPath(); ctx.arc(x,y,r,0,2*Math.PI); ctx.fill  (); }
+            return ctx;
+         }
+   
+         // LIST THE LOCATIONS OF ALL ACTIVE OBJECTS AND CLIENTS ON THE WEB PAGE
+   
+         let s = '<TABLE><TR><TD><font face=helvetica>';
+         s += '<table cellspacing=0 cellpadding=3>';
+         s += '<tr><td><td width=104><th>x y angle';
+         for (let id in objects) {
+            let obj = objects[id];
+            let fc = '<font color=' + obj.color + '>';
+            s += '<tr>'
+               +     '<td valign=top><font color=black>' + id
+               +     '<td valign=top><font color=black>' + obj.type.replace(' ','_')
+               +     '<td><center><table cellpadding=0 cellspacing=0 border=1 bordercolor='
+               +         obj.color + '><tr><td>' + (obj.x>>0) + '&nbsp;' + (obj.y>>0) + '&nbsp;' + (obj.angle>>0)
+               +         '</table></center>';
+         }
+         s += '</table>';
+         s += '<br></TABLE><font face=helvetica>';
+         s += '<b>&nbsp;CLIENTS</b><p>';
+         s += '<table cellspacing=0><tr><th width=15>&nbsp;<th width=60>left<th width=60>right<th width=60>head';
+         for (let client in clientState) {
+            let state = clientState[client];
+            if (! state.left || ! state.right)
+               continue;
+            let fc = '<font color=' + color[client] + '>';
+            s += '<tr bgcolor=' + ( clientState.isSpeaking   ? 'black'   :
+                                    client == speakingClient ? '#a0a0a0' :
+                                                               '#d0d0d0' ) + '>'
+   
+               + '<td align=center><small>' + fc + client
+               + '<td align=center><small>' + fc + state.left.x  + ',' + state.left.y
+               + '<td align=center><small>' + fc + state.right.x + ',' + state.right.y
+               + '<td align=center><small>' + fc + (state.head ? state.head.x : '---')
+                                           + ',' + (state.head ? state.head.y : '---')
+               + '<br></small>';
+         }
+         s += '</table></TABLE>';
+         datalog.innerHTML = s;
+   
+         // DRAW THE ANGLE+COLOR INDICATOR
+   
+         let x = 50, y = 53;
+         let actx = addMethods(angleCanvas.getContext('2d'));
+         actx.fillStyle = currentColor;
+         actx.fillDisk(x,y,40);
+         actx.strokeStyle = 'black';
+         actx.stroke();
+         actx.fillStyle = blackOrWhite(currentColor);
+         rotatedDrawing(actx, x,y,currentAngle, () => {
+            actx.beginPath();
+            actx.moveTo(x-10,y-30);
+            actx.lineTo(x+10,y-30);
+            actx.lineTo(x,y+33);
+            actx.fill();
+         });
+   
+         // DRAW THE BACKGROUND
+   
+         let ctx = addMethods(canvas1.getContext('2d'));
          ctx.fillStyle = 'black';
-         ctx.fillText(tabletop.speech,w/2,w/2);
-      }
-
-      // SHOW AGENTS
-
-      if (showAgents)
-      for (let id in agents) {
-         let r = 40;
-         let agent = agents[id];
-	 let pos = agent.getPos();
-	 let heading = agent.getHeading();
-	 let x = w/2 + w * pos[0];
-	 let y = w/2 + w * pos[1];
-	 let dx = r * Math.cos(heading);
-	 let dy = r * Math.sin(heading);
-	 ctx.fillStyle = 'black';
-	 ctx.fillDisk(x, y, r);
-	 ctx.fillDisk(x + dx, y + dy, r/2);
+         ctx.fillRect(0,0,w,h);
+         ctx.font = '20px Helvetica';
+         ctx.fillStyle = 'white';
+         ctx.textAlign = 'left';
+         ctx.fillText(isOnTable(pp) ? 'ON TABLE' : 'OFF TABLE', 5, 24);
+         ctx.fillStyle = '#d0d0d0';
+         ctx.fillDisk(w/2,h/2,w/2);
+   
+         // DRAW ALL THE OBJECTS
+   
+         let textHeight = 12;
+         ctx.textAlign = 'center';
+         ctx.textVerticalAlign = 'center';
+         ctx.fillStyle = currentColor;
+         let found = findAt(pp);
+         for (let id in objects) {
+   
+            // DRAW EACH OBJECT AS A SET OF COLORED ROTATED POLYGONS
+   
+            let obj = objects[id];
+            let thing = things[obj.type];
+            let scale = w/2 * thingsScale;
+            rotatedDrawing(ctx, obj.x, obj.y, obj.angle, () => {
+               for (let n = 0 ; n < thing.items.length ; n++) {
+                  let item = thing.items[n];
+                  let x = scale * item.m[0] + obj.x;
+                  let y = scale * item.m[2] + obj.y;
+                  let w = scale * item.s[0];
+                  let h = scale * item.s[2];
+                  ctx.lineWidth = id == found.id ? 4 : 2;
+                  ctx.strokeStyle = obj.color;
+                  switch (item.type) {
+                  case 'cube':
+                     ctx.strokeRect(x-w,y-h,2*w,2*h);
+                     break;
+                  case 'tubeY':
+                  case 'sphere':
+                     ctx.beginPath();
+                     ctx.ellipse(x,y,w,h,0,0,2*Math.PI);
+                     ctx.stroke();
+                     break;
+                  }
+               }
+               if (thing.items.length == 0) {
+                  let info = moleculesInfo[obj.type];
+                  rotatedDrawing(ctx, obj.x, obj.y, obj.angle, () => {
+                     ctx.strokeStyle = hex([.25,.25,.25]) + '40';
+                     ctx.lineWidth = 4;
+                     for (let i = 0 ; i < info.links.length ; i++)
+                     for (let j = 0 ; j < info.links[i].length ; j++) {
+                        let a = atomXYR(obj, i),
+                            b = atomXYR(obj, info.links[i][j]);
+                        ctx.beginPath();
+                        ctx.moveTo(a[0], a[1]);
+                        ctx.lineTo(b[0], b[1]);
+                        ctx.stroke();
+                     }
+                     ctx.lineWidth = id == found.id ? 1 : .5;
+                     for (let n = 0 ; n < info.positions.length ; n++) {
+                        let xyr = atomXYR(obj, n);
+                        let a = getAtomInfo(obj.type, n);
+                        ctx.fillStyle = hex(a.color) + (id==found.id ? '20' : '10');
+                        ctx.strokeStyle = hex(a.color);
+                        ctx.beginPath();
+                        ctx.arc(xyr[0],xyr[1],xyr[2],0,2*Math.PI);
+                        ctx.fill();
+                        ctx.stroke();
+                     }
+                  });
+               }
+            });
+   
+            // SHOW THE OBJECT'S SHAPE
+   
+            if (obj.type) {
+               let textHeight = id==found.id ? 15 : 12;
+               ctx.font = textHeight + 'px Courier';
+               ctx.fillStyle = 'black';
+               let lines = obj.type.split(' ');
+               let y = n => (textHeight + 2) * (n + 3/4 - lines.length/2);
+               for (let n = 0 ; n < lines.length ; n++)
+                  ctx.fillText(lines[n],obj.x,obj.y+y(n));
+            }
+         }
+   
+         // SHOW THE CLIENT STATE FOR ALL CLIENTS
+   
+         for (let client in clientState) {
+   
+            // REMOVE ANY INACTIVE CLIENTS
+   
+            if (--clientState[client].active == 0) {
+               delete clientState[client];
+               continue;
+            }
+   
+            // SHOW POSITIONS OF LEFT, RIGHT, HEAD FOR THIS CLIENT
+   
+            let state = clientState[client];
+            for (let part in state) {
+               let isPressed = state['isPressed' + part];
+               ctx.fillStyle = hex(rgb[client]) + '40';
+               let r = w/2 / 50;
+               let event = state[part];
+               switch (part) {
+               case 'head':
+                  ctx.fillRect(event.x - .35*r, event.y - 2*r, .7*r, 4*r);
+                  ctx.fillRect(event.x - 2*r, event.y - .35*r, 4*r, .7*r);
+                  break;
+               case 'left':
+               case 'right':
+                  let isDrawing = isBelowDrawingHeight(client, part);
+                  if (isPressed || isMouseDown || isMeta) {
+                     ctx.fillStyle = hex(rgb[client]) + '80';
+                     r *= .75;
+                  }
+                  ctx.fillDisk(event.x, event.y, 2*r, 2*r);
+                  if (isDrawing) {
+                     ctx.fillStyle = isPressed ? '#000000' : '#00000040';
+                     ctx.fillDisk(event.x, event.y, .4*r, .4*r);
+                  }
+                  break;
+               }
+            }
+         }
+   
+         // SHOW DRAWINGS
+   
+         ctx.save();
+            ctx.strokeStyle = 'black';
+            ctx.fillStyle = 'black';
+            ctx.setLineDash([3,9]);
+            ctx.lineCap = 'square';
+            for (let id in drawings) {
+               let isSelected = isClientAtDrawing(clientID, drawings[id]);
+               ctx.lineWidth = (isSelected ? .006 : .003) * w;
+               let strokes = drawings[id].strokes;
+               for (let n = 0 ; n < strokes.length ; n++) {
+                  let stroke = strokes[n];
+                  ctx.beginPath();
+                  ctx.moveTo(stroke[0],stroke[1]);
+                  for (let k = 2 ; k < stroke.length ; k += 2)
+                     ctx.lineTo(stroke[k],stroke[k+1]);
+                  ctx.stroke();
+             ctx.fillDisk(stroke[0], stroke[1], (isSelected ? .007 : .0045) * w);
+               }     
+            }     
+         ctx.restore();
+   
+         // SHOW SPEECH
+   
+         if (showSpeech) {
+       ctx.font = '14px Courier';
+            ctx.fillStyle = 'black';
+            ctx.fillText(tabletop.speech,w/2,w/2);
+         }
+   
+         // SHOW AGENTS
+   
+         if (showAgents)
+         for (let id in agents) {
+            let r = 40;
+            let agent = agents[id];
+       let pos = agent.getPos();
+       let heading = agent.getHeading();
+       let x = w/2 + w * pos[0];
+       let y = w/2 + w * pos[1];
+       let dx = r * Math.cos(heading);
+       let dy = r * Math.sin(heading);
+       ctx.fillStyle = 'black';
+       ctx.fillDisk(x, y, r);
+       ctx.fillDisk(x + dx, y + dy, r/2);
+         }
+      
+         requestAnimationFrame(onFrame);
       }
    
       requestAnimationFrame(onFrame);
-   }
-
-   requestAnimationFrame(onFrame);
-
-</script>
+   
+   </script>
+   
