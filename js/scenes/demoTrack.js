@@ -2,7 +2,7 @@
 
 import * as cg from "../render/core/cg.js";
 
-let TRACK_ITEMS = ["1","2","3","4"];
+let TRACK_ITEMS = ["1","2","3","4","5"];
 
 export const init = async model => {
    let obj = [];
@@ -11,7 +11,7 @@ export const init = async model => {
 
    model.animate(() => {
       server.track();
-      console.log(trackInfo);
+      //console.log(trackInfo);
 
       if (trackInfo.length == 0) {
          console.log(window.timeStamp);

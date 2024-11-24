@@ -543,7 +543,7 @@ export let mTranspose = m => [ m[0],m[4],m[ 8],m[12],
 
 
 export let vec2vecProj = (a,b) => {
-   let proj = dot(a,b)/(norm(b)*norm(b));
+   let proj = dot(a,b)/dot(b,b);
    return [b[0]*proj,b[1]*proj,b[2]*proj];
 }
 

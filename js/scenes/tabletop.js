@@ -7,6 +7,8 @@ import { g2 } from "../util/g2.js";
 import * as global from "../global.js";
 import { Gltf2Node } from "../render/nodes/gltf2.js";
 
+let TRACK_ITEMS = ["1","2","3","4","5"];
+
 // load gltf model
 let flower = new Gltf2Node({ url: './media/gltf/sunflower/sunflower.gltf' });
 let buddha = new Gltf2Node({ url: './media/gltf/buddha_statue_broken/scene.gltf' });
@@ -56,6 +58,11 @@ if (! window.audioContext) {
 window.tabletopStates = {};
 
 export const init = async model => {
+
+   let trackObj = [];
+   for (let i = 0; i < TRACK_ITEMS.length; i++)
+      trackObj.push(model.add('cube'));
+
    // add gltf model to scene
    // flower.translation = [0, 1.16, 0]; // 1.16 is pedestal height
    flower.scale = [0.1, 0.1, 0.1];
@@ -499,6 +506,27 @@ export const init = async model => {
    //let wheelieState = 0;
 
    model.animate(() => {
+
+      server.track();
+
+      if (trackInfo.length == 0) {
+         console.log(window.timeStamp);
+         return;
+      }
+
+      let info = cg.unpack(trackInfo, -2, 2);
+
+      for (let i = 0; i < TRACK_ITEMS.length; i++) {
+         let tq = [parseFloat(info[i*7]), parseFloat(info[i*7+1]), parseFloat(info[i*7+2]), parseFloat(info[i*7+3]), parseFloat(info[i*7+4]), parseFloat(info[i*7+5]), parseFloat(info[i*7+6])];
+         let m = cg.mFromQuaternion({ x:-tq[3], y:-tq[4], z:tq[5], w:tq[6] });
+         m[12] = tq[0]+1.038;
+         m[13] = tq[1]-0.01;
+         m[14] = -tq[2]-0.212;
+         trackObj[i].setMatrix(m).scale(.1);      
+      }
+
+
+
       if (! robot.root.ignore) {
          let t = model.time / 2;
 	 let h = Math.abs(Math.sin(2*t));

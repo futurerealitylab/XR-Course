@@ -103,10 +103,10 @@ export function InputEvents() {
             for (let i = 0 ; i < 3 ; i++)
                worldCoords[12+i] += Math.max(-0.05, Math.min(T[i] - P[i], 0.05));
          P = T.slice();
-         // clay.root().setMatrix(worldCoords);
-         // global.gltfRoot.matrix = worldCoords;
-         // inverseWorldCoords = cg.mInverse(worldCoords);
-         // clay.inverseRootMatrix = inverseWorldCoords;
+         clay.root().setMatrix(worldCoords);
+         global.gltfRoot.matrix = worldCoords;
+         inverseWorldCoords = cg.mInverse(worldCoords);
+         clay.inverseRootMatrix = inverseWorldCoords;
       }
       else
          P = undefined;
@@ -126,10 +126,10 @@ export function InputEvents() {
          if (y !== undefined)
             worldCoords[13] += Math.max(-0.05, Math.min(T[1] - y, 0.05));
          y = T[1];
-         // clay.root().setMatrix(worldCoords);
-         // global.gltfRoot.matrix = worldCoords;
-         // inverseWorldCoords = cg.mInverse(worldCoords);
-         // clay.inverseRootMatrix = inverseWorldCoords;
+         clay.root().setMatrix(worldCoords);
+         global.gltfRoot.matrix = worldCoords;
+         inverseWorldCoords = cg.mInverse(worldCoords);
+         clay.inverseRootMatrix = inverseWorldCoords;
       }
       else
          y = undefined;
@@ -145,10 +145,10 @@ export function InputEvents() {
             sync.syncBound();
          }
 
-         // clay.root().setMatrix(worldCoords);
-         // global.gltfRoot.matrix = worldCoords;
-         // inverseWorldCoords = cg.mInverse(worldCoords);
-         // clay.inverseRootMatrix = inverseWorldCoords;
+         clay.root().setMatrix(worldCoords);
+         global.gltfRoot.matrix = worldCoords;
+         inverseWorldCoords = cg.mInverse(worldCoords);
+         clay.inverseRootMatrix = inverseWorldCoords;
       }
    }
 
