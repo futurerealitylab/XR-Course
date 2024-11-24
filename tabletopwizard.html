@@ -110,20 +110,21 @@
                      let dx = msg.event.x - state[part].x;
                      let dy = msg.event.y - state[part].y;
    
-                     // MOVE AN OBJECT
-   
-                     if (state[part].id !== undefined) {
-                        let L = state.left, R = state.right;    // IF BOTH HANDS GRAB THE SAME
-                        if (part=='left' && L.id == R.id) {     // OBJECT, THEN SIMULTANEOUSLY
-                           objects[L.id].x = (L.x + R.x) / 2;   // MOVE AND TURN THE OBJECT.
-                           objects[L.id].y = (L.y + R.y) / 2;
-                           objects[L.id].angle = -Math.atan2(R.y-L.y, R.x-L.x) * 180 / Math.PI;
-                        }
-                        else {                                  // ELSE JUST MOVE THE OBJECT.
-                           objects[state[part].id].x += dx;
-                           objects[state[part].id].y += dy;
-                        }
+                    
+                  // MOVE AN OBJECT
+
+                  if (state[part].id !== undefined) {
+                     let L = state.left, R = state.right;    // IF BOTH HANDS GRAB THE SAME
+                     if (part=='left' && L.id == R.id && objects[L.id].trackedId < 0) {     // OBJECT, THEN SIMULTANEOUSLY
+                        objects[L.id].x = (L.x + R.x) / 2;   // MOVE AND TURN THE OBJECT.
+                        objects[L.id].y = (L.y + R.y) / 2;
+                        objects[L.id].angle = -Math.atan2(R.y-L.y, R.x-L.x) * 180 / Math.PI;
                      }
+                     else if(objects[state[part].id].trackedId < 0){                                  // ELSE JUST MOVE THE OBJECT.
+                        objects[state[part].id].x += dx;
+                        objects[state[part].id].y += dy;
+                     }
+                  }
    
                      // MOVE OR DRAW A DRAWING
    
@@ -267,6 +268,11 @@
                return true;
          return false;
       }
+
+      let typeToId = {
+      table: 1,
+      chair: 2
+      }
    
       // ADD A NEW OBJECT OF A SPECIFIED SHAPE AT THE CURSOR
    
@@ -295,16 +301,67 @@
    
          // ADD THE OBJECT TO THE MODEL
    
-         objects[id] = {
-            type: name,
-            x: p.x+.5>>0, y: p.y+.5>>0,
-            color: currentColor,
-            angle: currentAngle,
-         }
-   
-         tabletop.objects = objects;
+      // ADD THE OBJECT TO THE MODEL
+
+      objects[id] = {
+         type: name, 
+         trackedId: typeToId[name] ? typeToId[name] : -1, // see if this type of object is a tracked object
+         x: p.x+.5>>0, y: p.y+.5>>0, z: 0,
+         color: currentColor,
+         angle: currentAngle,
+         quaternion:  { x:0, y:0, z:0, w:1 }
       }
-   
+
+      tabletop.objects = objects;
+   }
+
+   let unpackInfo = (string, lo, hi) => {
+      if (lo === undefined) { lo = 0; hi = 1; } else if (hi === undefined) { hi = lo ; lo = 0; }
+      let C = " !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~";
+      let unpack = (a, b) => (C.indexOf(a) + C.indexOf(b) / 92) / 92;
+      let a = [];
+      for (let n = 0 ; n < string.length ; n += 2)
+         a.push(lo + (hi-lo) * unpack(string.charAt(n), string.charAt(n+1)));
+      return a;
+      }
+
+
+   // UPDATE TRACKED OBJECT TRANSFORMATION
+   let updateTrackedObject = () => {
+      server.track(); // PROBLEM: do we need to call it here since it is already called in clay.js
+      if(!window.trackInfo) return;
+      if (window.trackInfo && window.trackInfo.length == 0) {
+         console.log(window.timeStamp);
+         return;
+      }
+
+      let info = unpackInfo(window.trackInfo, -2, 2);
+
+      //console.log(info);
+
+      for (let i = 0; i < Object.keys(typeToId).length; i++) { // PROBLEM: remember to start from the object index, not the headsets
+         let tq = [parseFloat(info[i*7]), parseFloat(info[i*7+1]), parseFloat(info[i*7+2]), parseFloat(info[i*7+3]), parseFloat(info[i*7+4]), parseFloat(info[i*7+5]), parseFloat(info[i*7+6])];
+         let quaternion = { x:-tq[3], y:-tq[4], z:tq[5], w:tq[6] };
+         let x = tq[0]+1.038;
+         let y = tq[1]-0.01;
+         let z = -tq[2]-0.212;
+
+         // pass those transformation info to tracked object
+         for(let j = 0; j < objects.length; j ++) {
+            let obj = objects[j];
+            if(obj.trackedId == i + 1) {
+               obj.x = x;
+               obj.y = y;
+               obj.z = z;
+               obj.quaternion = quaternion;
+               break;
+            }
+         }  
+      }
+
+   }
+
+   setInterval(updateTrackedObject, 100);
       // RESPOND TO KEYBOARD EVENTS
    
       let kc = [0,0,0,0,0,0,0,0,0,0];

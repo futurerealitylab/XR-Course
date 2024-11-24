@@ -2234,14 +2234,14 @@ let fl = 5;                                                          // CAMERA F
       codeEditorObj.scale(0);
       const posePosition = this.pose.transform.position;
       setUniform('3f', 'uViewPosition', posePosition.x, posePosition.y, posePosition.z);
-      server.track();
-      let info = cg.unpack(trackInfo, -2, 2);
-      let q = [parseFloat(info[7]), parseFloat(info[8]), parseFloat(info[9]), parseFloat(info[10]), parseFloat(info[11]), parseFloat(info[12]), parseFloat(info[13])];
-      let quaternion = {x:-q[3],y:-q[4],z:q[5],w:[6]};
-      window.M_trio = cg.mFromQuaternion(quaternion);
-      window.M_trio[12] = q[0];
-      window.M_trio[13] = q[1];
-      window.M_trio[14] = q[2];
+      // server.track();
+      // let info = cg.unpack(trackInfo, -2, 2);
+      // let q = [parseFloat(info[7]), parseFloat(info[8]), parseFloat(info[9]), parseFloat(info[10]), parseFloat(info[11]), parseFloat(info[12]), parseFloat(info[13])];
+      // let quaternion = {x:-q[3],y:-q[4],z:q[5],w:[6]};
+      // window.M_trio = cg.mFromQuaternion(quaternion);
+      // window.M_trio[12] = q[0];
+      // window.M_trio[13] = q[1];
+      // window.M_trio[14] = q[2];
 
       for (let hand in this.controllerWidgets)
          if (window.handtracking)
