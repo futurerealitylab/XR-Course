@@ -15,7 +15,8 @@ let findAngle = (x,z) => {
 
 let getObjViewPos = (headMatrix_track, headMatrix_quest, objMatrix) => {
    // Get rotation of the object
-   let M = cg.mMultiply(objMatrix, cg.mInverse(headMatrix_track));
+   let M = cg.mMultiply(cg.mInverse(headMatrix_track), objMatrix);
+   M = cg.mMultiply(headMatrix_quest, M);
 
    let qx = [headMatrix_quest[0], headMatrix_quest[1], headMatrix_quest[2]];
    let qy = [headMatrix_quest[4], headMatrix_quest[5], headMatrix_quest[6]];
@@ -73,13 +74,17 @@ export const init = async model => {
 
       let info = cg.unpack(trackInfo, -2, 2);
 
+      // 7 number transform information from trio and unity, left hand coord
       let q = [parseFloat(info[7]), parseFloat(info[8]), parseFloat(info[9]), parseFloat(info[10]), parseFloat(info[11]), parseFloat(info[12]), parseFloat(info[13])];
       let quaternion = {x:-q[3],y:-q[4],z:q[5],w:q[6]};
       let M_head = cg.mFromQuaternion(quaternion);
       M_head[12] = q[0];
       M_head[13] = q[1];
+      // you want to flip to z
       M_head[14] = -q[2];
 
+
+      // example using object id:4
       let q_4 = [parseFloat(info[21]), parseFloat(info[22]), parseFloat(info[23]), parseFloat(info[24]), parseFloat(info[25]), parseFloat(info[26]), parseFloat(info[27])];
       let M_4 = cg.mFromQuaternion({x:-q_4[3],y:-q_4[4],z:q_4[5],w:q_4[6]});
       M_4[12] = q_4[0];
