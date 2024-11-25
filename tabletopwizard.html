@@ -187,6 +187,8 @@
       let isAnyObjectInFocus = false;
       let isAnimating = false, animateT = 0, animateTime = 0;
       let showSpeech = true;
+      let enableSpeechAddObj = true;
+      let enableSpeechDeletObj = true;
    
       // RETRIEVE MEASUREMENTS OF ONE ATOM OF A MOLECULE
    
@@ -1074,7 +1076,7 @@
    
             // REMOVE THINGS
    
-            if (match('remove|delete|disappear')) {
+            if (enableSpeechDeletObj && ('remove|delete|disappear')) {
    
                // REMOVE OBJECTS
    
@@ -1106,7 +1108,7 @@
             // "add a blue table"
             // "add a chair"
    
-            if (match('add|and|had|at')) {
+            if (enableSpeechAddObj && match('add|and|had|at')) {
                if (S.length > 0) {
                   let success = false;
                   for (let name in things)
