@@ -98,7 +98,7 @@
                      if (! isAlreadyGrabbed) 
                         state[part].id = found.id;
                   }
-                  else
+                  else if(enableDrawing)
                      drawingPress(client, part);
                   break;
                case 'drag':                                  // DRAG AN OBJECT TO MOVE IT.
@@ -132,7 +132,7 @@
    
                      // MOVE OR DRAW A DRAWING
    
-                     else
+                     else if(enableDrawing)
                         drawingDrag(client, part, msg.event.x, msg.event.y);
    
                      state[part].x = msg.event.x;
@@ -140,7 +140,8 @@
                   }
                   break;
                case 'release':
-                  drawingRelease(client, part);
+                  if(enableDrawing)
+                     drawingRelease(client, part);
                   state['isPressed' + part] = false;
                   if (state[part])
                      delete state[part].id;
@@ -189,6 +190,7 @@
       let showSpeech = true;
       let enableSpeechAddObj = true;
       let enableSpeechDeletObj = true;
+      let enableDrawing = false;
    
       // RETRIEVE MEASUREMENTS OF ONE ATOM OF A MOLECULE
    
@@ -545,8 +547,9 @@
          let s = Math.sin(-angle * Math.PI / 180);
    
          // IF THE OBJECT HAS NO GEOMETRY, IT'S A MOLECULE
-   
-         if (thing.items.length == 0) {
+         let isGltf = groups.gltf && groups.gltf.hasOwnProperty(obj.type);
+
+         if (thing.items.length == 0 && !isGltf) {
             let x = p.x - obj.x;
             let y = p.y - obj.y;
             let px =  c * x + s * y + obj.x;
@@ -567,9 +570,18 @@
          let X = M[0] * p.x + M[2] * p.y + M[4];
          let Y = M[1] * p.x + M[3] * p.y + M[5];
    
+         
          // RETURN TRUE IF THE PIXEL IS IN ANY OF THE OBJECT'S COMPONENT SHAPES
    
          let scale = w/2 * thingsScale;
+         if(isGltf) {
+            let gltfSize = 20;
+            let x = obj.x;
+            let y = obj.y;
+            if (X >= x - gltfSize && X < x + gltfSize && Y > y - gltfSize && Y < y + gltfSize)
+               return true;
+         }
+
          for (let n = 0 ; n < thing.items.length ; n++) {
             let item = thing.items[n];
             let x = scale * item.m[0] + obj.x;
@@ -1515,7 +1527,9 @@
                      break;
                   }
                }
-               if (thing.items.length == 0) {
+
+               let isGltf = groups.gltf && groups.gltf.hasOwnProperty(obj.type);
+               if (thing.items.length == 0 && !isGltf) {
                   let info = moleculesInfo[obj.type];
                   rotatedDrawing(ctx, obj.x, obj.y, obj.angle, () => {
                      ctx.strokeStyle = hex([.25,.25,.25]) + '40';
