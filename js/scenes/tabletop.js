@@ -520,7 +520,8 @@ export const init = async model => {
                m[12] = tq[0]+1.038;
                m[13] = tq[1]-0.01;
                m[14] = -tq[2]-0.212;
-               trackObj[i].setMatrix(m).scale(.1);      
+               trackObj[i].setMatrix(m).scale(.1);  
+               if(i == 4)     trackObj[i].color(1, 0, 0)
             }
          }
       }

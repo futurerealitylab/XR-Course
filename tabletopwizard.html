@@ -38,6 +38,10 @@
    <script src="js/util/peerjs.min.js"></script>
    <script style='width:100%'>
    
+   let xf  = t => (t - canvasWidth/2) / (canvasWidth/2) * .45;
+   let ixf = t => Math.max(-999, Math.min(999, t / .45 * canvasWidth/2 + canvasWidth/2 + .5 >> 0));
+
+
    // INITIALIZE AUDIO VOLUME DETECTION
    
       const peer = new Peer();
@@ -270,8 +274,7 @@
       }
 
       let typeToId = {
-      table: 1,
-      chair: 2
+      table: 5,
       }
    
       // ADD A NEW OBJECT OF A SPECIFIED SHAPE AT THE CURSOR
@@ -311,7 +314,7 @@
          angle: currentAngle,
          quaternion:  { x:0, y:0, z:0, w:1 }
       }
-
+      console.log("name: "+objects[id].type+" trackId: "+objects[id].trackedId);
       tabletop.objects = objects;
    }
 
@@ -328,6 +331,7 @@
 
    // UPDATE TRACKED OBJECT TRANSFORMATION
    let updateTrackedObject = () => {
+      let objects = tabletop.objects;
       server.track(); // PROBLEM: do we need to call it here since it is already called in clay.js
       if(!window.trackInfo) return;
       if (window.trackInfo && window.trackInfo.length == 0) {
@@ -337,27 +341,27 @@
 
       let info = unpackInfo(window.trackInfo, -2, 2);
 
-      //console.log(info);
-
-      for (let i = 0; i < Object.keys(typeToId).length; i++) { // PROBLEM: remember to start from the object index, not the headsets
+      let HEADSET_COUNT = 4;
+      for (let i = HEADSET_COUNT; i < HEADSET_COUNT + Object.keys(typeToId).length; i++) { // PROBLEM: remember to start from the object index, not the headsets
          let tq = [parseFloat(info[i*7]), parseFloat(info[i*7+1]), parseFloat(info[i*7+2]), parseFloat(info[i*7+3]), parseFloat(info[i*7+4]), parseFloat(info[i*7+5]), parseFloat(info[i*7+6])];
          let quaternion = { x:-tq[3], y:-tq[4], z:tq[5], w:tq[6] };
-         let x = tq[0]+1.038;
-         let y = tq[1]-0.01;
-         let z = -tq[2]-0.212;
-
+         let x = tq[0];
+         let y = tq[1];
+         let z = -tq[2];
          // pass those transformation info to tracked object
-         for(let j = 0; j < objects.length; j ++) {
+  
+         for(let j = 0; j < Object.keys(objects).length; j ++) {
             let obj = objects[j];
             if(obj.trackedId == i + 1) {
-               obj.x = x;
-               obj.y = y;
-               obj.z = z;
+               obj.x = ixf(x);
+               obj.y = ixf(z);
+               obj.z = y;
                obj.quaternion = quaternion;
                break;
             }
          }  
       }
+      tabletop.objects = objects;
 
    }
 
@@ -674,7 +678,7 @@
             currentAngle = obj.angle;           // THEN SET CURRENT ANGLE AND COLOR TO MATCH IT
             currentColor = obj.color;
          }
-         if (objects[id] !== undefined) {       // IF THERE IS A SELECTED OBJECT
+         if (objects[id] !== undefined && objects[id].trackedId < 0) {       // IF THERE IS A SELECTED OBJECT
             let obj = objects[id];
             if (isShift) {                      // THEN IF SHIFT KEY IS DOWN
                turn(p.x - pp.x);

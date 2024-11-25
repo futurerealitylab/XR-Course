@@ -139,7 +139,7 @@ let pack = (array, lo, hi) => {
 app.route("/opti-track-external").put(function (req, res) {
    req.on('data', d => {
       trackMessage = d.toString('utf8');
-      console.log(trackMessage);
+      //console.log(trackMessage);
    });
 
    res.end();

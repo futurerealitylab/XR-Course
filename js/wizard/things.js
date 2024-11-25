@@ -138,7 +138,7 @@ defineThings = () => {
       ]);
    });   
 
-   defineThing('square table:table,object', args => {
+   defineThing('table:table,object', args => {
       let height = def3(args, 'height', 1.25);
       let length = def3(args, 'length', 0.8);
       let width  = def3(args, 'width' , 0.8);
