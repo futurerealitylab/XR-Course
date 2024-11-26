@@ -1406,7 +1406,7 @@
    
          for (let id in objects) {
             let obj = objects[id];
-            if (obj.type == 'guy' || obj.type == 'gal') {
+            if (obj.type == 'guy' || obj.type == 'gal' || obj.type == 'duck') {
                obj.x += Math.sin(obj.angle * Math.PI / 180);
                obj.y += Math.cos(obj.angle * Math.PI / 180);
                for (let i in objects)
