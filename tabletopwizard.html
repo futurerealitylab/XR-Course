@@ -323,7 +323,6 @@
          angle: currentAngle,
          quaternion:  { x:0, y:0, z:0, w:1 }
       }
-      console.log("name: "+objects[id].type+" trackId: "+objects[id].trackedId);
       tabletop.objects = objects;
    }
 
@@ -1240,7 +1239,6 @@
                // "make every table green"
    
                if (C.length == 1 && S.length > 0 && C.minIndex > S.minIndex) {
-                  console.log("change color of object")
                   for (let id in objects)
                      if (matches(objects[id], S[0]))
                         objects[id].color = hex(rgb[C[0]]);

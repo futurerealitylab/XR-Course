@@ -455,7 +455,7 @@ export const init = async model => {
 
       // IF OBJECT'S FORM DOESN'T EXIST, CREATE IT (AND ITS REFLECTION)
 
-      for (let k = 0 ; k < 2 ; k++) {
+      for (let k = 0 ; k < 1 ; k++) { // removed the reflection for now
          let form = objInfo.type + k;
          if (! clay.formMesh(form)) {
             let temp = model.add();
@@ -476,10 +476,19 @@ export const init = async model => {
 
       for (let k = 0 ; k < 2 ; k++)
          obj.add(objInfo.type + k).opacity(isInFocus ? .8 : 1);
-      obj.identity()
+      if(objInfo.trackedId > 0) {
+         let m = cg.mFromQuaternion(objInfo.quaternion);
+         m[12] = xf(objInfo.x)/objScale;
+         m[13] = objInfo.z/objScale;
+         m[14] = xf(objInfo.y)/objScale;
+         obj.setMatrix(m);
+      } else {
+         obj.identity()
          .move(xf(objInfo.x)/objScale, objInfo.z/objScale, xf(objInfo.y)/objScale)
          .turnY(objInfo.angle * Math.PI/180)
          .color(cg.hexToRgba(objInfo.color));
+      }
+      
    }
 
    // FIND THE POINT ON THE TABLE THAT I AM FACING
