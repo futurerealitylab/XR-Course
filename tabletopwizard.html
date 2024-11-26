@@ -1093,10 +1093,10 @@
    
             // REMOVE THINGS
    
-            if (enableSpeechDeletObj && ('remove|delete|disappear')) {
+            if (enableSpeechDeletObj && match('remove|delete|disappear')) {
    
                // REMOVE OBJECTS
-   
+               console.log("removed  object")
                for (let i = 0 ; i < idList.length ; i++)
                   if (idList[i] == -1)
                      for (let id in drawings)          // REMOVE ALL DRAWINGS
@@ -1240,6 +1240,7 @@
                // "make every table green"
    
                if (C.length == 1 && S.length > 0 && C.minIndex > S.minIndex) {
+                  console.log("change color of object")
                   for (let id in objects)
                      if (matches(objects[id], S[0]))
                         objects[id].color = hex(rgb[C[0]]);

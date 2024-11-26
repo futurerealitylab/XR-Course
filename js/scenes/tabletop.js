@@ -477,7 +477,7 @@ export const init = async model => {
       for (let k = 0 ; k < 2 ; k++)
          obj.add(objInfo.type + k).opacity(isInFocus ? .8 : 1);
       obj.identity()
-         .move(xf(objInfo.x)/objScale, 0, xf(objInfo.y)/objScale)
+         .move(xf(objInfo.x)/objScale, objInfo.z/objScale, xf(objInfo.y)/objScale)
          .turnY(objInfo.angle * Math.PI/180)
          .color(cg.hexToRgba(objInfo.color));
    }
