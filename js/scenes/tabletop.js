@@ -66,6 +66,7 @@ let buddha = new Gltf2Node({ url: './media/gltf/buddha_statue_broken/scene.gltf'
 
 //FLAGS
 let enableMenu = false;
+let autoCali = false;
 
 
 
@@ -586,6 +587,7 @@ export const init = async model => {
                if(i == anchorID)     trackObj[i].color(0, 0, 1);
             }
 
+            if(autoCali) {
             // calibrate the system coordination
             // 7 number transform information from trio and unity, left hand coord
             let hq = [parseFloat(info[headsetID*7]), parseFloat(info[headsetID*7+1]), parseFloat(info[headsetID*7+2]), parseFloat(info[headsetID*7+3]), parseFloat(info[headsetID*7+4]), parseFloat(info[headsetID*7+5]), parseFloat(info[headsetID*7+6])];
@@ -612,6 +614,9 @@ export const init = async model => {
             let M = getObjViewPos(M_head, headMatrix, M_anchor);
 
             objs.setMatrix(M).scale(objScale);
+            }
+
+          
 
          }
       }
