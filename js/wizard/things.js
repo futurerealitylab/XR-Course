@@ -30,12 +30,12 @@ defineThings = () => {
 
    defineThing('chair:object', args => {
       return new Shape([
-         CUBE().move(-.35, .33,-.35).scale(.05,.33,.05),
-         CUBE().move( .35, .33,-.35).scale(.05,.33,.05),
-         CUBE().move(-.35, .33, .35).scale(.05,.33,.05),
-         CUBE().move( .35, .33, .35).scale(.05,.33,.05),
-         CUBE().move( .00, .72, .00).scale(.40,.08,.40),
-         CUBE().move( .00,1.15,-.35).scale(.40,.35,.05),
+         CUBE().move(-.70, .66,-.70).scale(.10,.66,.10),
+         CUBE().move( .70, .66,-.70).scale(.10,.66,.10),
+         CUBE().move(-.70, .66, .70).scale(.10,.66,.10),
+         CUBE().move( .70, .66, .70).scale(.10,.66,.10),
+         CUBE().move( .00,1.44, .00).scale(.80,.16,.80),
+         CUBE().move( .00,2.30,-.70).scale(.80,.70,.10),
       ]);
    });
 
@@ -60,7 +60,6 @@ defineThings = () => {
          CUBE().move(0,1.8,.4).scale(.68,.18,.04),
       ]);
    });
-
    defineThing('coffee table:table,object', args => {
       return new Shape([
          CUBE().move(-.80, .36,-.40).scale(.05,.36,.05),
@@ -92,6 +91,7 @@ defineThings = () => {
          CUBE().move(-.40, .36, .40).scale(.05,.36,.05),
          CUBE().move( .40, .36, .40).scale(.05,.36,.05),
          CUBE().move( .00, .80, .00).scale(.45,.08,.45),
+         CUBE().move( .00,1.02, .00).scale(.05,.18,.05),
       ]);
    });
 
@@ -127,11 +127,11 @@ defineThings = () => {
 
    defineThing('duck:animal', args => {
       return new Shape([
+         BALL().move(-.2,1.25,1.15).scale(.15,.15,.15).color(0,0,0),
+         BALL().move( .2,1.25,1.15).scale(.15,.15,.15).color(0,0,0),
          BALL().move(0,.5,0).scale(.5,.5,.75).color(1,1,0),
          BALL().move(0,1,.75).scale(.5,.5,.5).color(1,1,0),
          BALL().move(0,.95,1.15).scale(.45,.05,.6).color(1,.5,0),
-         BALL().move(-.2,1.25,1.15).scale(.15,.15,.15).color(0,0,0),
-         BALL().move( .2,1.25,1.15).scale(.15,.15,.15).color(0,0,0),
       ]);
    });
 
