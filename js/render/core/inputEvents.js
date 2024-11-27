@@ -35,6 +35,8 @@ export function InputEvents() {
 
    let prevIsHandtracking = false;
 
+   let prevIsHoldingBothAlts = false;
+
    this.update = () => {
       let press = hand => {
          let currentTime = now();
@@ -121,6 +123,15 @@ export function InputEvents() {
       }
       else
          P = undefined;
+
+      if(isAltL && isAltR != prevIsHoldingBothAlts){
+         let L = pos.left;
+         let R = pos.right;
+         let T = cg.mix(L, R, .5);
+         y = T[1];
+      }
+
+      prevIsHoldingBothAlts = isAltL && isAltR;
 
       if (isAltL && isAltR) {
          altPressed = true;
