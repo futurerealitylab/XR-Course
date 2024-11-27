@@ -33,6 +33,8 @@ export function InputEvents() {
 
    let timestep = 0;
 
+   let prevIsHandtracking = false;
+
    this.update = () => {
       let press = hand => {
          let currentTime = now();
@@ -64,6 +66,15 @@ export function InputEvents() {
                                                   clay.handsWidget.getMatrix(hand,1,4).slice(12,15),.5)
                                          : clay.controllerOrigin(hand);
 
+      if(window.handtracking != prevIsHandtracking){
+         handInfo.left.altPressTime = -1;
+         handInfo.right.altPressTime = -1;
+         handInfo.left.pressTime = -1;
+         handInfo.right.pressTime = -1;
+         altPressed = false;
+      }
+
+      prevIsHandtracking = window.handtracking;
       let eventTypes = controllerEventTypes();
       for (let i = 0 ; i < eventTypes.length ; i++)
          switch (eventTypes[i]) {
