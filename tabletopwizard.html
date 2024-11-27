@@ -284,6 +284,7 @@
 
       let typeToId = {
       table: 5,
+      chair: 6
       }
    
       // ADD A NEW OBJECT OF A SPECIFIED SHAPE AT THE CURSOR
@@ -323,7 +324,6 @@
          angle: currentAngle,
          quaternion:  { x:0, y:0, z:0, w:1 }
       }
-      console.log("name: "+objects[id].type+" trackId: "+objects[id].trackedId);
       tabletop.objects = objects;
    }
 
@@ -350,8 +350,8 @@
 
       let info = unpackInfo(window.trackInfo, -2, 2);
 
-      let HEADSET_COUNT = 4;
-      for (let i = HEADSET_COUNT; i < HEADSET_COUNT + Object.keys(typeToId).length; i++) { // PROBLEM: remember to start from the object index, not the headsets
+      let HEADSET_COUNT = 3; // headset and the world anchor
+      for (let i = HEADSET_COUNT + 1; i < HEADSET_COUNT + 1 + Object.keys(typeToId).length; i++) { // PROBLEM: remember to start from the object index, not the headsets
          let tq = [parseFloat(info[i*7]), parseFloat(info[i*7+1]), parseFloat(info[i*7+2]), parseFloat(info[i*7+3]), parseFloat(info[i*7+4]), parseFloat(info[i*7+5]), parseFloat(info[i*7+6])];
          let quaternion = { x:-tq[3], y:-tq[4], z:tq[5], w:tq[6] };
          let x = tq[0];
@@ -1240,7 +1240,6 @@
                // "make every table green"
    
                if (C.length == 1 && S.length > 0 && C.minIndex > S.minIndex) {
-                  console.log("change color of object")
                   for (let id in objects)
                      if (matches(objects[id], S[0]))
                         objects[id].color = hex(rgb[C[0]]);

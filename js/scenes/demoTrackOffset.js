@@ -2,7 +2,7 @@
 import * as global from "../global.js";
 import * as cg from "../render/core/cg.js";
 
-let TRACK_ITEMS = ["1","2","3","4"];
+let TRACK_ITEMS = ["1","2","3","4","5"];
 
 // Only work with left hand coords!!!
 let findAngle = (x,z) => {
