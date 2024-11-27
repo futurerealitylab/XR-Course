@@ -109,7 +109,7 @@ export function InputEvents() {
       let isAltL = handInfo.left.altPressTime > 0;
       let isAltR = handInfo.right.altPressTime > 0;
 
-      if ((isAltL || isAltR) && ! (isAltL && isAltR)) {
+      if ((isAltL || isAltR) && ! (isAltL && isAltR) && !window.handtracking) {
          altPressed = true;
          let T = isAltL ? pos.left : pos.right;
          if (P)
@@ -133,7 +133,7 @@ export function InputEvents() {
 
       prevIsHoldingBothAlts = isAltL && isAltR;
 
-      if (isAltL && isAltR) {
+      if (isAltL && isAltR && !window.handtracking) {
          altPressed = true;
          let L = pos.left;
          let R = pos.right;
