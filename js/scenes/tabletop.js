@@ -7,58 +7,7 @@ import { g2 } from "../util/g2.js";
 import * as global from "../global.js";
 import { Gltf2Node } from "../render/nodes/gltf2.js";
 
-let TRACK_ITEMS = ["1","2","3","4", '5'];
-let headsetID = 0;
-let anchorID = 4;
-
-// functions to calculate where to transform the view
-
-let getObjViewPos = (headMatrix_track, headMatrix_quest, objMatrix) => {
-   // Get rotation of the object
-   let M = cg.mMultiply(cg.mInverse(headMatrix_track), objMatrix);
-   M = cg.mMultiply(headMatrix_quest, M);
-
-   let qx = [headMatrix_quest[0], headMatrix_quest[1], headMatrix_quest[2]];
-   let qy = [headMatrix_quest[4], headMatrix_quest[5], headMatrix_quest[6]];
-   let qz = [headMatrix_quest[8], headMatrix_quest[9], headMatrix_quest[10]];
-
-   let tx = [headMatrix_track[0], headMatrix_track[1], headMatrix_track[2]];
-   let ty = [headMatrix_track[4], headMatrix_track[5], headMatrix_track[6]];
-   let tz = [headMatrix_track[8], headMatrix_track[9], headMatrix_track[10]];
-
-   let dp = [objMatrix[12] - headMatrix_track[12], objMatrix[13] - headMatrix_track[13], objMatrix[14] - headMatrix_track[14]];
-   let px = cg.vec2vecProj(dp, tx);
-   let ax = cg.norm(px);
-   if (px[0]*tx[0]<0 || px[1]*tx[1]<0 || px[2]*tx[2]<0)
-      ax = -ax;
-
-   let py = cg.vec2vecProj(dp, ty);
-   let ay = cg.norm(py);
-   if (py[0]*ty[0]<0 || py[1]*ty[1]<0 || py[2]*ty[2]<0)
-      ay = -ay;
-
-   let pz = cg.vec2vecProj(dp, tz);
-   let az = cg.norm(pz);
-   if (pz[0]*tz[0]<0 || pz[1]*tz[1]<0 || pz[2]*tz[2]<0)
-      az = -az;
-
-   let dx = cg.scale(qx, ax);
-   let dy = cg.scale(qy, ay);
-   let dz = cg.scale(qz, az);
-
-   let v = [headMatrix_quest[12], headMatrix_quest[13], headMatrix_quest[14]];
-   //let v = [0,0,0];
-   v = cg.add(v, dx);
-   v = cg.add(v, dy);
-   v = cg.add(v, dz);
-
-   M[12] = v[0];
-   M[13] = v[1];
-   M[14] = v[2];
-
-   return M;
-}
-
+let track_obj_offset = {table : [0, -0.9, 0], round: [0, -0.9, 0], chair: [0, -1.35, 0], bigtable: [0, -1.35, 0]};
 
 // load gltf model
 let flower = new Gltf2Node({ url: './media/gltf/sunflower/sunflower.gltf' });
@@ -66,13 +15,10 @@ let buddha = new Gltf2Node({ url: './media/gltf/buddha_statue_broken/scene.gltf'
 
 //FLAGS
 let enableMenu = false;
-let autoCali = false;
 
 
 
 // INITIALIZE THE MODEL
-
-console.log('running tabletop.js');
 
 // INITIALIZE PEER TO PEER COMMUNICATION
 
@@ -110,10 +56,6 @@ if (! window.audioContext) {
 window.tabletopStates = {};
 
 export const init = async model => {
-
-   let trackObj = [];
-   for (let i = 0; i < TRACK_ITEMS.length; i++)
-      trackObj.push(model.add('cube').scale(0));
 
    // add gltf model to scene
    // flower.translation = [0, 1.16, 0]; // 1.16 is pedestal height
@@ -529,11 +471,12 @@ export const init = async model => {
       for (let k = 0 ; k < 2 ; k++)
          obj.add(objInfo.type + k).opacity(isInFocus ? .8 : 1);
       if(objInfo.trackedId > 0) {
+         let offset = track_obj_offset[objInfo.type];
          let m = cg.mFromQuaternion(objInfo.quaternion);
-         m[12] = xf(objInfo.x)/objScale;
-         m[13] = objInfo.z/objScale;
-         m[14] = xf(objInfo.y)/objScale;
-         obj.setMatrix(m);
+         m[12] = xf(objInfo.x)/objScale + offset[0];
+         m[13] = objInfo.z/objScale + offset[1];
+         m[14] = xf(objInfo.y)/objScale + offset[2];
+         obj.setMatrix(m).color(cg.hexToRgba(objInfo.color));//.text(objInfo.type, 0.2);
       } else {
          obj.identity()
          .move(xf(objInfo.x)/objScale, objInfo.z/objScale, xf(objInfo.y)/objScale)
@@ -567,60 +510,6 @@ export const init = async model => {
    //let wheelieState = 0;
 
    model.animate(() => {
-
-      server.track();
-      if(window.trackInfo) {
-         if (window.trackInfo.length == 0) {
-            console.log(window.timeStamp);
-         } else {
-            let info = cg.unpack(window.trackInfo, -2, 2);
-
-            for (let i = 0; i < TRACK_ITEMS.length; i++) {
-               let tq = [parseFloat(info[i*7]), parseFloat(info[i*7+1]), parseFloat(info[i*7+2]), parseFloat(info[i*7+3]), parseFloat(info[i*7+4]), parseFloat(info[i*7+5]), parseFloat(info[i*7+6])];
-               let m = cg.mFromQuaternion({ x:-tq[3], y:-tq[4], z:tq[5], w:tq[6] });
-               m[12] = tq[0]+1.038;
-               m[13] = tq[1]-0.01;
-               m[14] = -tq[2]-0.212;
-               trackObj[i].setMatrix(m).scale(.1);  
-               if(i == 3)     trackObj[i].color(1, 0, 0);
-               if(i == headsetID)     trackObj[i].color(0, 1, 0);
-               if(i == anchorID)     trackObj[i].color(0, 0, 1);
-            }
-
-            if(autoCali) {
-            // calibrate the system coordination
-            // 7 number transform information from trio and unity, left hand coord
-            let hq = [parseFloat(info[headsetID*7]), parseFloat(info[headsetID*7+1]), parseFloat(info[headsetID*7+2]), parseFloat(info[headsetID*7+3]), parseFloat(info[headsetID*7+4]), parseFloat(info[headsetID*7+5]), parseFloat(info[headsetID*7+6])];
-            let quaternion = {x:-hq[3],y:-hq[4],z:hq[5],w:hq[6]};
-            let M_head = cg.mFromQuaternion(quaternion);
-            M_head[12] = hq[0];
-            M_head[13] = hq[1];
-            // you want to flip to z
-            M_head[14] = -hq[2];
-
-
-            // example using object id:4
-            let aq = [parseFloat(info[anchorID*7]), parseFloat(info[anchorID*7+1]), parseFloat(info[anchorID*7+2]), parseFloat(info[anchorID*7+3]), parseFloat(info[anchorID*7+4]), parseFloat(info[anchorID*7+5]), parseFloat(info[anchorID*7+6])];
-            let M_anchor = cg.mFromQuaternion({x:-aq[3],y:-aq[4],z:aq[5],w:aq[6]});
-            M_anchor[12] = aq[0];
-            M_anchor[13] = aq[1];
-            M_anchor[14] = -aq[2];
-
-            let headMatrix = cg.mMultiply(clay.inverseRootMatrix,
-               cg.mix(clay.root().inverseViewMatrix(0),
-                     clay.root().inverseViewMatrix(1), .5));
-
-            //console.log([headMatrix[12],headMatrix[13],headMatrix[14]]);
-            let M = getObjViewPos(M_head, headMatrix, M_anchor);
-
-            objs.setMatrix(M).scale(objScale);
-            }
-
-          
-
-         }
-      }
-
 
       if (! robot.root.ignore) {
          let t = model.time / 2;

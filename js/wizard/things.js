@@ -84,14 +84,14 @@ defineThings = () => {
       ]);
    });
 
-   defineThing('end table:table,object', args => {
+   defineThing('bigtable:table,object', args => {
       return new Shape([
-         CUBE().move(-.40, .36,-.40).scale(.05,.36,.05),
-         CUBE().move( .40, .36,-.40).scale(.05,.36,.05),
-         CUBE().move(-.40, .36, .40).scale(.05,.36,.05),
-         CUBE().move( .40, .36, .40).scale(.05,.36,.05),
-         CUBE().move( .00, .80, .00).scale(.45,.08,.45),
-         CUBE().move( .00,1.02, .00).scale(.05,.18,.05),
+         CUBE().move(-.80, .72, -.80).scale(.10, .72, .10),
+         CUBE().move(.80, .72, -.80).scale(.10, .72, .10),
+         CUBE().move(-.80, .72, .80).scale(.10, .72, .10),
+         CUBE().move(.80, .72, .80).scale(.10, .72, .10),
+         CUBE().move(.00, 1.60, .00).scale(.90, .16, .90),
+         // CUBE().move(.00, 2.04, .00).scale(.10, .36, .10),         
       ]);
    });
 
@@ -136,15 +136,15 @@ defineThings = () => {
    });
 
    defineThing('round:table,object', args => {
-      let height = def3(args, 'height', 1.25);
-      let length = def3(args, 'length', 0.8);
-      let width  = def3(args, 'width' , 0.8);
+      let height = 1.3 * def3(args, 'height', 1.25);
+      let length = 1.3 * def3(args, 'length', 0.8);
+      let width  = 1.3 * def3(args, 'width' , 0.8);
       
       return new Shape([
-         CONE().move(0,.21,0).scale(.36,.21,.36),
-         TUBE().move(0, height/2-.08, 0).scale(.10,height/2-.08,.10),
-         CONE().move(0,height-.16-.21*.7,0).scale(-.36*.7,-.21*.7,.36*.7),
-         TUBE().move(0,height-.08,0).scale(width,.08,length),
+         CONE().move(0, .273, 0).scale(.468, .273, .468),
+         TUBE().move(0, height/2 - .104, 0).scale(.13, height/2 - .104, .13),
+         CONE().move(0, height - .208 - .273 * .7, 0).scale(-.468 * .7, - .273 * .7, .468 * .7),
+         TUBE().move(0, height - .104, 0).scale(width, .104, length),
       ]);
    });   
 

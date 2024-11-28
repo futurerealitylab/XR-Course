@@ -283,9 +283,10 @@
       }
 
       let typeToId = {
-      round: 4,
-      table: 5,
-      chair: 6
+      round: 1,
+      table: 2,
+      chair: 3,
+      bigtable: 4
       }
    
       // ADD A NEW OBJECT OF A SPECIFIED SHAPE AT THE CURSOR
@@ -351,8 +352,8 @@
 
       let info = unpackInfo(window.trackInfo, -2, 2);
 
-      let HEADSET_COUNT = 3; // headset
-      for (let i = HEADSET_COUNT; i < HEADSET_COUNT + Object.keys(typeToId).length; i++) { // PROBLEM: remember to start from the object index, not the headsets
+     
+      for (let i = 0; i < Object.keys(typeToId).length; i++) { // PROBLEM: remember to start from the object index, not the headsets
          let tq = [parseFloat(info[i*7]), parseFloat(info[i*7+1]), parseFloat(info[i*7+2]), parseFloat(info[i*7+3]), parseFloat(info[i*7+4]), parseFloat(info[i*7+5]), parseFloat(info[i*7+6])];
          let quaternion = { x:-tq[3], y:-tq[4], z:tq[5], w:tq[6] };
          let x = tq[0];
@@ -375,7 +376,7 @@
 
    }
 
-   setInterval(updateTrackedObject, 100);
+   setInterval(updateTrackedObject, 10);
       // RESPOND TO KEYBOARD EVENTS
    
       let kc = [0,0,0,0,0,0,0,0,0,0];
@@ -1420,6 +1421,13 @@
                let edgePoint = { x: w/2 * (x / r + 1),
                                  y: w/2 * (y / r + 1) };
                turnAwayFrom(obj, edgePoint);
+
+               let xd = (obj.x - canvasWidth/2);
+               let yd = (obj.y - canvasWidth/2);
+               if(Math.sqrt(xd*xd+yd*yd)>canvasWidth/2){
+                  obj.x = canvasWidth/2;
+                  obj.y = canvasWidth/2;
+               }
             }
          }
    
