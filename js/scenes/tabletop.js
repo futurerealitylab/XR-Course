@@ -141,6 +141,8 @@ export const init = async model => {
    let wheelie = new Wheelie(model, [0,tableHeight,0]);
    wheelie.root.ignore = ! showWheelie;
 */
+
+
    // CREATE AVATARS
 
    let avatarRoot = model.add();
@@ -469,7 +471,7 @@ export const init = async model => {
       // INSTANTIATE OBJECT AND ITS REFLECTION
 
       for (let k = 0 ; k < 2 ; k++)
-         obj.add(objInfo.type + k).opacity(isInFocus ? .8 : 1);
+         obj.add(objInfo.type + k).opacity(isInFocus ? .8 : .9);
       if(objInfo.trackedId > 0) {
          let offset = track_obj_offset[objInfo.type];
          let m = cg.mFromQuaternion(objInfo.quaternion);

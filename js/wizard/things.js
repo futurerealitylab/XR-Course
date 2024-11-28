@@ -127,11 +127,11 @@ defineThings = () => {
 
    defineThing('duck:animal', args => {
       return new Shape([
-         BALL().move(-.2,1.25,1.15).scale(.15,.15,.15).color(0,0,0),
-         BALL().move( .2,1.25,1.15).scale(.15,.15,.15).color(0,0,0),
+         BALL().move(-.2,1.25,1.15).scale(.05,.05,.05).color(0,0,0),
+         BALL().move( .2,1.25,1.15).scale(.05,.05,.05).color(0,0,0),
          BALL().move(0,.5,0).scale(.5,.5,.75).color(1,1,0),
          BALL().move(0,1,.75).scale(.5,.5,.5).color(1,1,0),
-         BALL().move(0,.95,1.15).scale(.45,.05,.6).color(1,.5,0),
+         BALL().move(0,.95,1.15).scale(.35,.05,.3).color(1,.5,0),
       ]);
    });
 

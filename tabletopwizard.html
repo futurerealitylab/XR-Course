@@ -196,6 +196,7 @@
       let enableSpeechAddObj = true;
       let enableSpeechDeletObj = true;
       let enableDrawing = false;
+      let addTrackObj = false;
    
       // RETRIEVE MEASUREMENTS OF ONE ATOM OF A MOLECULE
    
@@ -966,6 +967,16 @@
    
          // RESPOND TO ANY TYPED OR DICTATED TEXT IF THE WIZARD TYPES "ENTER" OR IF THE CURSOR IS OVER THE TABLE
          // OR IF ANY CLIENT IS LOOKING AT THE TABLE OR IF AN OBJECT IS SELECTED
+
+         // if(speakingClient && !addTrackObj) {
+         //    console.log("i am here")
+         //    for (let i = 0; i < Object.keys(typeToId).length; i++) {
+         //       console.log("my type", Object.keys(typeToId)[i])
+         //       addObject(Object.keys(typeToId)[i], speakingClient);
+         //    }
+         //    addTrackObj = true;
+         // }
+        
    
          if (window.speech && (isEnter || isOnTable(pp) || isAnyoneLookingAtTheTable() || isAnyObjectInFocus)) {
          //if (window.speech) {
