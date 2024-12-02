@@ -453,7 +453,7 @@ export const init = async model => {
 
       // IF OBJECT'S FORM DOESN'T EXIST, CREATE IT (AND ITS REFLECTION)
 
-      for (let k = 0 ; k < 2 ; k++) {
+      for (let k = 0 ; k < 1 ; k++) { // disabled large object rendering for now because it is buggy
          let form = objInfo.type + k;
          if (! clay.formMesh(form)) {
             let temp = model.add();
