@@ -10,8 +10,9 @@ import { Gltf2Node } from "../render/nodes/gltf2.js";
 let track_obj_offset = {table : [0, -0.9, 0], round: [0, -0.9, 0], chair: [0, -1.35, 0], bigtable: [0, -1.35, 0]};
 
 // load gltf model
-//let flower = new Gltf2Node({ url: './media/gltf/sunflower/sunflower.gltf' });
-//let buddha = new Gltf2Node({ url: './media/gltf/buddha_statue_broken/scene.gltf' });
+// let flower = new Gltf2Node({ url: './media/gltf/sunflower/sunflower.gltf' });
+// let buddha = new Gltf2Node({ url: './media/gltf/buddha_statue_broken/scene.gltf' });
+
 
 //FLAGS
 let enableMenu = false;
@@ -57,12 +58,13 @@ window.tabletopStates = {};
 
 export const init = async model => {
 
-   // add gltf model to scene
-   // flower.translation = [0, 1.16, 0]; // 1.16 is pedestal height
-   //flower.scale = [0.1, 0.1, 0.1];
-   //buddha.scale = [0.5, 0.5, 0.5];
-   //global.gltfRoot.addNode(flower);
-   //global.gltfRoot.addNode(buddha);
+
+   // // add gltf model to scene
+   // // flower.translation = [0, 1.16, 0]; // 1.16 is pedestal height
+   // flower.scale = [0.1, 0.1, 0.1];
+   // buddha.scale = [0.5, 0.5, 0.5];
+   // global.gltfRoot.addNode(flower);
+   // global.gltfRoot.addNode(buddha);
 
    server.neverLoadOrSave();
    console.log('running init');
@@ -451,16 +453,18 @@ export const init = async model => {
 
       // IF OBJECT'S FORM DOESN'T EXIST, CREATE IT (AND ITS REFLECTION)
 
-      for (let k = 0 ; k < 1 ; k++) { // removed the reflection for now
+      for (let k = 0 ; k < 2 ; k++) {
          let form = objInfo.type + k;
          if (! clay.formMesh(form)) {
             let temp = model.add();
             for (let n = 0 ; n < thing.items.length ; n++) {
                let item = thing.items[n];
                let m = item.m.slice();
-               temp.add(item.type).move(m[0], k==1 ? -m[1] : m[1], m[2])
+               let scale = k == 1 ? 5 : 1;
+// changed reflection rendering to large size object for quick demo
+               temp.add(item.type).move( k==1 ? (m[0] + 3) : m[0], k==1 ? (m[1] - 1.5) : m[1], m[2])
                                   .turnX(Math.PI * k)
-                                  .scale(item.s)
+                                  .scale(item.s[0] * scale, item.s[1] * scale, item.s[2] * scale)
                                   .color(item.c ? item.c : [1,1,1]);
             }
             temp.newForm(form);
