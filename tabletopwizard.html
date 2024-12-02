@@ -341,6 +341,9 @@
       }
 
 
+   let quatToEuler = (q) =>{
+      return 30;
+   }
    // UPDATE TRACKED OBJECT TRANSFORMATION
    let updateTrackedObject = () => {
       let objects = tabletop.objects;
@@ -369,6 +372,7 @@
                obj.y = ixf(z);
                obj.z = y;
                obj.quaternion = quaternion;
+               obj.angle = quatToEuler(quaternion);
                break;
             }
          }  
