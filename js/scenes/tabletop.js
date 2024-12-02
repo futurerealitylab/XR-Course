@@ -106,7 +106,7 @@ export const init = async model => {
    // DECLARE VARIABLES
 
    const canvasRadius = 350, objScale = .45 * thingsScale,
-         inch = .0254, tableRadius = 18.25 * inch;
+         inch = .0254, tableRadius = .36;
    let HP = { left: [0,0,0], right: [0,0,0] }, headAim = [0,0,0];
    let isPressed = {left: false, right: false};
    let wasSpeaking = false;
