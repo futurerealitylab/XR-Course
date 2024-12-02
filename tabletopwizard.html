@@ -341,9 +341,17 @@
       }
 
 
-   let quatToEuler = (q) =>{
-      return 30;
-   }
+      let quatToEuler = (q) => {
+         let x = q.x;
+         let y = q.z;
+         let z = q.y;
+         let w = q.w;
+
+         let yaw = Math.atan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z));
+         let angle = yaw * (180 / Math.PI);
+
+         return angle;
+         };
    // UPDATE TRACKED OBJECT TRANSFORMATION
    let updateTrackedObject = () => {
       let objects = tabletop.objects;
