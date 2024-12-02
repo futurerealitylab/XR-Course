@@ -190,7 +190,7 @@ defineThings = () => {
    defineThing('ethanol:molecule'  , args => { return new Shape([]); });
    defineThing('morphine:molecule' , args => { return new Shape([]); });
    defineThing('quinine:molecule'  , args => { return new Shape([]); });
-   defineThing('flower:gltf'       , args => { return new Shape([]); });
-   defineThing('buddha:gltf'        , args => { return new Shape([]); });
+   //defineThing('flower:gltf'       , args => { return new Shape([]); });
+   //defineThing('buddha:gltf'        , args => { return new Shape([]); });
 }
 

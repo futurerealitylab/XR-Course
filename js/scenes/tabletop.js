@@ -10,8 +10,8 @@ import { Gltf2Node } from "../render/nodes/gltf2.js";
 let track_obj_offset = {table : [0, -0.9, 0], round: [0, -0.9, 0], chair: [0, -1.35, 0], bigtable: [0, -1.35, 0]};
 
 // load gltf model
-let flower = new Gltf2Node({ url: './media/gltf/sunflower/sunflower.gltf' });
-let buddha = new Gltf2Node({ url: './media/gltf/buddha_statue_broken/scene.gltf' });
+//let flower = new Gltf2Node({ url: './media/gltf/sunflower/sunflower.gltf' });
+//let buddha = new Gltf2Node({ url: './media/gltf/buddha_statue_broken/scene.gltf' });
 
 //FLAGS
 let enableMenu = false;
@@ -59,10 +59,10 @@ export const init = async model => {
 
    // add gltf model to scene
    // flower.translation = [0, 1.16, 0]; // 1.16 is pedestal height
-   flower.scale = [0.1, 0.1, 0.1];
-   buddha.scale = [0.5, 0.5, 0.5];
-   global.gltfRoot.addNode(flower);
-   global.gltfRoot.addNode(buddha);
+   //flower.scale = [0.1, 0.1, 0.1];
+   //buddha.scale = [0.5, 0.5, 0.5];
+   //global.gltfRoot.addNode(flower);
+   //global.gltfRoot.addNode(buddha);
 
    server.neverLoadOrSave();
    console.log('running init');
@@ -440,14 +440,14 @@ export const init = async model => {
          return;
       }
 
-      if(objInfo.type == "flower") {
-         flower.translation = [xf(objInfo.x)/1,tableHeight,xf(objInfo.y)/1];
-         return;
-      }
-      if(objInfo.type == "buddha") {
-         buddha.translation = [xf(objInfo.x)/1,tableHeight,xf(objInfo.y)/1];
-         return;
-      }
+      // if(objInfo.type == "flower") {
+      //    flower.translation = [xf(objInfo.x)/1,tableHeight,xf(objInfo.y)/1];
+      //    return;
+      // }
+      // if(objInfo.type == "buddha") {
+      //    buddha.translation = [xf(objInfo.x)/1,tableHeight,xf(objInfo.y)/1];
+      //    return;
+      // }
 
       // IF OBJECT'S FORM DOESN'T EXIST, CREATE IT (AND ITS REFLECTION)
 
