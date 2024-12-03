@@ -7,7 +7,6 @@ import { g2 } from "../util/g2.js";
 import * as global from "../global.js";
 import { Gltf2Node } from "../render/nodes/gltf2.js";
 
-let track_obj_offset = {table : [0, -0.9, 0], round: [0, -0.9, 0], chair: [0, -1.35, 0], bigtable: [0, -1.35, 0]};
 
 // load gltf model
 // let flower = new Gltf2Node({ url: './media/gltf/sunflower/sunflower.gltf' });
@@ -108,7 +107,7 @@ export const init = async model => {
    // DECLARE VARIABLES
 
    const canvasRadius = 350, objScale = .45 * thingsScale,
-         inch = .0254, tableRadius = .36;
+         inch = .0254, tableRadius = .374;
    let HP = { left: [0,0,0], right: [0,0,0] }, headAim = [0,0,0];
    let isPressed = {left: false, right: false};
    let wasSpeaking = false;
@@ -125,6 +124,10 @@ export const init = async model => {
    let mirrorAvatar;
    let print3D = true;
    let Lb = 0, Rb = 0;
+
+   //CENTER OFFSET FOR CERTAIN TRACKED OBJECTS
+   let track_obj_offset = {table : [-0.4, -0.9, 0.3], round: [0, -0.9, 0], chair: [0, -1.35, 0], bigtable: [0, -1.35, 0]};
+
 
    // TRANSFORM BETWEEN 2D CANVAS POSITION AND 3D WORLD COORDS
 
@@ -207,7 +210,7 @@ export const init = async model => {
    let table = model.add('cube').move(0,tableHeight,0)
                                 .turnY(Math.PI)
                                 .scale(tableRadius,.0001,tableRadius)
-                                .color(0,0,0).dull()
+                                .color(1,0,0)
                                 .texture(() => {
 
       let X = x => .5 + .5 * x / tableRadius;
@@ -420,6 +423,10 @@ export const init = async model => {
          obj.remove(0);
    }
 
+   function lerp(a, b, t) {
+      return a + (b - a) * t;
+   }
+
    // BUILD A VIEWABLE 3D OBJECT FROM ITS OBJECT MODEL,
    // CREATING BOTH THE OBJECT AND ITS BELOW-THE-TABLE MIRROR IMAGE.
 
@@ -466,7 +473,7 @@ export const init = async model => {
 
       // INSTANTIATE OBJECT AND ITS REFLECTION
 
-      obj.add(objInfo.type).opacity(isInFocus ? .8 : .9);
+      obj.add(objInfo.type).opacity((isInFocus ? .8 : .9) * lerp(1, 0, (objInfo.z/objScale + track_obj_offset[objInfo.type][1])/2));
       if(objInfo.trackedId > 0) {
          let offset = track_obj_offset[objInfo.type];
          let m = cg.mFromQuaternion(objInfo.quaternion);
