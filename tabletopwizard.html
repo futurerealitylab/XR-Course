@@ -188,7 +188,7 @@
       let colorIndex = 0, currentColor = 'white',
           angleIndex = 0, currentAngle = 0;
       let w = canvas1.width, h = canvas1.height;
-      let id = -1, pp, isEnter = false, isShift = false, isControl = false, isMeta = false, isMinus = false, showAgents = false;
+      let id = -1, pp, isEnter = false, isShift = false, isControl = false, isMeta = false, isMinus = false, showAgents = false, showTrackedObjects = false;
       let speakingClient;
       let clientState = {};
       let isAnyObjectInFocus = false;
@@ -498,10 +498,15 @@
           return;
    
             // CONTROL-SPACE TOGGLES SHOWING AGENTS
-   
+            
             if (e.keyCode == 32) {
                showAgents = ! showAgents;
-          return;
+               return;
+            }
+
+            if (e.keyCode == 27) {
+               showTrackedObjects = !showTrackedObjects
+               return;
             }
    
             // IF RELEASING A NUMBER KEY
