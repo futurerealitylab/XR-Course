@@ -122,6 +122,7 @@ export const init = async model => {
    let blinkTime = 0;
    let avatars = {};
    let agents = {};
+   let displayTrackedObjects = false;
    let mirrorAvatar;
    let print3D = true;
    let Lb = 0, Rb = 0;
@@ -502,7 +503,7 @@ export const init = async model => {
       if(objInfo.trackedId < 0)
          obj.add(objInfo.type).opacity(.85);
       else
-         obj.add(objInfo.type).opacity(.5);
+         obj.add(objInfo.type).opacity(tabletopStates.flags?.5:.001);
       if(objInfo.trackedId > 0) {
          let offset = track_obj_offset[objInfo.type];
          let m = cg.mFromQuaternion(objInfo.quaternion);
@@ -600,12 +601,13 @@ export const init = async model => {
                console.log('peer-to-peer connection with wizard closed');
             })
             conn.on('data', (data) => {
-               const {drawings, focus, objects, speech, agents} = data;
+               const {drawings, focus, objects, speech, agents, flags} = data;
                tabletopStates.drawings = drawings;
                tabletopStates.focus = focus;
                tabletopStates.objects = objects;
                tabletopStates.speech = speech;
                tabletopStates.agents = agents;
+               tabletopStates.flags = flags;
             })
          }
          const peerIds = window['peers']?.clientIds;

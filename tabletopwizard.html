@@ -504,7 +504,7 @@
                return;
             }
 
-            if (e.keyCode == 27) {
+            if (e.keyCode == 38) {
                showTrackedObjects = !showTrackedObjects
                return;
             }
@@ -1402,11 +1402,12 @@
          for (let client in clientState)
             tabletop.avatars[client] = clientState[client].avatar;
    
+         tabletop.flags = showTrackedObjects;
          // SEND THE CURRENT STATE TO EVERY CLIENT
    
          Object.values(clientConnections).forEach((client) => {
-            const {drawings, focus, objects, speech, agents} = window.tabletop;
-            client.conn.send({drawings, focus, objects, speech, agents});  
+            const {drawings, focus, objects, speech, agents, flags} = window.tabletop;
+            client.conn.send({drawings, focus, objects, speech, agents, flags});  
          })
    
          //---------------- INCORPORATE STATE DATA FROM CLIENTS
