@@ -142,7 +142,8 @@
                case 'doublepress':
                   state['isDoublePressed' + part] = true;
                   let foundObj = findAt(state[part]);
-                  objects[foundObj.id].color = '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');;
+                  if(objects[foundObj.id])
+                     objects[foundObj.id].color = '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');;
                break;
                case 'release':
                   if(enableDrawing)
@@ -372,7 +373,7 @@
          let y = tq[1]*SCALE;
          let z = -tq[2]*SCALE;
          // pass those transformation info to tracked object
-  
+      
          for(let j = 0; j < Object.keys(objects).length; j ++) {
             let obj = objects[j];
             if(obj.trackedId == i + 1) {

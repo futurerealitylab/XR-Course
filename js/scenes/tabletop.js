@@ -126,7 +126,7 @@ export const init = async model => {
    let Lb = 0, Rb = 0;
 
    //CENTER OFFSET FOR CERTAIN TRACKED OBJECTS
-   let track_obj_offset = {table : [-0.4, -0.9, 0.3], round: [0, -0.9, 0], chair: [0, -1.35, 0], bigtable: [0, -1.35, 0]};
+   let track_obj_offset = {table : [-0.3, -0.9, 0.2], round: [-0.2, -0.9, 0.1], chair: [-0.1, -1.35, 0.5], bigtable: [0.05, -1.35, 0.2]};
 
 
    // TRANSFORM BETWEEN 2D CANVAS POSITION AND 3D WORLD COORDS
@@ -473,6 +473,7 @@ export const init = async model => {
 
       // INSTANTIATE OBJECT AND ITS REFLECTION
 
+      // miniature objects
       obj.add(objInfo.type).opacity((isInFocus ? .8 : .9) * lerp(1, 0, (objInfo.z/objScale + track_obj_offset[objInfo.type][1])/2));
       if(objInfo.trackedId > 0) {
          let offset = track_obj_offset[objInfo.type];
@@ -487,6 +488,25 @@ export const init = async model => {
          .turnY(objInfo.angle * Math.PI/180)
          .color(cg.hexToRgba(objInfo.color));
       }
+
+      // room scale objects
+      // let largeScale = 5;
+      // let largeObjRoot = model.add();
+      // let largeObj = largeObjRoot.add(objInfo.type).opacity(0.9);
+      // if(objInfo.trackedId > 0) {
+      //    let offset = track_obj_offset[objInfo.type];
+      //    let m = cg.mFromQuaternion(objInfo.quaternion);
+      //    m[12] = xf(objInfo.x)/objScale + offset[0];
+      //    m[13] = objInfo.z/objScale + offset[1];
+      //    m[14] = xf(objInfo.y)/objScale + offset[2];
+      //    largeObj.setMatrix(m).color(cg.hexToRgba(objInfo.color));//.text(objInfo.type, 0.2);
+      // } else {
+      //    largeObj.identity()
+      //    .move(xf(objInfo.x)/objScale, objInfo.z/objScale, xf(objInfo.y)/objScale)
+      //    .turnY(objInfo.angle * Math.PI/180)
+      //    .color(cg.hexToRgba(objInfo.color));
+      // }
+      // largeObjRoot.identity().move(5, 0, 0).scale(5)
       
    }
 
