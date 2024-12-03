@@ -453,29 +453,20 @@ export const init = async model => {
 
       // IF OBJECT'S FORM DOESN'T EXIST, CREATE IT (AND ITS REFLECTION)
 
-      for (let k = 0 ; k < 1 ; k++) { // disabled large object rendering for now because it is buggy
-         let form = objInfo.type + k;
-         if (! clay.formMesh(form)) {
-            let temp = model.add();
-            for (let n = 0 ; n < thing.items.length ; n++) {
-               let item = thing.items[n];
-               let m = item.m.slice();
-               let scale = k == 1 ? 5 : 1;
-// changed reflection rendering to large size object for quick demo
-               temp.add(item.type).move( k==1 ? (m[0] + 3) : m[0], k==1 ? (m[1] - 1.5) : m[1], m[2])
-                                  .turnX(Math.PI * k)
-                                  .scale(item.s[0] * scale, item.s[1] * scale, item.s[2] * scale)
-                                  .color(item.c ? item.c : [1,1,1]);
-            }
-            temp.newForm(form);
-            model.remove(temp);
+      let form = objInfo.type;
+      if (! clay.formMesh(form)) {
+         let temp = model.add();
+         for (let n = 0 ; n < thing.items.length ; n++) {
+            let item = thing.items[n];
+            temp.add(item.type).move(item.m).scale(item.s).color(item.c ? item.c : [1,1,1]);
          }
+         temp.newForm(form);
+         model.remove(temp);
       }
 
       // INSTANTIATE OBJECT AND ITS REFLECTION
 
-      for (let k = 0 ; k < 2 ; k++)
-         obj.add(objInfo.type + k).opacity(isInFocus ? .8 : .9);
+      obj.add(objInfo.type).opacity(isInFocus ? .8 : .9);
       if(objInfo.trackedId > 0) {
          let offset = track_obj_offset[objInfo.type];
          let m = cg.mFromQuaternion(objInfo.quaternion);
