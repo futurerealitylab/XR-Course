@@ -55,9 +55,10 @@ if (! window.audioContext) {
 
 window.tabletopStates = {};
 
+
 export const init = async model => {
 
-
+   let largeObjRoot = model.add();
    // // add gltf model to scene
    // // flower.translation = [0, 1.16, 0]; // 1.16 is pedestal height
    // flower.scale = [0.1, 0.1, 0.1];
@@ -136,7 +137,7 @@ export const init = async model => {
 
    // CREATE ALL THE 3D VIEW OBJECTS
 
-   let objs = model.add().move(0,tableHeight,0).scale(objScale);
+   let objs = model.add().turnZ(.0).move(0,tableHeight,0).scale(objScale);
    for (let n = 0 ; n < 100 ; n++)
       objs.add();
 
@@ -210,7 +211,7 @@ export const init = async model => {
    let table = model.add('cube').move(0,tableHeight,0)
                                 .turnY(Math.PI)
                                 .scale(tableRadius,.0001,tableRadius)
-                                .color(1,0,0)
+                                .color(0,0,0)
                                 .texture(() => {
 
       let X = x => .5 + .5 * x / tableRadius;
@@ -460,27 +461,54 @@ export const init = async model => {
 
       // IF OBJECT'S FORM DOESN'T EXIST, CREATE IT (AND ITS REFLECTION)
 
-      let form = objInfo.type;
-      if (! clay.formMesh(form)) {
-         let temp = model.add();
-         for (let n = 0 ; n < thing.items.length ; n++) {
-            let item = thing.items[n];
-            temp.add(item.type).move(item.m).scale(item.s).color(item.c ? item.c : [1,1,1]);
+      // let form = objInfo.type;
+      // if (! clay.formMesh(form)) {
+      //    let temp = model.add();
+      //    for (let n = 0 ; n < thing.items.length ; n++) {
+      //       let item = thing.items[n];
+      //       temp.add(item.type).move(item.m).scale(item.s).color(item.c ? item.c : [1,1,1]);
+      //    }
+      //    temp.newForm(form);
+      //    model.remove(temp);
+      // }
+
+      // // INSTANTIATE OBJECT AND ITS REFLECTION
+
+      // // miniature objects
+      // obj.add(objInfo.type).opacity((isInFocus ? .8 : .9) * lerp(1, 0, (objInfo.z/objScale + track_obj_offset[objInfo.type][1])/2));
+      for (let k = 0 ; k < 1 ; k++) { // disabled large object rendering for now because it is buggy
+         let form = objInfo.type;
+         if (! clay.formMesh(form)) {
+            let temp = model.add();
+            for (let n = 0 ; n < thing.items.length ; n++) {
+               let item = thing.items[n];
+               let m = item.m.slice();
+               let scale = k == 1 ? 5 : 1;
+// changed reflection rendering to large size object for quick demo
+               temp.add(item.type).move( k==1 ? (m[0] + 3) : m[0], k==1 ? (m[1] - 1.5) : m[1], m[2])
+                                  .turnX(Math.PI * k)
+                                  .scale(item.s[0] * scale, item.s[1] * scale, item.s[2] * scale)
+                                  .color(item.c ? item.c : [1,1,1]);
+            }
+            temp.newForm(form);
+            model.remove(temp);
          }
-         temp.newForm(form);
-         model.remove(temp);
+
+
       }
 
       // INSTANTIATE OBJECT AND ITS REFLECTION
 
-      // miniature objects
-      obj.add(objInfo.type).opacity((isInFocus ? .8 : .9) * lerp(1, 0, (objInfo.z/objScale + track_obj_offset[objInfo.type][1])/2));
+      if(objInfo.trackedId < 0)
+         obj.add(objInfo.type).opacity(.85);
+      else
+         obj.add(objInfo.type).opacity(.001);
       if(objInfo.trackedId > 0) {
          let offset = track_obj_offset[objInfo.type];
          let m = cg.mFromQuaternion(objInfo.quaternion);
          m[12] = xf(objInfo.x)/objScale + offset[0];
          m[13] = objInfo.z/objScale + offset[1];
-         m[14] = xf(objInfo.y)/objScale + offset[2];
+         m[14] = xf(objInfo.y)/objScale + offset[2]; // cg.hexToRgba(objInfo.color)
          obj.setMatrix(m).color(cg.hexToRgba(objInfo.color));//.text(objInfo.type, 0.2);
       } else {
          obj.identity()
@@ -491,22 +519,22 @@ export const init = async model => {
 
       // room scale objects
       // let largeScale = 5;
-      // let largeObjRoot = model.add();
-      // let largeObj = largeObjRoot.add(objInfo.type).opacity(0.9);
-      // if(objInfo.trackedId > 0) {
-      //    let offset = track_obj_offset[objInfo.type];
-      //    let m = cg.mFromQuaternion(objInfo.quaternion);
-      //    m[12] = xf(objInfo.x)/objScale + offset[0];
-      //    m[13] = objInfo.z/objScale + offset[1];
-      //    m[14] = xf(objInfo.y)/objScale + offset[2];
-      //    largeObj.setMatrix(m).color(cg.hexToRgba(objInfo.color));//.text(objInfo.type, 0.2);
-      // } else {
-      //    largeObj.identity()
-      //    .move(xf(objInfo.x)/objScale, objInfo.z/objScale, xf(objInfo.y)/objScale)
-      //    .turnY(objInfo.angle * Math.PI/180)
-      //    .color(cg.hexToRgba(objInfo.color));
-      // }
-      // largeObjRoot.identity().move(5, 0, 0).scale(5)
+      
+      let largeObj = largeObjRoot.add(objInfo.type).opacity(0.9);
+      if(objInfo.trackedId > 0) {
+         let offset = track_obj_offset[objInfo.type];
+         let m = cg.mFromQuaternion(objInfo.quaternion);
+         m[12] = xf(objInfo.x)/objScale + offset[0];
+         m[13] = objInfo.z/objScale + offset[1];
+         m[14] = xf(objInfo.y)/objScale + offset[2];
+         largeObj.setMatrix(m).color(cg.hexToRgba(objInfo.color));//.text(objInfo.type, 0.2);
+      } else {
+         largeObj.identity()
+         .move(xf(objInfo.x)/objScale, objInfo.z/objScale, xf(objInfo.y)/objScale)
+         .turnY(objInfo.angle * Math.PI/180)
+         .color(cg.hexToRgba(objInfo.color));
+      }
+      largeObjRoot.identity().turnZ(.08).move(1.5, 0, 3).scale(0.2)
       
    }
 
@@ -534,6 +562,8 @@ export const init = async model => {
    //let wheelieState = 0;
 
    model.animate(() => {
+      while (largeObjRoot.nChildren() > 0)
+         largeObjRoot.remove(0);
 
       if (! robot.root.ignore) {
          let t = model.time / 2;
