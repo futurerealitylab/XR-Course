@@ -208,10 +208,10 @@ export const init = async model => {
 
    // CREATE THE TABLETOP 2D DISPLAY
 
-   let table = model.add('cube').move(0,tableHeight,0)
+   let table = model.add('ringY').move(0,tableHeight,0)
                                 .turnY(Math.PI)
-                                .scale(tableRadius,.0001,tableRadius)
-                                .color(0,0,0)
+                                .scale(tableRadius,tableRadius,tableRadius)
+                                .color(1,1,1)
                                 .texture(() => {
 
       let X = x => .5 + .5 * x / tableRadius;
@@ -502,7 +502,7 @@ export const init = async model => {
       if(objInfo.trackedId < 0)
          obj.add(objInfo.type).opacity(.85);
       else
-         obj.add(objInfo.type).opacity(.001);
+         obj.add(objInfo.type).opacity(.5);
       if(objInfo.trackedId > 0) {
          let offset = track_obj_offset[objInfo.type];
          let m = cg.mFromQuaternion(objInfo.quaternion);
