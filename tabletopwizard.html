@@ -364,13 +364,13 @@
 
       let info = unpackInfo(window.trackInfo, -2, 2);
 
-     
+      let SCALE = 1.02;
       for (let i = 0; i < Object.keys(typeToId).length; i++) { // PROBLEM: remember to start from the object index, not the headsets
          let tq = [parseFloat(info[i*7]), parseFloat(info[i*7+1]), parseFloat(info[i*7+2]), parseFloat(info[i*7+3]), parseFloat(info[i*7+4]), parseFloat(info[i*7+5]), parseFloat(info[i*7+6])];
          let quaternion = { x:-tq[3], y:-tq[4], z:tq[5], w:tq[6] };
-         let x = tq[0];
-         let y = tq[1];
-         let z = -tq[2];
+         let x = tq[0]*SCALE;
+         let y = tq[1]*SCALE;
+         let z = -tq[2]*SCALE;
          // pass those transformation info to tracked object
   
          for(let j = 0; j < Object.keys(objects).length; j ++) {
