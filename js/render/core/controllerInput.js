@@ -85,7 +85,7 @@ export function ControllerBeam(model, hand) {
                                                .move(cg.add([0,0,-10], beamOffset(hand)))
                                                .scale(.0005,.0005,10);
    this.update = matrix => {
-      if (! this.isEnabled) {
+      if (! this.isEnabled || window.handtracking) {
          this.beam.setMatrix(cg.mScale(0));
          return;
       }

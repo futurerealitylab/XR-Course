@@ -195,8 +195,8 @@
       let isAnyObjectInFocus = false;
       let isAnimating = false, animateT = 0, animateTime = 0;
       let showSpeech = true;
-      let enableSpeechAddObj = true;
-      let enableSpeechDeletObj = true;
+      let enableSpeechAddObj = false;
+      let enableSpeechDeletObj = false;
       let enableDrawing = false;
       let addTrackObj = false;
    
@@ -1029,6 +1029,8 @@
                            .replace('dog', 'duck')
                            .replace('doc', 'duck')
                            .replace('at', 'add')
+                           .replace('talk', 'duck')
+                           .replace('right', 'white')
                            ;
    
             // ------- RESPOND TO SPEECH BY CHOOSING A SET OF OBJECTS TO WORK ON -------
