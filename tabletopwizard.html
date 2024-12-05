@@ -146,6 +146,7 @@
                      objects[foundObj.id].color = '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');;
                break;
                case 'release':
+                  window.grabbedObj = null;
                   if(enableDrawing)
                      drawingRelease(client, part);
                   state['isPressed' + part] = false;
@@ -160,7 +161,7 @@
       
    
       // START SPEECH RECOGNITION
-   /*
+   
       let speechRecognition = new webkitSpeechRecognition();
       speechRecognition.continuous = true;
       speechRecognition.lang = 'en-US';
@@ -169,7 +170,7 @@
       speechRecognition.onresult = e => console.log(window.speech = e.results[e.resultIndex][0].transcript);
       speechRecognition.onend = () => speechRecognition.start();
       speechRecognition.start();
-   */
+   
       // MAKE A LIST OF SPEECH-RECOGNIZABLE THINGS
    
       let things_and_groups = {};
@@ -584,7 +585,7 @@
                let xyr = atomXYR(obj, n);
                let dx = xyr[0] - px;
                let dy = xyr[1] - py;
-               if (dx * dx + dy * dy < 4 * xyr[2] * xyr[2])
+               if (dx * dx + dy * dy < 6 * xyr[2] * xyr[2])
                   return true;
             }
             return false;
@@ -732,6 +733,7 @@
                   obj.y = y;
                }
             }
+            window.grabbedObj = id;
          }
          else if (isShift)                      // ELSE IF SHIFT KEY IS DOWN
             turn(p.x - pp.x);                   //      THEN ROTATE CURRENT ANGLE
@@ -745,6 +747,7 @@
          if (id == -1)
             drawingRelease(clientID, 'left');
          isMouseDown = false;
+         window.grabbedObj = null;
          id = -1;
       }
    
@@ -953,7 +956,7 @@
        time_of_last_textbox_change = time;
          }
          if (time - time_of_last_textbox_change > 1) {
-            window.speech = text_buffer;
+            //window.speech = text_buffer;
        text_buffer = '';
          }
    
@@ -1012,6 +1015,20 @@
                            .replace('light','white')
                            .replace('people','person')
                            .replace('read','red')
+                           .replace('rat','red')
+                           .replace('rad','red')
+                           .replace('screen','green')
+                           .replace('purple','violet')
+                           .replace('cheer','chair')
+                           .replace('thread', 'red')
+                           .replace('round table', 'round')
+                           .replace('square table', 'bigtable')
+                           .replace('big table', 'bigtable')
+                           .replace('dark', 'duck')
+                           .replace('dock', 'duck')
+                           .replace('dog', 'duck')
+                           .replace('doc', 'duck')
+                           .replace('at', 'add')
                            ;
    
             // ------- RESPOND TO SPEECH BY CHOOSING A SET OF OBJECTS TO WORK ON -------
@@ -1422,6 +1439,7 @@
          // MAKE THE PEOPLE MOVE
    
          let turnAwayFrom = (obj, p) => {
+            
             let dx = p.x - obj.x;
             let dy = p.y - obj.y;
             let d = Math.sqrt(dx * dx + dy * dy);
@@ -1438,8 +1456,11 @@
          }
    
          for (let id in objects) {
+
             let obj = objects[id];
             if (obj.type == 'guy' || obj.type == 'gal' || obj.type == 'duck') {
+               if(window.grabbedObj == id) 
+               continue;
                obj.x += Math.sin(obj.angle * Math.PI / 180);
                obj.y += Math.cos(obj.angle * Math.PI / 180);
                for (let i in objects)

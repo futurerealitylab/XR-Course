@@ -128,7 +128,7 @@ export const init = async model => {
    let Lb = 0, Rb = 0;
 
    //CENTER OFFSET FOR CERTAIN TRACKED OBJECTS
-   let track_obj_offset = {table : [-0.3, -0.9, 0.2], round: [-0.2, -0.9, 0.1], chair: [-0.1, -1.35, 0.5], bigtable: [0.05, -1.35, 0.2]};
+   let track_obj_offset = {table : [-0, -0.9, 0.2], round: [-0.2, -0.9, 0.1], chair: [-0.1, -1.35, 0.5], bigtable: [0.05, -1.35, 0.2]};
 
 
    // TRANSFORM BETWEEN 2D CANVAS POSITION AND 3D WORLD COORDS
@@ -528,14 +528,16 @@ export const init = async model => {
          m[12] = xf(objInfo.x)/objScale + offset[0];
          m[13] = objInfo.z/objScale + offset[1];
          m[14] = xf(objInfo.y)/objScale + offset[2];
-         largeObj.setMatrix(m).color(cg.hexToRgba(objInfo.color));//.text(objInfo.type, 0.2);
+         largeObj.setMatrix(m).color(cg.hexToRgba(objInfo.color))
+         .opacity(.75);
       } else {
          largeObj.identity()
          .move(xf(objInfo.x)/objScale, objInfo.z/objScale, xf(objInfo.y)/objScale)
          .turnY(objInfo.angle * Math.PI/180)
-         .color(cg.hexToRgba(objInfo.color));
+         .color(cg.hexToRgba(objInfo.color))
+         .opacity(.75);
       }
-      largeObjRoot.identity().turnZ(.08).move(1.5, 0, 3).scale(0.2)
+      largeObjRoot.identity().turnZ(.0).move(0, .0, 5).scale(0.4)
       
    }
 
