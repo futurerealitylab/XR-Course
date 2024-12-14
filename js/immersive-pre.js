@@ -199,8 +199,8 @@ function initHands() {
 
 let recognition = null;
 function initWebSpeech() {
-    if (! isSpeechRecognitionEnabled)
-       return;
+    // if (! isSpeechRecognitionEnabled)
+    //    return;
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
