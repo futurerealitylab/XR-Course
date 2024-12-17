@@ -9,6 +9,8 @@ export const init = async model => {
     global.gltfRoot.addNode(attic);
 
     model.animate(() => {
+        //console.log("view x: "+ views[0]._viewMatrix[12]);
+        //console.log("view z: "+ views[0]._viewMatrix[14]);
     });
  }
 
