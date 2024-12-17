@@ -377,6 +377,8 @@
       
          for(let j = 0; j < Object.keys(objects).length; j ++) {
             let obj = objects[j];
+            if(obj == null)
+               continue;
             if(obj.trackedId == i + 1) {
                obj.x = ixf(x);
                obj.y = ixf(z);
