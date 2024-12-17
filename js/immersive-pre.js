@@ -216,7 +216,7 @@ function initWebSpeech() {
         recognition.onresult = function(event) {
             var current = event.resultIndex;
             var transcript = event.results[current][0].transcript;
-            console.log(transcript);
+           // console.log(transcript);
             window.speech = transcript;
         };
         
@@ -225,17 +225,17 @@ function initWebSpeech() {
         }
 
         recognition.onend =  function() {
-            console.log('Speech recognition has stopped. Starting again ...');
+           //console.log('Speech recognition has stopped. Starting again ...');
             recognition.start();
         }
 
         recognition.onerror = function(event) {
-            console.log('Speech recognition error detected: ' + event.error);
-            console.log('Additional information: ' + event.message);
+           // console.log('Speech recognition error detected: ' + event.error);
+           // console.log('Additional information: ' + event.message);
         }
 
         recognition.start();
-        console.log('Ready to receive a speech command.');
+      //  console.log('Ready to receive a speech command.');
     }
 }
 

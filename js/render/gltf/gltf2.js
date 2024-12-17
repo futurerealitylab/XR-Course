@@ -192,7 +192,7 @@ export class Gltf2Loader {
         let glMaterial = new PbrMaterial();
         let pbr = material.pbrMetallicRoughness || {};
 
-        glMaterial.baseColorFactor.value = pbr.baseColorFactor || [1, 1, 1, 1];
+        glMaterial.baseColorFactor.value = pbr.baseColorFactor || [1,1,1,1];
         glMaterial.baseColor.texture = getTexture(pbr.baseColorTexture);
         glMaterial.metallicRoughnessFactor.value = [
           pbr.metallicFactor || 1.0,
@@ -212,22 +212,29 @@ export class Gltf2Loader {
         if (!glMaterial.emissive.texture && material.emissiveFactor) {
           glMaterial.emissive.texture = new ColorTexture(1.0, 1.0, 1.0, 1.0);
         }
-
+    
         switch (material.alphaMode) {
+         
           case "BLEND":
             glMaterial.state.blend = true;
+           
             break;
           case "MASK":
             // Not really supported.
             glMaterial.state.blend = true;
             break;
           default:
-            // Includes 'OPAQUE'
-            glMaterial.state.blend = false;
+            glMaterial.state.blend = true;
         }
 
-        // glMaterial.alpha_mode = material.alphaMode;
-        // glMaterial.alpha_cutoff = material.alphaCutoff;
+        glMaterial.state.blendFunc = {
+          src: "SRC_ALPHA",
+          dst: "ONE_MINUS_SRC_ALPHA"
+        };
+        glMaterial.state.blendEquation = "FUNC_ADD";  
+
+       
+        glMaterial.alpha_mode = "BLEND";
         glMaterial.state.cullFace = !material.doubleSided;
 
         materials.push(glMaterial);

@@ -18,26 +18,28 @@
 			"name":"Mesh_0"
 		}
 	],
-	"materials":[
-		{
-			"name":"Material_0",
-			"normalTexture":{
-				"index":0
-			},
-			"occlusionTexture":{
-				"index":1
-			},
-			"pbrMetallicRoughness":{
-				"baseColorTexture":{
-					"index":2
-				},
-				"metallicFactor":0,
-				"metallicRoughnessTexture":{
-					"index":1
-				}
-			}
-		}
-	],
+	 "materials": [
+    {
+      "name": "Material_0",
+      "normalTexture": {
+        "index": 0
+      },
+      "occlusionTexture": {
+        "index": 1
+      },
+      "pbrMetallicRoughness": {
+        "baseColorTexture": {
+          "index": 2
+        },
+        "metallicFactor": 0,
+        "metallicRoughnessTexture": {
+          "index": 1
+        },
+        "baseColorFactor": [1, 1, 1, 0.5],
+        "alphaMode": "BLEND"
+      }
+    }
+  ],
 	"meshes":[
 		{
 			"name":"Mesh_0",
