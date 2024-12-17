@@ -1,5 +1,4 @@
 import * as global from "../global.js";
-import { quat } from "../render/math/gl-matrix.js";
 import { Gltf2Node } from "../render/nodes/gltf2.js";
 
 let attic = new Gltf2Node({ url: './media/gltf/attic1986_ver2/attic1986_ver2.gltf' });
