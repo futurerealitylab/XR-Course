@@ -1,7 +1,7 @@
 import * as global from "../global.js";
 import { Gltf2Node } from "../render/nodes/gltf2.js";
 
-let attic = new Gltf2Node({ url: './media/gltf/attic1986_ver2/attic1986_ver2.gltf' });
+let attic = new Gltf2Node({ url: './media/gltf/60_fifth_ave/60_fifth_ave.gltf' , alpha: 1});
 
 export const init = async model => {
     attic.translation = [0, -.85, 0];

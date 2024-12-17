@@ -73,7 +73,6 @@ export class Gltf2Loader {
     this.renderer = renderer;
     this._gl = renderer._gl;
   }
-
   loadFromUrl(url) {
     return fetch(url).then((response) => {
       let i = url.lastIndexOf("/");
@@ -192,7 +191,7 @@ export class Gltf2Loader {
         let glMaterial = new PbrMaterial();
         let pbr = material.pbrMetallicRoughness || {};
 
-        glMaterial.baseColorFactor.value = pbr.baseColorFactor || [1,1,1,1];
+        glMaterial.baseColorFactor.value = [1,1,1,this.alpha || 1];
         glMaterial.baseColor.texture = getTexture(pbr.baseColorTexture);
         glMaterial.metallicRoughnessFactor.value = [
           pbr.metallicFactor || 1.0,
