@@ -131,9 +131,9 @@ function Matrix() {
    let mTr = (x,y,z, m) => mxm(m, [1,0,0,0, 0,1,0,0, 0,0,1,0, x[0]!==undefined?x[0]:x,
                                                               x[0]!==undefined?x[1]:y,
                                                               x[0]!==undefined?x[2]:z,1]);
-   let stack = [mId()], top = 0;
-   let set = arg => { stack[top] = arg; return this; }
-   let get = () => stack[top];
+   let stack = [{M:mId(),C:[1,1,1],O:1}], top = 0;
+   let set = arg => { stack[top].M = arg; return this; }
+   let get = () => stack[top].M;
 
    this.aim = (W,i,V) => {
       W = normalize(W);
@@ -155,15 +155,32 @@ function Matrix() {
    this.move = (x,y,z) => set(mTr(x,y,z, get()));
    this.get = () => get();
    this.set = value => set(value);
-   this.S = () => set(stack[top++].slice());
+   this.S = () => {
+      if (++top == stack.length)
+         stack.push({});
+      stack[top].M = stack[top-1].M;
+      stack[top].C = stack[top-1].C;
+      stack[top].O = stack[top-1].O;
+      stack[top].T = stack[top-1].T;
+      stack[top].B = stack[top-1].B;
+      return this;
+   }
    this.R = () => --top;
-   this.draw = (shape,color,opacity,texture,bumpTexture) => draw(shape,color,opacity,texture,bumpTexture);
+   this.draw = S => draw({S:S,C:stack[top].C,
+                              O:stack[top].O,
+			      T:stack[top].T,
+			      B:stack[top].B});
+   this.color       = arg => { stack[top].C = arg; return this; }
+   this.opacity     = arg => { stack[top].O = arg; return this; }
+   this.texture     = arg => { stack[top].T = arg; return this; }
+   this.bumpTexture = arg => { stack[top].B = arg; return this; }
 }
 
 // INITIALIZE WEBGL
 
 let start_gl = (canvas, vertexShader, fragmentShader) => {
    let gl = canvas.getContext("webgl");
+   gl.canvas = canvas;
    let program = gl.createProgram();
    gl.program = program;
    let addshader = (type, src) => {
@@ -309,7 +326,7 @@ let vertexSize = 11;
 let vertexShader = `
    attribute vec3 aPos, aNor, aTan;
    attribute vec2 aUV;
-   uniform float uEye;
+   uniform float uAspectRatio, uEye;
    uniform mat4 uMatrix, uInvMatrix, uVMatrix, uVInvMatrix;
    varying float vClipX;
    varying vec2 vUV;
@@ -330,7 +347,7 @@ let vertexShader = `
       pos.x += .45 * pos.w * uEye;
       vClipX = pos.x * uEye;
 
-      gl_Position = pos * vec4(1.,1.,-.1,1.);
+      gl_Position = pos * vec4(1.,uAspectRatio,-.1,1.);
    }
 `;
 let fragmentShader = `
@@ -384,6 +401,7 @@ let gl,uBumpTexture,uColor,uEye,uInvMatrix,uMaterial,uMatrix,uOpacity,uSampler,u
 
 let startGL = canvas => {
    gl = start_gl(canvas, vertexShader, fragmentShader);
+   uAspectRatio = gl.getUniformLocation(gl.program, "uAspectRatio");
    uBumpTexture = gl.getUniformLocation(gl.program, "uBumpTexture");
    uColor       = gl.getUniformLocation(gl.program, "uColor"      );
    uEye         = gl.getUniformLocation(gl.program, "uEye"        );
@@ -436,7 +454,13 @@ let texture = (index, source) => {
 
 // DRAW A SINGLE SHAPE TO THE WEBGL CANVAS
 
-let draw = (Shape, color, opacity, texture, bumpTexture) => {
+let draw = args => {
+
+   let Shape       = args.S;
+   let color       = args.C;
+   let opacity     = args.O;
+   let texture     = args.T;
+   let bumpTexture = args.B;
 
    // IF THIS IS AN ANIMATED TEXTURE SOURCE, SEND THE TEXTURE TO THE GPU AT EVERY ANIMATION FRAME.
 
@@ -445,6 +469,7 @@ let draw = (Shape, color, opacity, texture, bumpTexture) => {
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, animatedSource[texture]);
    }
 
+   gl.uniform1f       (uAspectRatio, gl.canvas.width / gl.canvas.height);
    gl.uniform1f       (uOpacity    , opacity===undefined ? 1 : opacity);
    gl.uniform1i       (uTexture    , texture===undefined ? -1 : texture);
    gl.uniform1i       (uBumpTexture, bumpTexture===undefined ? -1 : bumpTexture);

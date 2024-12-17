@@ -2,10 +2,24 @@
 <table>
 <tr><th valign=top><table><tr><td><div id=Asliders></div>
                           <tr><td><div id=Bsliders></div></table>
-    <td><canvas id=canvas1 width=790 height=790></canvas>
+    <th valign=top><table cellspacing=0 cellpadding=0>
+                      <tr><td><canvas id=canvas1 width=790 height=790></canvas>
+		      <tr><td><center><font color=white>Drag mouse to rotate view
+                   </table>
     <th valign=top><table><tr><td><div id=Dsliders></div>
-                              <td valign=top><canvas id=topview></canvas><br>
-			                     <div id=topinfo></div>
+                              <td valign=top><table cellspacing=0 cellpadding=0>
+			                        <tr><td valign=top><canvas id=topview></canvas><br>
+			                        <tr><td><font color=white>
+<pre>
+
+
+   (1) Click on an arrow to
+       choose a person
+
+   (2) Click somewhere else
+       to choose destination
+</pre>
+                                             </table>
                           <tr><td><div id=Csliders></div></table>
 </table>
 <script src=lib.js></script>
@@ -32,32 +46,45 @@ let selected = -1, newSelection = -1, wasMouseDown = false, path = null, target 
 window.floor = new Floor();
 for (let n = 0 ; n < whos.length ; n++) {
    let who = whos[n];
-   window[who] = new Person(n);
+   let person = new Person(n);
+   window[who] = person;
    let color = n==0 ? 1/8 : n==1 ? 3/8 : n==2 ? 5/8 : 7/8;
 
    createSliders(who);
 
-   window[who].setPosition( n==0 ? [-.2,-.2] : n==1 ? [-.2,.2] : n==2 ? [.2,.2] : [.2,-.2] );
+   person.setPosition( n==0 ? [-.2,-.2] : n==1 ? [-.2,.2] : n==2 ? [.2,.2] : [.2,-.2] );
    setSlider(who, 'color'  , color);
    setSlider(who, 'heading', n==0 ? 5/8 : n==1 ? 7/8 : n==2 ? 1/8 : 3/8);
 
-   setSlidersBgColor(who, rgb2hex(window[who].getRGB()));
+   setSlidersBgColor(who, rgb2hex(person.getRGB()));
+
+   let params = person.params();
+   for (let i = 0 ; i < params.length ; i++) {
+      let param = params[i];
+      console.log(who, i, param);
+      let value = getSlider(who, param);
+      if (value == .5 && param != 'sidle' && param != 'scale')
+	 setSlider(who, param, value + .2 * noise1(100 * n + 10 * i + .5));
+   }
 }
 
 startGL(canvas1);
 trackMouse(canvas1);
 trackMouse(topview);
 
-let pathS, pathT, pathH;
-
-let frameCount = 0, stopping = 0;
+let pathS, pathT, pathH, R = 30;
+let stopping = 0;
 
 function drawFrame() {
-   frameCount++;
    requestAnimationFrame(drawFrame);
+   let time = Date.now() / 1000;
+
+   // SET ALL THE PARAMETERS FOR EVERY PERSON
 
    for (let n = 0 ; n < whos.length ; n++)
       setParams(whos[n]);
+
+   // SET EACH PERSON'S SLIDER BACKGROUND COLOR TO MATCH THE PERSON'S COLOR
 
    for (let n = 0 ; n < whos.length ; n++) {
       let who = whos[n];
@@ -65,21 +92,24 @@ function drawFrame() {
       setSlidersBgColor(who, rgb2hex(person.getRGB()));
    }
 
-   let time = Date.now() / 1000;
+   // UPDATE THE STATE OF EVERYTHING IN THE SCENE
+
    floor.update(time);
    for (let n = 0 ; n < whos.length ; n++)
       window[whos[n]].update(time);
 
+   // DRAW THE 3D SCENE
+
+   VM.identity().perspective(3).turnX(canvas1.ry/30).turnY(canvas1.rx/30);
    drawScene(() => {
       M.S().scale(2);
-         //M.S().move(0,.01,0).scale(.5,.01,.5).draw(Cube(),[1,1,1]).R();
          floor.draw(10);
          for (let n = 0 ; n < whos.length ; n++)
             window[whos[n]].draw();
       M.R();
    });
 
-   //topinfo.innerHTML = '<font face=courier color=white>' + topview.x + ' ' + topview.y;
+   // DRAW THE FLOOR OF THE TOP VIEW
 
    ctxtv.fillStyle = '#60270c';
    ctxtv.fillRect(0,0,topview.width, topview.height);
@@ -90,6 +120,8 @@ function drawFrame() {
       ctxtv.fillRect(t,0,1,topview.height);
    }
 
+   // ON MOUSE PRESS, GET READY TO POSSIBLY SELECT A PERSON
+
    let isMouseDown = topview.mx !== undefined;
    if (! wasMouseDown && isMouseDown)
       newSelection = -1;
@@ -97,15 +129,19 @@ function drawFrame() {
    let toPixel   = p => [ topview.width * (p[0] + .5), topview.height * (p[1] + .5) ];
    let fromPixel = p => [  p[0] / topview.width - .5 ,  p[1] / topview.height - .5  ];
 
+   // FOR EACH PERSON
+
    for (let n = 0 ; n < whos.length ; n++) {
+
+      // GET THE TOP VIEW OF THE POSITION AND ORIENTATION OF THE PERSON
+
       let person = window[whos[n]];
-
-      ctxtv.fillStyle = rgb2hex(person.getRGB());
-
       let xy = toPixel(person.getPosition());
       let x = xy[0];
       let y = xy[1];
       let a = TAU/12 - TAU * person.get('heading');
+
+      // IF MOUSE IS DOWN OVER THE PERSON, PREPARE TO SELECT THE PERSON
 
       if (isMouseDown) {
 	 let dx = x - topview.mx;
@@ -114,6 +150,9 @@ function drawFrame() {
 	    newSelection = n;
       }
 
+      // DRAW THE TOP VIEW OF THE PERSON
+
+      ctxtv.fillStyle = rgb2hex(person.getRGB());
       ctxtv.beginPath();
       let r = selected == n ? 12 : 8;
       ctxtv.moveTo(x +   r * Math.cos(a      ), y +   r * Math.sin(a      ));
@@ -122,13 +161,26 @@ function drawFrame() {
       ctxtv.fill();
    }
 
+   // IF MOUSE IS DOWN BUT NOT OVER ANY PERSON, SET THE TARGET POSITION
+
    if (isMouseDown && selected != -1 && newSelection == -1)
       target = [ topview.mx, topview.my ];
+
+   // IF MOUSE PRESS OVER A PERSON, TOGGLE SELECTION OF THAT PERSON
+
    if (! wasMouseDown && isMouseDown && newSelection != -1) {
       selected = selected == newSelection ? -1 : newSelection;
       path = null;
       target = null;
+
+      // AND IF ANYBODY IS ALREADY WALKING, STOP THEM
+
+      for (let n = 0 ; n < whos.length ; n++)
+         setSlider(whos[n], 'go', 0);
    }
+
+   // SUPPORT FUNCTIONS FOR EVALUATING AND SAMPLING THE WALKING PATH
+
    let evalPath = t => mix(mix(pathS, pathH, t), mix(pathH, pathT, t), t);
 
    let samplePath = t => {
@@ -150,7 +202,13 @@ function drawFrame() {
       }
       return tSum / tWgt;
    }
+
+   // IF MOUSE RELEASE AND SOMEONE WAS SELECTED
+
    if (wasMouseDown && ! isMouseDown && newSelection == -1 && selected != -1) {
+
+      // COMPUTE A WALKING PATH FOR THE SELECTED PERSON
+
       who = whos[selected];
       person = window[who];
       let p = person.getPosition();
@@ -163,40 +221,51 @@ function drawFrame() {
       for (let t = 0 ; t < 1 ; t += 5/d)
          path.push(evalPath(t));
       path.push(evalPath(1));
-/*
-      for (let n = 0 ; n < whos.length ; n++)
-         if (n != selected) {
-            let who = whos[n];
-	    let person = window[who];
-	    let p = toPixel(person.getPosition());
-	    for (let i = 0 ; i < path.length-1 ; i++) {
-	       let T = normalize(subtract(path[i+1], path[i]));
-	       let dp = scale(subtract(p, path[i]), 1/30);
-	       let dd = norm(dp);
-	       dp = subtract(dp, scale(T, dot(dp, T)));
-	       path[i] = subtract(path[i], scale(dp, 10 / dd));
+
+      // MODIFY PATH TO SWERVE AROUND OTHER PEOPLE
+
+      let pp = [];
+      for (let n = 0 ; n < whos.length ; n++) {
+         let who = whos[n];
+	 let person = window[who];
+         let q = toPixel(person.getPosition());
+	 let t = findOnPath(q);
+	 let p = samplePath(t);
+	 if (distance(q, p) < R) {
+
+            let dp = subtract(p, q);
+            let T = normalize(subtract(samplePath(t+.01), p));
+            dp = subtract(dp, scale(T, dot(dp, T)));
+	    dp = scale(dp, Math.min(R/2, R / dot(dp,dp)));
+
+            for (let i = 0 ; i < path.length ; i++) {
+               let pt = i / (path.length-1);
+	       let s = ease(pt < t ? pt/t : (1-pt)/(1-t));
+	       path[i][0] += 2 * dp[0] * s;
+	       path[i][1] += 2 * dp[1] * s;
             }
          }
-*/
-/*
-      // PATH DIVERSION TEST
-      for (let i = 0 ; i < path.length ; i++) {
-         let t = i / (path.length-1);
-	 let s = ease(t < .5 ? 2*t : 2-2*t);
-	 path[i][0] += 20 * s * s;
       }
-*/
+
+      // THEN START THE PERSON WALKING
+
       setSlider(who, 'go', 1);
       selected = -1;
    }
    wasMouseDown = isMouseDown;
+
+   // IF THERE IS A PATH TARGET, DRAW IT
 
    if (target) {
       ctxtv.fillStyle = '#ffffff';
       ctxtv.fillRect(target[0] - 10, target[1] -  2, 21,  6);
       ctxtv.fillRect(target[0] -  2, target[1] - 10,  6, 21);
    }
+
    if (path) {
+
+      // DRAW THE SELECTED PERSON'S WALKING PATH
+
       ctxtv.strokeStyle = 'white';
       ctxtv.beginPath();
       ctxtv.moveTo(path[0][0], path[0][1]);
@@ -213,9 +282,9 @@ function drawFrame() {
       let t = findOnPath(p);
       let P = samplePath(t);
       let dp = subtract(p, P);
-
       let T = normalize(subtract(samplePath(t+.01), P));
       dp = subtract(dp, scale(T, dot(dp, T)));
+
       person.setPosition(fromPixel(mix(p, subtract(p, dp), .1)));
 
       // ADJUST HEADING TO MATCH THE PATH HEADING

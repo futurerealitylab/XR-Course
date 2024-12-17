@@ -44,10 +44,8 @@ let Person = function(id) {
       let yh = .5 + P.height;
       let ll = yh/2-r*.49;
 
-      VM.identity().perspective(3).turnX(canvas1.ry/30).turnY(canvas1.rx/30);
-
-      let joint = (J,R,C) => M.S().move(J).scale(R?R:r).draw(mySphere,C?C:rgb).R();
-      let limb = (A,B,R) => M.S().move(mix(A,B,.5)).aim(subtract(A,B)).scale(R?R:r,R?R:r,distance(A,B)/2).draw(myTube,rgb).R();
+      let joint = (J,R,C) => M.S().move(J).scale(R?R:r).color(C?C:rgb).draw(mySphere).R();
+      let limb = (A,B,R) => M.S().move(mix(A,B,.5)).aim(subtract(A,B)).scale(R?R:r,R?R:r,distance(A,B)/2).color(rgb).draw(myTube).R();
 
       let step = t => t % 2 < 1 ? 2 * ease(t % 1) - 1 : 1 - 2 * (t % 1);
 
@@ -175,9 +173,9 @@ let Person = function(id) {
                M.aim(mix(z0, z1, P.looking * t),2,[0,1,0]);
                turnToLook = .25 * P.looking * t * (z0[2]*z1[0] - z0[0]*z1[2]) * (1 + z0[0]*z1[0] + z0[2]*z1[2]);
 
-               M.S().move(   0,.13,   0)           .scale(.11 ,.13,.11).draw(mySphere, rgb    ).R();
-               M.S().move( .05,.15,.095).turnY( .5).scale(.03,   s,.01).draw(mySphere, [0,0,0]).R();
-               M.S().move(-.05,.15,.095).turnY(-.5).scale(.03,   s,.01).draw(mySphere, [0,0,0]).R();
+               M.S().move(   0,.13,   0)           .scale(.11 ,.13,.11).color(rgb).draw(mySphere).R();
+               M.S().move( .05,.15,.095).turnY( .5).scale(.03,   s,.01).color([0,0,0]).draw(mySphere).R();
+               M.S().move(-.05,.15,.095).turnY(-.5).scale(.03,   s,.01).color([0,0,0]).draw(mySphere).R();
             M.R();
 
 	    let chain = (joints, r) => {
