@@ -15,6 +15,7 @@ import { Gltf2Node } from "../render/nodes/gltf2.js";
 let roomSolid = new Gltf2Node({ url: './media/gltf/60_fifth_ave/60_fifth_ave.gltf' , alpha: 1});
 let roomClear = new Gltf2Node({ url: './media/gltf/60_fifth_ave/60_fifth_ave.gltf' , alpha: .3});
 let tableRange = 2;
+let isInTableRange = false;
 
 //FLAGS
 let enableMenu = false;
@@ -217,11 +218,11 @@ export const init = async model => {
    }
 
    // CREATE THE TABLETOP 2D DISPLAY
-
-   let tableRangeDisplay = model.add('ringY').scale(tableRange,tableRange,tableRange).texture(()=>{
-      g2.setColor('#ffff4480');
-      g2.fillOval(0,0,1,1);
-   });
+   let tableRangeDisplayColor = [1,1,.4];
+   model.add('cube').move(tableRange, 0, 0).scale(.01,.01,tableRange).color(tableRangeDisplayColor).opacity(.5);
+   model.add('cube').move(-tableRange, 0, 0).scale(.01,.01,tableRange).color(tableRangeDisplayColor).opacity(.5);
+   model.add('cube').move(0, 0, tableRange).scale(tableRange,.01,.01).color(tableRangeDisplayColor).opacity(.5);
+   model.add('cube').move(0, 0, -tableRange).scale(tableRange,.01,.01).color(tableRangeDisplayColor).opacity(.5);
 
    let table = model.add('ringY').move(0,tableHeight,0)
                                 .turnY(Math.PI)
@@ -583,10 +584,10 @@ export const init = async model => {
       let viewX = views[0].viewMatrix[12];
       let viewZ = views[0].viewMatrix[14];
       let dist = Math.sqrt(viewX*viewX+viewZ*viewZ);
-      let isInRoom = dist<tableRange;
+      isInTableRange = dist<tableRange;
 
-      roomSolid.scale = isInRoom ? [.001,.001,.001] : [1.3,1.3,1.3];
-      roomClear.scale = !isInRoom ? [.001,.001,.001] : [1.3,1.3,1.3];
+      roomSolid.scale = isInTableRange ? [.001,.001,.001] : [1.3,1.3,1.3];
+      roomClear.scale = !isInTableRange ? [.001,.001,.001] : [1.3,1.3,1.3];
 
       while (largeObjRoot.nChildren() > 0)
          largeObjRoot.remove(0);
