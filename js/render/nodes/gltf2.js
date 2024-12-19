@@ -30,6 +30,7 @@ export class Gltf2Node extends Node {
     super();
     this._url = options.url;
     this._alpha = options.alpha || 1;
+    this._usesAlpha = options.alpha !== undefined;
 
     this._promise = null;
     this._resolver = null;
@@ -38,10 +39,16 @@ export class Gltf2Node extends Node {
 
   onRendererChanged(renderer) {
     let loader = gltfLoaderMap.get(renderer);
-    if (!loader) {
+    if(this._usesAlpha){
       loader = new Gltf2Loader(renderer);
-      gltfLoaderMap.set(renderer, loader);
     }
+    else{
+      if (!loader) {
+        loader = new Gltf2Loader(renderer);
+        gltfLoaderMap.set(renderer, loader);
+      }
+    }
+
     loader.alpha = this._alpha;
     // Do we have a previously resolved promise? If so clear it.
     if (!this._resolver && this._promise) {

@@ -12,6 +12,8 @@ import { Gltf2Node } from "../render/nodes/gltf2.js";
 // let flower = new Gltf2Node({ url: './media/gltf/sunflower/sunflower.gltf' });
 // let buddha = new Gltf2Node({ url: './media/gltf/buddha_statue_broken/scene.gltf' });
 
+let roomSolid = new Gltf2Node({ url: './media/gltf/60_fifth_ave/60_fifth_ave.gltf' , alpha: 1});
+let roomClear = new Gltf2Node({ url: './media/gltf/60_fifth_ave/60_fifth_ave.gltf' , alpha: .3});
 
 //FLAGS
 let enableMenu = false;
@@ -65,6 +67,12 @@ export const init = async model => {
    // buddha.scale = [0.5, 0.5, 0.5];
    // global.gltfRoot.addNode(flower);
    // global.gltfRoot.addNode(buddha);
+
+   roomSolid.translation = [0,0,0];
+   roomClear.translation = [0,0,0];
+   global.gltfRoot.addNode(roomSolid);
+   global.gltfRoot.addNode(roomClear);
+
 
    server.neverLoadOrSave();
    console.log('running init');
@@ -565,6 +573,16 @@ export const init = async model => {
    //let wheelieState = 0;
 
    model.animate(() => {
+
+      let viewX = views[0].viewMatrix[12];
+      let viewZ = views[0].viewMatrix[14];
+      let dist = Math.sqrt(viewX*viewX+viewZ*viewZ);
+      let roomSize = 2;
+      let isInRoom = dist<roomSize;
+
+      roomSolid.scale = isInRoom ? [.001,.001,.001] : [1.3,1.3,1.3];
+      roomClear.scale = !isInRoom ? [.001,.001,.001] : [1.3,1.3,1.3];
+
       while (largeObjRoot.nChildren() > 0)
          largeObjRoot.remove(0);
 
