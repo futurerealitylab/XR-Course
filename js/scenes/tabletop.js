@@ -582,8 +582,8 @@ export const init = async model => {
    model.animate(() => {
 
       let positionMatrix = views[0].viewMatrix;
-      let viewX = positionMatrix[12] - worldCoords[12];
-      let viewZ = positionMatrix[14] - worldCoords[14];
+      let viewX = positionMatrix[12] + worldCoords[12];
+      let viewZ = positionMatrix[14] + worldCoords[14];
       let dist = Math.sqrt(viewX*viewX+viewZ*viewZ);
       isInTableRange = dist<tableRange;
 
