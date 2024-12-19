@@ -14,7 +14,7 @@ import { Gltf2Node } from "../render/nodes/gltf2.js";
 
 let roomSolid = new Gltf2Node({ url: './media/gltf/60_fifth_ave/60_fifth_ave.gltf' , alpha: 1});
 let roomClear = new Gltf2Node({ url: './media/gltf/60_fifth_ave/60_fifth_ave.gltf' , alpha: .3});
-let tableRange = 2;
+let tableRange = 1;
 let isInTableRange = false;
 
 //FLAGS
@@ -719,7 +719,10 @@ export const init = async model => {
       let viewX = positionMatrix[12];
       let viewZ = positionMatrix[14];
       let dist = Math.sqrt(viewX*viewX+viewZ*viewZ);
-      isInTableRange = dist<tableRange;
+      isInTableRange = viewX < tableRange;
+      isInTableRange &= viewX > -tableRange;
+      isInTableRange &= viewZ < tableRange;
+      isInTableRange &= viewZ > -tableRange;
 
       roomSolid.scale = isInTableRange ? [.001,.001,.001] : [1.3,1.3,1.3];
       roomClear.scale = !isInTableRange ? [.001,.001,.001] : [1.3,1.3,1.3];
