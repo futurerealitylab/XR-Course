@@ -581,8 +581,9 @@ export const init = async model => {
 
    model.animate(() => {
 
-      let viewX = views[0].viewMatrix[12];
-      let viewZ = views[0].viewMatrix[14];
+      let positionMatrix = cg.mMultiply(clay.inverseRootMatrix, views[0].viewMatrix);
+      let viewX = positionMatrix[12];
+      let viewZ = positionMatrix[14];
       let dist = Math.sqrt(viewX*viewX+viewZ*viewZ);
       isInTableRange = dist<tableRange;
 
