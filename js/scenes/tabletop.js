@@ -581,7 +581,7 @@ export const init = async model => {
 
    model.animate(() => {
 
-      let positionMatrix = cg.mMultiply(clay.inverseRootMatrix, views[0].viewMatrix);
+      let positionMatrix = cg.mMultiply(worldCoords, views[0].viewMatrix);
       let viewX = positionMatrix[12];
       let viewZ = positionMatrix[14];
       let dist = Math.sqrt(viewX*viewX+viewZ*viewZ);
