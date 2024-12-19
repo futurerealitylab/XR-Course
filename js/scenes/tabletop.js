@@ -581,14 +581,7 @@ export const init = async model => {
 
    model.animate(() => {
 
-      let positionMatrix = views[0].viewMatrix;
-      let viewX = positionMatrix[12] + worldCoords[12];
-      let viewZ = positionMatrix[14] + worldCoords[14];
-      let dist = Math.sqrt(viewX*viewX+viewZ*viewZ);
-      isInTableRange = dist<tableRange;
 
-      roomSolid.scale = isInTableRange ? [.001,.001,.001] : [1.3,1.3,1.3];
-      roomClear.scale = !isInTableRange ? [.001,.001,.001] : [1.3,1.3,1.3];
 
       while (largeObjRoot.nChildren() > 0)
          largeObjRoot.remove(0);
@@ -721,6 +714,15 @@ export const init = async model => {
 
       Lb = leftHandMatrix [13] < tableHeight + .1;
       Rb = rightHandMatrix[13] < tableHeight + .1;
+
+      let positionMatrix = headMatrix;
+      let viewX = positionMatrix[12];
+      let viewZ = positionMatrix[14];
+      let dist = Math.sqrt(viewX*viewX+viewZ*viewZ);
+      isInTableRange = dist<tableRange;
+
+      roomSolid.scale = isInTableRange ? [.001,.001,.001] : [1.3,1.3,1.3];
+      roomClear.scale = !isInTableRange ? [.001,.001,.001] : [1.3,1.3,1.3];
 
       if (showMirrorAvatar) {
          if (! mirrorAvatar)
