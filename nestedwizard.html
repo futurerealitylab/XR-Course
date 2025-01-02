@@ -1,0 +1,812 @@
+<body bgcolor=#808080>
+   <TABLE width=100% height=100%><TR align=center valign=middle><TD>
+   
+   <table bgcolor=white border=0 cellpadding=0 cellspacing=0>
+   <tr valign=top>
+   <td><table>
+       <tr><td>
+           <center><canvas id=angleCanvas width=100 height=100</canvas>
+       <tr><td valign=top width=200 id=datalog>
+       </table>
+   <td>
+      <canvas id=canvas1></canvas>
+   <td valign=top width=20>&nbsp;
+   <td valign=top width=180>
+      <font face=courier>
+      <div id=palette></div>
+      <p> <b>drag mouse</b>
+      <br>&nbsp;move an object
+      <p> <b>shift+move mouse</b>
+      <br>&nbsp;turn an object
+      <p> <b>delete key</b>
+      <br>&nbsp;delete an object
+      <p> <b>+ key</b>
+      <br>&nbsp;toggle big view
+   <td valign=top width=10>&nbsp;
+   </table>
+   
+   </TABLE>
+   <script src=server/client.js></script>
+   <script src=js/nestedwizard/things.js></script>
+   <script src=js/nestedwizard/lib.js></script>
+   <script src="js/util/peerjs.min.js"></script>
+   <script>
+   
+   let xf  = t => (t - canvasWidth/2) / (canvasWidth/2) * .45;
+   let ixf = t => Math.max(-999, Math.min(999, t / .45 * canvasWidth/2 + canvasWidth/2 + .5 >> 0));
+
+   // HANDLE PEER TO PEER COMMUNICATION
+
+   const peer = new Peer();
+   clientConnections = {};
+   peer.on('disconnected', peer.reconnect);
+   peer.on('open', () => window['peers'].wizardId = peer.id);
+   peer.on('connection', (dataConnection) => {
+      clientConnections[dataConnection.peer] = {
+         open: false,
+         conn: dataConnection,
+      };
+      dataConnection.on('open', () => {
+         clientConnections[dataConnection.peer].open = true;
+         window['peers'].clientIds = Object.keys(clientConnections);
+      })
+      dataConnection.on('close', () => {
+         delete clientConnections[dataConnection.peer];
+         window['peers'].clientIds = Object.keys(clientConnections);
+      })
+      dataConnection.on('data', (msg) => {
+         let client = msg.client;
+         if (! clientState[client])
+            clientState[client] = {};
+         clientState[client].active = 100;
+         let state = clientState[client];
+         switch (msg.op) {
+         case 'event':
+            let part   = msg.part;
+	    let client = msg.event.client,
+	    let hand   = msg.event.hand,
+	    let type   = msg.event.type;
+	    let p      = msg.event.p,
+            switch (msg.event.type) {
+            case 'move':
+               break;
+            case 'press':
+               break;
+            case 'drag':
+               break;
+            case 'doublepress':
+               break;
+            case 'release':
+               break;
+            }
+            break;
+         }
+      })
+   });
+   
+   // SET THE SIZE OF THE DISPLAY CANVAS
+
+   canvas1.width  = canvasWidth;
+   canvas1.height = canvasWidth;
+
+   // DECLARE VARIABLES
+
+   let colorIndex = 0, currentColor = 'white',
+       angleIndex = 0, currentAngle = 0;
+   let w = canvas1.width, h = canvas1.height;
+   let id = -1, pp, isEnter = false, isShift = false, isControl = false, isMinus = false, isShowingBig = false;
+   let clientState = {};
+   let isAnyObjectInFocus = false;
+   let addTrackObj = false;
+
+   // STANDARD COLORS AND A FUNCTION TO CONVERT RGB TO HEX CODE
+
+   let color = 'white brown red orange yellow green blue magenta violet black'.split(' ');
+   let rgb = [[1,1,1],[.2,.05,.025],[1,0,0],[1,.15,0],[1,1,0],[0,.5,0],[0,.25,1],[.25,0,1],[1,0,.25],[0,0,0]];
+   let hx1 = n => '0123456789abcdef'.charAt(n);
+   let hx2 = n => hx1(n>>4) + hx1(n&15);
+   let hx3 = r => hx2(255 * Math.sqrt(r) >> 0);
+   let hex = rgb => '#' + hx3(rgb[0]) + hx3(rgb[1]) + hx3(rgb[2]);
+
+   // SHOW THE COLOR PALETTE
+
+   let s = '&nbsp;<br><b>KEY TO SET COLOR</b>';
+   s += '<table><tr><td>&nbsp;<td><table bgcolor=#d0d0d0><tr><td><big>';
+   for (let n = 0 ; n < 10 ; n++)
+      s += '<font color=' + hex(rgb[n]) + '>' + n + '</font>';
+   s += '</table></table><p>';
+   currentColor = hex(rgb[0]);
+
+   // LIST THE OBJECT SHAPES
+
+   s += '<table><tr><td><b><center>KEY TO ADD OBJECT</center></b>';
+   let ch = 65;
+   for (let name in things)
+      s += '&nbsp;' + String.fromCharCode(ch++)
+         + '&nbsp;' + name.replace('_',' ') + '&nbsp;</font><br>';
+   s += '</table>';
+   palette.innerHTML = s;
+
+   // CONNECT TO THE SERVER
+
+   let server = new Server(2024);
+   server.alwaysLoadFromStorage();
+   server.init('nested', {});
+   server.init('peers', {});
+   let objects  = {};
+
+   // CHANGE THE CURRENT ANGLE BY SOME DELTA
+
+   let changeAngle = (angle, delta) => (3600 + angle + delta) % 360;
+   let turn = delta => currentAngle = changeAngle(currentAngle, delta);
+
+   // CHANGE THE CURRENT COLOR
+
+   let setColor = rgb => {
+      currentColor = hex(rgb);
+      let id = find().id;
+      let obj = objects[id];
+      if (obj)
+         obj.color = currentColor;
+   }
+
+   let isAnyoneLookingAtTheTable = () => {
+      for (let client in clientState)
+         if (isOnTable(clientState[client].head))
+            return true;
+      return false;
+   }
+
+   // ADD A NEW OBJECT OF A SPECIFIED SHAPE AT THE CURSOR
+
+   let addObject = (name, client) => {
+
+      // FIND AN UNUSED ID
+
+      let id = 0;
+      for ( ; id < 100 ; id++)
+         if (objects[id] === undefined)
+            break;
+
+      // FIND WHERE TO PLACE THE NEW OBJECT
+
+      let p = pp;
+      if (client !== undefined && clientState[client]) {
+         let checkPart = part => {
+            if (! isOnTable(p))
+               p = findAt(clientState[client][part]).p;
+         }
+         checkPart('left');
+         checkPart('right');
+         checkPart('head');
+      }
+      p = isOnTable(p) ? p : pp;
+
+      // ADD THE OBJECT TO THE MODEL
+
+      objects[id] = {
+         type      : name, 
+         x         : p.x+.5>>0,
+	 y         : p.y+.5>>0,
+	 z         : 0,
+         color     : currentColor,
+         angle     : currentAngle,
+         quaternion: { x:0, y:0, z:0, w:1 }
+      }
+      nested.objects = objects;
+   }
+
+   let unpackInfo = (string, lo, hi) => {
+      if (lo === undefined) {
+         lo = 0;
+	 hi = 1;
+      }
+      else if (hi === undefined) {
+         hi = lo;
+	 lo = 0;
+      }
+      let C = " !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~";
+      let unpack = (a, b) => (C.indexOf(a) + C.indexOf(b) / 92) / 92;
+      let a = [];
+      for (let n = 0 ; n < string.length ; n += 2)
+         a.push(lo + (hi-lo) * unpack(string.charAt(n), string.charAt(n+1)));
+      return a;
+   }
+
+   let quatToEuler = (q) => {
+      let x = q.x;
+      let y = q.z;
+      let z = q.y;
+      let w = q.w;
+
+      let yaw = Math.atan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z));
+      let angle = yaw * (180 / Math.PI);
+
+      return angle;
+   };
+
+   // RESPOND TO KEYBOARD EVENTS
+
+   let kc = [0,0,0,0,0,0,0,0,0,0];
+
+   let mixColors = () => {
+      let c = [0,0,0], n = 0;
+      for (let i = 0 ; i < kc.length ; i++)
+         if (kc[i]) {
+            for (let j = 0 ; j < 3 ; j++)
+               c[j] += 1 - rgb[i][j];
+            n++;
+         }
+      setColor([1 - c[0]/n, 1 - c[1]/n, 1 - c[2]/n]);
+      for (let i = 0 ; i < kc.length ; i++)
+         kc[i] = 0;
+   }
+
+   document.addEventListener('keydown', e => {
+      switch (e.key) {
+      case 'Enter':
+         isEnter = true;
+         break;
+      case 'Shift':
+         isShift = true;
+         id = findAt(pp).id;
+         break;
+      case 'Control':
+         isControl = true;
+         break;
+      case '-':
+         isMinus = true;
+         break;
+      }
+
+      if (e.keyCode >= 48 && e.keyCode < 58)
+         kc[e.keyCode - 48] = 1;
+   });
+
+   document.addEventListener('keyup', e => {
+      switch (e.key) {
+      case 'Enter':
+         isEnter = false;
+	 pp = {x:w/2, y:h/2};
+	 break;
+      case 'Shift':
+         isShift = false; id = -1;
+	 break;
+      case 'Control':
+         isControl = false;
+	 break;
+      case '-':
+         isMinus = false;
+	 break;
+      case '=':
+         isShowingBig = ! isShowingBig;
+	 break;
+      case 'Backspace':
+         let i = findAt(pp).id;
+         if (i >= 0)
+            delete objects[i];
+         break;
+      default:
+
+         // IF RELEASING A NUMBER KEY
+
+         if (e.keyCode >= 48 && e.keyCode < 58) {
+            let id = e.keyCode - 48;
+
+            // DELETE AN OBJECT IF HOLDING DOWN THE '-' KEY
+
+            if (isMinus)
+               delete objects[id];
+
+            // ELSE MIX COLORS BY COMBINING NUMBER KEYS
+
+            else {
+               kc[id] = 2;
+               let nDown = 0;
+               for (let i = 0 ; i < 10 ; i++)
+                  nDown += kc[i] == 1;
+               if (nDown == 0)
+                  mixColors();
+            }
+         }
+
+         // ELSE TYPE A LETTER KEY TO ADD AN OBJECT
+
+         else {
+            let n = 0, i = e.keyCode - 65;
+            for (let name in things)
+               if (n++ == i) {
+                  addObject(name, clientID);
+                  break;
+               }
+         }
+
+         break;
+     }
+   });
+
+   // GET THE (X,Y) POSITION ON THE CANVAS FOR THIS EVENT
+
+   let getP = e => {
+      let r = canvas1.getBoundingClientRect();
+      return { x: e.clientX - r.left, y: e.clientY - r.top };
+   }
+
+   // DETERMINE WHETHER A PIXEL IS ON THE TABLE
+
+   let isOnTable = p => p && p.x >= w/6 && p.x < 5*w/6 && p.y >= h/6 && p.y <= 5*h/6;
+
+   // DETERMINE WHETHER A PIXEL IS WITHIN AN OBJECT
+
+   let isWithin = (obj, p) => {
+
+      let x = obj.x, y = obj.y, angle = obj.angle, thing = things[obj.type];
+
+      let c = Math.cos(-angle * Math.PI / 180);
+      let s = Math.sin(-angle * Math.PI / 180);
+
+      if (thing.items.length == 0) {
+         let x = p.x - obj.x;
+         let y = p.y - obj.y;
+         let px =  c * x + s * y + obj.x;
+         let py = -s * x + c * y + obj.y;
+         return false;
+      }
+
+      // ROTATE THE PIXEL AROUND THE OBJECT'S CENTER OPPOSITE TO THE OBJECT'S ROTATION
+
+      let M = [ c, -s, s, c, x-c*x-s*y, y+s*x-c*y ];
+      let X = M[0] * p.x + M[2] * p.y + M[4];
+      let Y = M[1] * p.x + M[3] * p.y + M[5];
+
+      // RETURN TRUE IF THE PIXEL IS IN ANY OF THE OBJECT'S COMPONENT SHAPES
+
+      let scale = w/2 * thingsScale;
+
+      for (let n = 0 ; n < thing.items.length ; n++) {
+         let item = thing.items[n];
+         let x = scale * item.m[0] + obj.x;
+         let y = scale * item.m[2] + obj.y;
+         let w = scale * item.s[0];
+         let h = scale * item.s[2];
+         switch (item.type) {
+         case 'cube':
+            if (X >= x-w && X < x+w && Y > y-h && Y < y+h)
+               return true;
+            break;
+         case 'tubeY':
+         case 'sphere':
+            let dx = (X - x) / w;
+            let dy = (Y - y) / h;
+            if (dx * dx + dy * dy < 1)
+               return true;
+            break;
+         }
+      }
+      return false;
+   }
+
+   // FIND WHICH OBJECT IS AT A PIXEL
+
+   let findAt = p => {
+      if (isOnTable(p))
+         for (let id in objects)
+            if (isWithin(objects[id], p))
+               return { id: id, p: p };
+      return { id: -1, p: p };
+   }
+
+   // FIND WHICH OBJECT IS AT A PART OF A CLIENT
+
+   let findPartOfClient = (part, client) => {
+      let found = findAt(clientState[client][part]);
+      if (found.id >= 0)
+         found.client = client;
+      return found;
+   }
+
+   // FIND WHICH OBJECT IS AT A PART OF EITHER ONE OR ALL CLIENTS
+
+   let findPart = (part, client) => {
+      if (client !== undefined && clientState[client] !== undefined)
+         return findPartOfClient(part, client);
+      let found = { id: -1, p: { x: 0, y: 0 }, client: -1 };
+      for (let client in clientState)
+         if ((found = findPartOfClient(part, client)).id >= 0)
+            break;
+      return found;
+   }
+
+   // FIND WHICH OBJECT IS AT ANY PART OF A CLIENT
+
+   let find = client => {
+      let found = { id: findAt(pp).id, p: pp };
+      if (found.id == -1) found = findPart('left' , client);
+      if (found.id == -1) found = findPart('right', client);
+      if (found.id == -1) found = findPart('head' , client);
+      return found;
+   }
+
+   // ----------------------------------- RESPOND TO MOUSE EVENTS
+
+   // ON MOUSE DOWN, TRY TO SELECT AN OBJECT
+
+   let isMouseDown = false;
+
+   canvas1.onmousedown = e => {
+      isMouseDown = true;
+      id = find().id;
+      if (id == -1)
+         clientState[clientID].left = getP(e);
+   }
+
+   // ON MOUSE MOVE, DO LOTS OF THINGS
+
+   canvas1.onmousemove = e => {
+      let p = getP(e);
+
+      clientState[clientID].left = p;
+
+      // HANDLE INTERACTION WITH OBJECTS
+
+      let obj = objects[isShift && id>=0 ? id : find().id]; // IF SHIFT USE SELECTED OBJECT,
+                                                            // ELSE USE OBJECT AT THE CURSOR
+      if (obj) {                                            // IF AN OBJECT IS SELECTED
+         currentAngle = obj.angle;                          // THEN SET CURRENT ANGLE AND COLOR TO MATCH IT
+         currentColor = obj.color;
+      }
+      if (objects[id] !== undefined) {                      // IF THERE IS A SELECTED OBJECT
+         let obj = objects[id];
+         if (isShift) {                                        // THEN IF SHIFT KEY IS DOWN
+            turn(p.x - pp.x);
+            obj.angle = currentAngle;                          //      THEN ROTATE SELECTED OBJECT
+         }
+         else {                                                //      ELSE TRANSLATE SELECTED OBJECT
+            let x = obj.x + p.x - pp.x;
+            let y = obj.y + p.y - pp.y;
+            if (isOnTable({x: x, y: y})) {
+               obj.x = x;
+               obj.y = y;
+            }
+         }
+         window.grabbedObj = id;
+      }
+      else if (isShift)                                        // ELSE IF SHIFT KEY IS DOWN
+         turn(p.x - pp.x);                                     //      THEN ROTATE CURRENT ANGLE
+
+      pp = p;
+   }
+
+   // ON MOUSE UP, UNSELECT OBJECT
+
+   canvas1.onmouseup = e => {
+      isMouseDown = false;
+      window.grabbedObj = null;
+      id = -1;
+   }
+
+   // -----------------------------------
+
+   // RETURN BLACK OR WHITE -- WHICHEVER IS MOST DIFFERENT FROM COLOR ARG
+
+   let blackOrWhite = color => {
+      let h = 0;
+      for (let k = 0 ; k < 3 ; k++) {
+         let c = color.charCodeAt(2*k+1);
+         h += (c < 64 ? c-48 : c-96+10) * (k==0 ? 1 : k==1 ? 1.3 : .7);
+      }
+      return h > 30 ? 'black' : 'white';
+   }
+
+   // DRAW SOMETHING WITH A TRANSLATION + ROTATION
+               
+   let rotatedDrawing = (ctx,x,y,angle,drawingProc) => {
+      let c = Math.cos(angle * Math.PI / 180);
+      let s = Math.sin(angle * Math.PI / 180);
+      ctx.save(); 
+         ctx.setTransform(c, -s, s, c, x-c*x-s*y, y+s*x-c*y);
+         drawingProc();
+      ctx.restore();
+   }        
+            
+   // DRAW ONE ANIMATION FRAME
+
+   const onFrame = () => {
+      requestAnimationFrame(onFrame);
+
+      let time = Date.now() / 1000;
+
+      if (peer.open) {
+         window['peers'].wizardId = peer.id;
+         window['peers'].clientIds = Object.keys(clientConnections);
+      } else {
+         delete window['peers']['wizardId'];
+         delete window['peers']['clientIds'];
+      }
+      
+      server.broadcastGlobal('peers');
+
+      if (window.clientID !== undefined && clientState[clientID] === undefined)
+         clientState[clientID] = {};
+
+      //---------------- GATHER UPDATED STATE DATA TO SHARE WITH CLIENTS
+
+      if (nested.objects)
+         objects = nested.objects;
+
+      // WHAT OBJECT, IF ANY, IS IN FOCUS FOR EACH CLIENT?
+
+      isAnyObjectInFocus = false;
+      nested.focus = {};
+      for (let client in clientState) {
+         let ids = {}, found;
+         for (let part in clientState[client])
+            if ((found = findAt(clientState[client][part])).id >= 0)
+               ids[part] = found.id;
+         if (Object.keys(ids).length > 0) {
+            nested.focus[client] = ids;
+            isAnyObjectInFocus = true;
+         }
+      }
+
+      // ADD AVATARS TO THE STATE DATA
+
+      nested.avatars = {};
+      for (let client in clientState)
+         nested.avatars[client] = clientState[client].avatar;
+
+      // SEND THE CURRENT STATE TO EVERY CLIENT
+
+      Object.values(clientConnections).forEach((client) => {
+         const {focus, objects} = window.nested;
+         client.conn.send({focus, objects});  
+      })
+
+      //---------------- INCORPORATE STATE DATA FROM CLIENTS
+
+      server.sync('nested', msgs => {
+         if (Object.keys(nested).length > 0 && nested.objects)
+            objects = nested.objects;
+      });
+
+      // MAKE PEOPLE AND CREATURES MOVE
+
+      let turnAwayFrom = (obj, p) => {
+         
+         let dx = p.x - obj.x;
+         let dy = p.y - obj.y;
+         let d = Math.sqrt(dx * dx + dy * dy);
+         if (d < .15 * w) {
+            let dir = Math.atan2(dx, dy) * 180 / Math.PI;
+            while (dir - obj.angle > 180) dir -= 360;
+            while (obj.angle - dir > 180) dir += 360;
+            let da = dir - obj.angle;
+            let s = Math.sign(da);
+            da = Math.abs(da);
+            if (da < 150)
+               obj.angle = changeAngle(obj.angle, -.03 * s * Math.max(da, 10));
+         }
+      }
+
+      for (let id in objects) {
+
+         let obj = objects[id];
+         if (obj.type == 'guy' || obj.type == 'gal' || obj.type == 'duck') {
+            if (window.grabbedObj == id) 
+               continue;
+            obj.x += Math.sin(obj.angle * Math.PI / 180);
+            obj.y += Math.cos(obj.angle * Math.PI / 180);
+            for (let i in objects)
+               if (i != id)
+                  turnAwayFrom(obj, objects[i]);
+            let x = obj.x / (w/2) - 1;
+            let y = obj.y / (w/2) - 1;
+            let r = Math.sqrt(x * x + y * y);
+            let edgePoint = { x: w/2 * (x / r + 1),
+                              y: w/2 * (y / r + 1) };
+            turnAwayFrom(obj, edgePoint);
+
+            let xd = (obj.x - canvasWidth/2);
+            let yd = (obj.y - canvasWidth/2);
+            if (Math.sqrt(xd*xd+yd*yd)>canvasWidth/2) {
+               obj.x = canvasWidth/2;
+               obj.y = canvasWidth/2;
+            }
+         }
+      }
+
+      // ADD DISK DRAWING METHODS TO A CANVAS 2D DRAWING CONTEXT
+
+      let addMethods = ctx => {
+         ctx.strokeDisk = (x,y,r) => { ctx.beginPath(); ctx.arc(x,y,r,0,2*Math.PI); ctx.stroke(); }
+         ctx.fillDisk   = (x,y,r) => { ctx.beginPath(); ctx.arc(x,y,r,0,2*Math.PI); ctx.fill  (); }
+         return ctx;
+      }
+
+      // LIST THE LOCATIONS OF ALL ACTIVE OBJECTS AND CLIENTS ON THE WEB PAGE
+
+      let pad = t => {
+         t >>= 0;
+	 return t > 99 ? t : t > 9 ? '&nbsp;' + t : '&nbsp;&nbsp' + t;
+      }
+      let s = '<TABLE><TR><TD><font face=helvetica>';
+      s += '<table cellspacing=0 cellpadding=3>';
+      s += '<tr><td><td width=79><th align=right><font face=courier>x &nbsp; y &nbsp;rot';
+      for (let id in objects) {
+         let obj = objects[id];
+         let fc = '<font color=' + obj.color + '>';
+         s += '<tr>'
+            +     '<td valign=top><font color=black>' + id
+            +     '<td valign=top><font color=black>' + obj.type.replace(' ','_')
+            +     '<td><center><table cellpadding=0 cellspacing=0 border=1 bordercolor='
+            +         obj.color + '><tr><td><font face=courier>' + pad(obj.x) + '&nbsp;' + pad(obj.y) + '&nbsp;' + pad(obj.angle)
+            +         '</table></center>';
+      }
+      s += '</table>';
+      s += '<br></TABLE><font face=helvetica>';
+      s += '<b>&nbsp;CLIENTS</b><p>';
+      s += '<table cellspacing=0><tr><th width=15>&nbsp;<th width=60>left<th width=60>right<th width=60>head';
+      for (let client in clientState) {
+         let state = clientState[client];
+         if (! state.left || ! state.right)
+            continue;
+         let fc = '<font color=' + color[client] + '>';
+         s += '<tr bgcolor=#d0d0d0>'
+            + '<td align=center><small>' + fc + client
+            + '<td align=center><small>' + fc + state.left.x  + ',' + state.left.y
+            + '<td align=center><small>' + fc + state.right.x + ',' + state.right.y
+            + '<td align=center><small>' + fc + (state.head ? state.head.x : '---')
+                                        + ',' + (state.head ? state.head.y : '---')
+            + '<br></small>';
+      }
+      s += '</table></TABLE>';
+      datalog.innerHTML = s;
+
+      // DRAW THE ANGLE+COLOR INDICATOR
+
+      let x = 50, y = 53;
+      let actx = addMethods(angleCanvas.getContext('2d'));
+      actx.fillStyle = currentColor;
+      actx.fillDisk(x,y,40);
+      actx.strokeStyle = 'black';
+      actx.stroke();
+      actx.fillStyle = blackOrWhite(currentColor);
+      rotatedDrawing(actx, x,y,currentAngle, () => {
+         actx.beginPath();
+         actx.moveTo(x-10,y-30);
+         actx.lineTo(x+10,y-30);
+         actx.lineTo(x,y+33);
+         actx.fill();
+      });
+
+      // DRAW THE BACKGROUND
+
+      let ctx = addMethods(canvas1.getContext('2d'));
+      ctx.fillStyle = '#404040';
+      ctx.fillRect(0,0,w,h);
+      ctx.font = '20px Helvetica';
+      ctx.fillStyle = 'white';
+      ctx.textAlign = 'left';
+      ctx.fillText(isOnTable(pp) ? 'ON TABLE' : 'OFF TABLE', 5, 24);
+
+      // DRAW THE TABLE
+
+      ctx.fillStyle = '#d0d0d0';
+      ctx.fillRect(w/6,h/6,2*w/3,2*h/3);
+      let w8 = 2*w/3 / 8;
+      ctx.fillStyle = '#a8a8a0';
+      ctx.fillRect(w/2-w8/2,h/2-w8/2,w8,w8);
+      let x0 = w/6, x1 = 5*w/6;
+      for (let x = x0 ; x <= x1 ; x += (x1-x0)/3) {
+         ctx.fillRect(x,0,1,w);
+         ctx.fillRect(0,x,w,1);
+      }
+
+      // DRAW ALL THE OBJECTS
+
+      let textHeight = 12;
+      ctx.textAlign = 'center';
+      ctx.textVerticalAlign = 'center';
+      ctx.fillStyle = currentColor;
+      let found = findAt(pp);
+      for (let id in objects) {
+
+         // DRAW EACH OBJECT AS A SET OF COLORED ROTATED POLYGONS
+
+         let obj = objects[id];
+         let thing = things[obj.type];
+        
+	 let scale = w/2 * thingsScale;
+         let drawFunction = () => {
+            for (let n = 0 ; n < thing.items.length ; n++) {
+               let item = thing.items[n];
+               let X = zoom * scale * item.m[0] + zoom * (obj.x - w/2) + w/2;
+               let Y = zoom * scale * item.m[2] + zoom * (obj.y - h/2) + h/2;
+               let W = zoom * scale * item.s[0];
+               let H = zoom * scale * item.s[2];
+               ctx.lineWidth = id == found.id ? 4 : 2;
+               ctx.strokeStyle = obj.color + (zoom == 1 ? '' : '60');
+               switch (item.type) {
+               case 'cube':
+                  ctx.strokeRect(X-W,Y-H,2*W,2*H);
+                  break;
+               case 'tubeY':
+               case 'sphere':
+                  ctx.beginPath();
+                  ctx.ellipse(X,Y,W,H,0,0,2*Math.PI);
+                  ctx.stroke();
+                  break;
+               }
+            }
+         }
+
+	 let zoom = 1;
+         rotatedDrawing(ctx, obj.x, obj.y, obj.angle, drawFunction);
+
+         if (isShowingBig) {
+	    zoom = 8;
+	    let ox = obj.x - w/2;
+	    let oy = obj.y - w/2;
+	    let c = Math.cos(obj.angle * Math.PI / 180);
+	    let s = Math.sin(obj.angle * Math.PI / 180);
+	    obj.x = w/2 + c * ox - s * oy;
+	    obj.y = w/2 + s * ox + c * oy;
+            rotatedDrawing(ctx, w/2, w/2, obj.angle, drawFunction);
+	    obj.x = ox + w/2;
+	    obj.y = oy + w/2;
+         }
+
+         // DRAW THE OBJECT'S SHAPE LABEL
+
+         if (obj.type) {
+            let textHeight = id==found.id ? 15 : 12;
+            ctx.font = textHeight + 'px Courier';
+            ctx.fillStyle = 'black';
+            let lines = obj.type.split(' ');
+            let y = n => (textHeight + 2) * (n + 3/4 - lines.length/2);
+            for (let n = 0 ; n < lines.length ; n++)
+               ctx.fillText(lines[n],obj.x,obj.y+y(n));
+         }
+      }
+
+      // SHOW THE CLIENT STATE FOR ALL CLIENTS
+
+      for (let client in clientState) {
+
+         // REMOVE ANY INACTIVE CLIENTS
+
+         if (--clientState[client].active == 0) {
+            delete clientState[client];
+            continue;
+         }
+
+         // SHOW POSITIONS OF LEFT, RIGHT, HEAD FOR THIS CLIENT
+
+         let state = clientState[client];
+         for (let part in state) {
+            let isPressed = state['isPressed' + part];
+            ctx.fillStyle = hex(rgb[client]) + '40';
+            let r = w/2 / 50;
+            let event = state[part];
+            switch (part) {
+            case 'head':
+               ctx.fillRect(event.x - .35*r, event.y - 2*r, .7*r, 4*r);
+               ctx.fillRect(event.x - 2*r, event.y - .35*r, 4*r, .7*r);
+               break;
+            case 'left':
+            case 'right':
+               if (isPressed || isMouseDown) {
+                  ctx.fillStyle = hex(rgb[client]) + '80';
+                  r *= .75;
+               }
+               ctx.fillDisk(event.x, event.y, 2*r, 2*r);
+               break;
+            }
+         }
+      }
+   }
+
+   requestAnimationFrame(onFrame);
+
+</script>
+
