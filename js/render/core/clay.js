@@ -441,7 +441,7 @@ let prevMesh = null;
 let prevTextureResource  = null;
 let prevTextureBindPoint = -1;
 
-let drawMesh = (mesh, materialId, textureSrc, bumpTextureSrc, dull, flags, customShader, opacity, view) => {
+let drawMesh = (mesh, materialId, textureSrc, txtr, bumpTextureSrc, dull, flags, customShader, opacity, view) => {
    if (!this.renderingIsActive)
       return;
 
@@ -616,7 +616,7 @@ let drawMesh = (mesh, materialId, textureSrc, bumpTextureSrc, dull, flags, custo
       else
          renderParticlesMesh(mesh);
 
-   setUniform('1iv', 'uSampler', [0,1,2,3,4,5,6,7]);  // SPECIFY TEXTURE INDICES.
+   setUniform('1iv', 'uSampler', [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]);  // SPECIFY TEXTURE INDICES.
    setUniform('1i', 'uTexture' , isTexture(textureSrc) ? 1 : 0); // ARE WE RENDERING A TEXTURE?
    setUniform('1i', 'uBumpTexture', isTexture(bumpTextureSrc) ? 1 : 0); // ARE WE RENDERING A TEXTURE?
    setUniform('1i', 'uVideo'   , textureSrc == 'camera'); // IS THIS A VIDEO TEXTURE FROM THE CAMERA?
@@ -630,6 +630,14 @@ let drawMesh = (mesh, materialId, textureSrc, bumpTextureSrc, dull, flags, custo
          setUniform('1i', flag, 1);
 
    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+
+   if (_animated_txtr[txtr]) {
+      gl.activeTexture(gl.TEXTURE0 + txtr);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, _animated_txtr[txtr]);
+   }
+   setUniform('1i', 'uTxtr', txtr);
+
 
    if (this.views.length == 1) {
       setUniform('Matrix4fv', 'uProj', false, this.views[0].projectionMatrix);
@@ -658,6 +666,7 @@ let drawMesh = (mesh, materialId, textureSrc, bumpTextureSrc, dull, flags, custo
 	 let m = cg.mMultiply(clay.inverseRootMatrix, cg.mInverse(v.viewMatrix));
 	 setUniform('3fv', 'uEye', m.slice(12,15));
 	 setUniform('1i', 'uViewIndex', i);
+
          gl.drawArrays(drawPrimitiveType, 0, vertexCount);
       }
    }
@@ -2032,7 +2041,7 @@ let fl = 5;                                                          // CAMERA F
 
    // DRAW ROUTINE THAT ALLOWS CUSTOM COLORS, TEXTURES AND TRANSFORMATIONS
 
-   let draw = (mesh,color,move,turn,size,texture,bumpTexture,dull,flags,customShader,opacity,view) => {
+   let draw = (mesh,color,move,turn,size,texture,txtr,bumpTexture,dull,flags,customShader,opacity,view) => {
 
       // IF NEEDED, CREATE A NEW MATERIAL FOR THIS COLOR.
 
@@ -2076,7 +2085,7 @@ let fl = 5;                                                          // CAMERA F
          M.scale(size);
 
       if (! isNaN(M.getValue()[0]))
-         drawMesh(mesh, color, texture, bumpTexture, dull, flags, customShader, opacity, view);
+         drawMesh(mesh, color, texture, txtr, bumpTexture, dull, flags, customShader, opacity, view);
 
       if (move || turn || size)
          M.restore();
@@ -2634,7 +2643,7 @@ let fl = 5;                                                          // CAMERA F
                                                      info   : S[n].info
                                                    }));
                }
-               draw(formMesh[name], materialId, null, null, null, S[n].texture, S[n].bumpTexture, S[n].dull, S[n].flags, S[n].customShader, S[n].opacity, S[n].view);
+               draw(formMesh[name], materialId, null, null, null, S[n].texture, S[n].txtr, S[n].bumpTexture, S[n].dull, S[n].flags, S[n].customShader, S[n].opacity, S[n].view);
                M.restore();
                if (m && m.texture)
                   delete m.texture;
@@ -3878,6 +3887,7 @@ function Node(_form) {
          update: node._update,
          customShader: node._customShader,
          texture: node._texture,
+         txtr: node._txtr,
          bumpTexture: node._bumpTexture,
          ignoreParentTransform: node.ignoreParentTransform,
       }
@@ -3932,6 +3942,7 @@ function Node(_form) {
       this._info     = '';
       this._melt     = false;
       this._texture  = '';
+      this._txtr     = -1;
       this._bumpTexture  = '';
       this._precision = 1;
       this._flags    = {};
@@ -4436,6 +4447,7 @@ function Node(_form) {
             symmetry: 0,
             texture: form == 'label' ? DEFAULT_FONT
                                      : this.prop('_texture'),
+            txtr: this.prop('_txtr'),
             bumpTexture: this.prop('_bumpTexture'),
             form: form,
             flags: this.prop('_flags'),
@@ -4479,7 +4491,37 @@ function Node(_form) {
       }
       return null;
    }
+
+   // NEWER MULTI-TEXTURE-UNIT TEXTURE HANDLING
+
+   this.txtr = n => {
+      this._txtr = n;
+      return this;
+   }
+   this.txtrSrc = (txtr, src) => {
+      if (typeof src == 'string') {               // IF THE TEXTURE SOURCE IS AN IMAGE FILE,
+         let image = new Image();                 // IT ONLY NEEDS TO BE SENT TO THE GPU ONCE.
+         image.onload = () => {
+            gl.activeTexture (gl.TEXTURE0 + txtr);
+            gl.bindTexture   (gl.TEXTURE_2D, gl.createTexture());
+            gl.texImage2D    (gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+            gl.texParameteri (gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+            gl.texParameteri (gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.generateMipmap(gl.TEXTURE_2D);
+         }
+         image.src = src;
+      }
+      else {                                      // FOR ANY OTHER TEXTURE SOURCE,
+         gl.activeTexture (gl.TEXTURE0 + txtr);   // ASSUME THAT ITS CONTENT CAN BE ANIMATED.
+         gl.bindTexture   (gl.TEXTURE_2D, gl.createTexture());
+         gl.texParameteri (gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+         gl.texParameteri (gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+         _animated_txtr[txtr] = src;
+      }
+   }
 }
+
+window._animated_txtr = [];
 
 // EXPOSE A ROOT NODE FOR EXTERNAL MODELING.
 

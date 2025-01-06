@@ -63,10 +63,10 @@
          switch (msg.op) {
          case 'event':
             let part   = msg.part;
-	    let client = msg.event.client,
-	    let hand   = msg.event.hand,
+	    let client = msg.event.client;
+	    let hand   = msg.event.hand;
 	    let type   = msg.event.type;
-	    let p      = msg.event.p,
+	    let p      = msg.event.p;
             switch (msg.event.type) {
             case 'move':
                break;

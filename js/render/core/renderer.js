@@ -669,13 +669,13 @@ vec3 lighting_contribution(
       isLit = 1.0;
 ` + CUSTOM_FRAG_SHADER_CODE_MARKER + `
     }
-
     
+       
     fragColor = (
       (vec4(sqrt(color * vRGB), 1.0) * isLit)
-      + (vec4(diffuseColor, 1.0) * (1.0 - isLit)) 
+      + (vec4(diffuseColor, 1.0) * (1.0 - isLit))
     ) * opacity;
- }
+ }  
 `; 
 
 function isPowerOfTwo(n) {

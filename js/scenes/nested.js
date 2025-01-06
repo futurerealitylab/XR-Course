@@ -1,6 +1,8 @@
 import * as cg from "../render/core/cg.js";
 export const init = async model => {
 
+   model.txtrSrc(2, "../media/textures/concrete.png"); // NEW MULTI-UNIT TEXTURE API
+
    model.customShader(`
       uniform mat4 uWorld;
       -------------------------------
@@ -11,7 +13,7 @@ export const init = async model => {
 
    let touched = false;
    let tr = .375, cr = .0375, ry = .8;
-   let dragPos = [.2,-.05,-.2], movePos = { left: [0,1,0], right: [0,1,0] };;
+   let dragPos = [.2,-.05,-.2], movePos = { left: [0,1,0], right: [0,1,0] };
    let ilo = -2, ihi = 4;
    let container = model.add('sphere').scale(1000,1000,-1000);
    let rooms = model.add().move(0,ry,0);
@@ -19,7 +21,8 @@ export const init = async model => {
    for (let i = ilo ; i <= ihi ; i++) {
       let room = rooms.add();
          let table = room.add();
-            table.add('cube').scale(1.5).move(0,-.11,0).scale(.3,.01,.3).texture("../media/textures/concrete.png");
+         // table.add('cube').scale(1.5).move(0,-.11,0).scale(.3,.01,.3).texture("../media/textures/concrete.png");
+            table.add('cube').scale(1.5).move(0,-.11,0).scale(.3,.01,.3).txtr(2); // NEW MULTI-UNIT TEXTURE API
             table.add('cube').scale(1.5).move(0,-.45,0).scale(.05,.345,.05).color(0,0,0);
          let chair = room.add();
             chair.add('cube').move(0,2.9,-.9).scale(1,.9,.1);
