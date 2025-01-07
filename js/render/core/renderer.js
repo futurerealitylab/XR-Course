@@ -445,6 +445,7 @@ precision highp float; // HIGH PRECISION FLOATS
 
  uniform int uMirrored;
  uniform int uTexture;
+ uniform int uTxtr;
  uniform int uBumpTexture;
  uniform int uTransparentTexture;
  uniform int uVideo;
@@ -664,6 +665,23 @@ vec3 lighting_contribution(
        opacity = anidraw.a;
     }
 
+    if (uTxtr ==  0) color *= texture(uSampler[ 0], vUV).rgb;
+    if (uTxtr ==  1) color *= texture(uSampler[ 1], vUV).rgb;
+    if (uTxtr ==  2) color *= texture(uSampler[ 2], vUV).rgb;
+    if (uTxtr ==  3) color *= texture(uSampler[ 3], vUV).rgb;
+    if (uTxtr ==  4) color *= texture(uSampler[ 4], vUV).rgb;
+    if (uTxtr ==  5) color *= texture(uSampler[ 5], vUV).rgb;
+    if (uTxtr ==  6) color *= texture(uSampler[ 6], vUV).rgb;
+    if (uTxtr ==  7) color *= texture(uSampler[ 7], vUV).rgb;
+    if (uTxtr ==  8) color *= texture(uSampler[ 8], vUV).rgb;
+    if (uTxtr ==  9) color *= texture(uSampler[ 9], vUV).rgb;
+    if (uTxtr == 10) color *= texture(uSampler[10], vUV).rgb;
+    if (uTxtr == 11) color *= texture(uSampler[11], vUV).rgb;
+    if (uTxtr == 12) color *= texture(uSampler[12], vUV).rgb;
+    if (uTxtr == 13) color *= texture(uSampler[13], vUV).rgb;
+    if (uTxtr == 14) color *= texture(uSampler[14], vUV).rgb;
+    if (uTxtr == 15) color *= texture(uSampler[15], vUV).rgb;
+ 
     float isLit = sign(specularPower);
     if (uVideo == 0 && uAnidraw == 0 && uCustom == 1) {
       isLit = 1.0;

@@ -632,9 +632,9 @@ let drawMesh = (mesh, materialId, textureSrc, txtr, bumpTextureSrc, dull, flags,
    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
 
-   if (_animated_txtr[txtr]) {
+   if (_canvas_txtr[txtr] && _canvas_txtr[txtr].counter-- > 0) {
       gl.activeTexture(gl.TEXTURE0 + txtr);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, _animated_txtr[txtr]);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, _canvas_txtr[txtr].src);
    }
    setUniform('1i', 'uTxtr', txtr);
 
@@ -4498,7 +4498,7 @@ function Node(_form) {
       this._txtr = n;
       return this;
    }
-   this.txtrSrc = (txtr, src) => {
+   this.txtrSrc = (txtr, src, do_not_animate) => {
       if (typeof src == 'string') {               // IF THE TEXTURE SOURCE IS AN IMAGE FILE,
          let image = new Image();                 // IT ONLY NEEDS TO BE SENT TO THE GPU ONCE.
          image.onload = () => {
@@ -4507,7 +4507,6 @@ function Node(_form) {
             gl.texImage2D    (gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
             gl.texParameteri (gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
             gl.texParameteri (gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-            gl.generateMipmap(gl.TEXTURE_2D);
          }
          image.src = src;
       }
@@ -4516,12 +4515,12 @@ function Node(_form) {
          gl.bindTexture   (gl.TEXTURE_2D, gl.createTexture());
          gl.texParameteri (gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
          gl.texParameteri (gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-         _animated_txtr[txtr] = src;
+         _canvas_txtr[txtr] = { src: src, counter: do_not_animate ? 1 : Number.MAX_SAFE_INTEGER };
       }
    }
 }
 
-window._animated_txtr = [];
+window._canvas_txtr = [];
 
 // EXPOSE A ROOT NODE FOR EXTERNAL MODELING.
 
