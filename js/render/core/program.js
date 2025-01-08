@@ -58,6 +58,7 @@ precision highp float; // HIGH PRECISION FLOATS
 
  out vec4 fragColor; // RESULT WILL GO HERE
 
+/*
 float noise(vec3 point) { 
   float r = 0.; for (int i=0;i<16;i++) {
   vec3 D, p = point + mod(vec3(i,i/4,i/8) , vec3(4.0,2.0,2.0)) +
@@ -68,6 +69,20 @@ float noise(vec3 point) {
   } 
   return .5 * sin(r); 
 }
+*/
+
+// KEN'S NEWER IMPLEMENTATION OF GPU NOISE, WHICH MATCHES HIS NEW IMPLEMENTATION OF CPU NOISE
+
+vec3 s(vec3 i) { return cos(5.*(i+5.*cos(5.*(i.yzx+5.*cos(5.*(i.zxy+5.*cos(5.*i))))))); }
+float t(vec3 i, vec3 u, vec3 a) { return dot(normalize(s(i + a)), u - a); }
+float noise(vec3 p) {
+   vec3 i = floor(p), u = p - i, v = u * u * (3. - u - u);
+   return mix(mix(mix(t(i, u, vec3(0.,0.,0.)), t(i, u, vec3(1.,0.,0.)), v.x),
+                  mix(t(i, u, vec3(0.,1.,0.)), t(i, u, vec3(1.,1.,0.)), v.x), v.y),
+              mix(mix(t(i, u, vec3(0.,0.,1.)), t(i, u, vec3(1.,0.,1.)), v.x),
+                  mix(t(i, u, vec3(0.,1.,1.)), t(i, u, vec3(1.,1.,1.)), v.x), v.y), v.z);
+}
+
 
 vec3 obj2World(vec3 o){
   vec4 pos = uModel * vec4(o, 1.);
