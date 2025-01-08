@@ -320,7 +320,7 @@
 
 // KEN'S NEWER IMPLEMENTATION OF NOISE WHICH MATCHES HIS NEWER GPU IMPLEMENTATION
 
-let noise = (x,y,z) => {
+export let noise = (x,y,z) => {
    let normalize = v => { let s = Math.sqrt(dot(v,v)); return v.map(a => a/s); }
    let c = Math.cos,floor = Math.floor,dot = (a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
    let r = (x,y,z) => c(5 * (x + 5 * c(5 * (y + 5 * c(5 * (z + 5 * c(5 * x)))))));
