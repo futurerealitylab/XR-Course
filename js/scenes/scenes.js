@@ -12,6 +12,8 @@ export default () => {
       enableSceneReloading: true,
       scenes: [ 
             { name: "nested"             , path: "./nested.js"             , public: true  },
+            { name: "pinscreen"          , path: "./pinscreen.js"          , public: true  },
+            { name: "nested2"            , path: "./nested2.js"            , public: true  },
 //          { name: "kaist1"             , path: "./demoKaist1.js"         , public: false },
 //          { name: "kaist2"             , path: "./demoKaist2.js"         , public: false },
 //          { name: "kaist3"             , path: "./demoKaist3.js"         , public: false },
