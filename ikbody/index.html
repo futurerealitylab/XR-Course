@@ -1,0 +1,83 @@
+<body bgcolor=#80c0ff>
+<center>
+<table>
+<tr>
+<td><input id=timeSlider type=range onchange=clickSlider style=width:900 max=36.7></input>
+<td bgcolor=white><center><div id=info></div>
+<tr>
+<td><center><canvas id=canvas1 width=900 height=900></canvas>
+<th valign=top>
+<select id="speedSelector">
+  <option value="0.25">SPEED 0.25</option>
+  <option value="0.50">SPEED 0.50</option>
+  <option value="1.00">SPEED 1.00</option>
+  <option value="2.00">SPEED 2.00</option>
+</select>
+
+</table>
+</center>
+<script src=js/lib.js></script>
+<script src=js/vector3.js></script>
+<script src=js/quaternion.js></script>
+<script src=js/graph.js></script>
+<script src=js/ik_data.js></script>
+<script src=js/ikbody.js></script>
+<script>
+let time = 0;
+timeSlider.addEventListener('input', e => time = parseFloat(timeSlider.value) % 36.7);
+speedSelector.value = "1.00";
+let mySphere = Sphere(16);
+let myTube = Tube(16);
+let ikbody = new IKBody(ik_data);
+trackMouse(canvas1);
+startGL(canvas1);
+function drawFrame() {
+   imu.alpha = null;
+   requestAnimationFrame(drawFrame);
+   VM.identity().perspective(3).move(0,-.6,0).scale(.65).turnY(canvas1.rx/30);
+   drawScene(() => {
+
+      let speed = parseFloat(speedSelector.value);
+      time = (time + speed/60) % 36.7;
+      timeSlider.value = time;
+
+      let seconds = (10 * time >> 0) / 10;
+      info.innerHTML = '<font face=helvetica>TIME ' + seconds + (seconds==seconds>>0 ? '.0' : '');
+
+      ikbody.update(time);
+      let nodes = ikbody.graph.nodes;
+
+      for (let n = 0 ; n < 5 ; n++) {
+         let p = ikbody.getP(n, ikbody.frame);
+         let q = ikbody.getQ(n, ikbody.frame);
+         M.S().move(p.x,p.y,p.z).mult(q.toMatrix())
+	      .move(n<2 ? [0,-.02,.06] : n==2 ? [-.06,0,0] : n==3 ? [.06,0,0] : [0,.04,0]).color(1,0,0);
+            M.S().scale(n<2 ? [.04,.03,.10] : n<4 ? [.07,.015,.035] : [.07,.09,.07]).draw(mySphere).R();
+	    if (n < 2)
+               M.S().move(0,.015,-.06).scale(.03).draw(mySphere).R();
+	    if (n == 4) {
+               M.S().move(-.035,0,.055).turnY(-.6).scale(.025,.02,.005).color(0,0,0).draw(mySphere).R();
+               M.S().move( .035,0,.055).turnY( .6).scale(.025,.02,.005).color(0,0,0).draw(mySphere).R();
+	    }
+         M.R();
+      }
+
+      for (let n = 5 ; n < nodes.length ; n++) {
+         let p = nodes[n].p;
+         M.S().move(p.x,p.y,p.z).scale(.03).color(0,0,0).draw(mySphere).R();
+      }
+      let links = [0,5, 1,6, 5,10, 10,16, 6,11, 11,16, 16,15, 15,14, 14,9, 2,7, 7,12, 12,9, 3,8, 8,13, 13,9, 9,4];
+      let getP = n => n < 5 ? ikbody.getP(n, ikbody.frame) : nodes[n].p;
+      for (let i = 0 ; i < links.length ; i += 2) {
+         let A = getP(links[i  ]), a = [A.x,A.y,A.z];
+         let B = getP(links[i+1]), b = [B.x,B.y,B.z];
+	 M.S().move(mix(a,b,.5)).aim(subtract(b,a)).scale(.01,.01,distance(a,b)/2).color(0,0,0).draw(myTube).R();
+      }
+   });
+}
+
+//    0       1      2       3       4    5      6      7       8       9    10    11     12         13        14    15     16
+// ANKLE_L ANKLE_R WRIST_R WRIST_L HEAD KNEE_L KNEE_R ELBOW_R ELBOW_L CHEST HIP_L HIP_R SHOULDER_R SHOULDER_L BELLY WAIST PELVIS
+
+requestAnimationFrame(drawFrame);
+</script>
