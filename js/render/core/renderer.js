@@ -242,25 +242,12 @@ out vec3 worldPosition;
 out vec3 worldNormal;
 out vec3 worldTangent;
 
-/*
-float noise(vec3 point) { 
-  float r = 0.; for (int i=0;i<16;i++) {
-  vec3 D, p = point + mod(vec3(i,i/4,i/8) , vec3(4.0,2.0,2.0)) +
-       1.7*sin(vec3(i,5*i,8*i)), C=floor(p), P=p-C-.5, A=abs(P);
-  C += mod(C.x+C.y+C.z,2.) * step(max(A.yzx,A.zxy),A) * sign(P);
-  D=34.*sin(987.*float(i)+876.*C+76.*C.yzx+765.*C.zxy);P=p-C-.5;
-  r+=sin(6.3*dot(P,fract(D)-.5))*pow(max(0.,1.-2.*dot(P,P)),4.);
-  } 
-  return .5 * sin(r); 
-}
-*/
-
 // KEN'S NEWER IMPLEMENTATION OF GPU NOISE, WHICH MATCHES HIS NEW IMPLEMENTATION OF CPU NOISE
 
 vec3 s(vec3 i) { return cos(5.*(i+5.*cos(5.*(i.yzx+5.*cos(5.*(i.zxy+5.*cos(5.*i))))))); }
 float t(vec3 i, vec3 u, vec3 a) { return dot(normalize(s(i + a)), u - a); }
 float noise(vec3 p) {
-   vec3 i = floor(p), u = p - i, v = u * u * (3. - u - u);
+   vec3 i = floor(p), u = p - i, v = 2.*mix(u*u, u*(2.-u)-.5, step(.5,u));
    return mix(mix(mix(t(i, u, vec3(0.,0.,0.)), t(i, u, vec3(1.,0.,0.)), v.x),
                   mix(t(i, u, vec3(0.,1.,0.)), t(i, u, vec3(1.,1.,0.)), v.x), v.y),
               mix(mix(t(i, u, vec3(0.,0.,1.)), t(i, u, vec3(1.,0.,1.)), v.x),

@@ -94,48 +94,6 @@ export function Clay(gl, canvas) {
    
    this.defineMesh = (name, value) => formMesh[name] = convertToMesh(value);
 
-//////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////// MATH FUNCTIONS ///////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////
-
-   let add = (a, b) => [ a[0] + b[0], a[1] + b[1], a[2] + b[2] ];
-   let cross = (a,b) => [ a[1]*b[2] - a[2]*b[1], a[2]*b[0] - a[0]*b[2], a[0]*b[1] - a[1]*b[0] ];
-
-   let dot = (a,b) => a[0] * b[0] + a[1] * b[1] + ( a.length < 3 ? 0 : a[2] * b[2] +
-      ( a.length < 4 ? 0 : a[3] * b[3] ));
-   let floor = Math.floor;
-   let mixf = (a,b,t,u) => a * (u===undefined ? 1-t : t) + b * (u===undefined ? t : u);
-   let mix = (a,b,t,u) => [ mixf(a[0],b[0],t,u), mixf(a[1],b[1],t,u), mixf(a[2],b[2],t,u) ];
-   let noise = (new function() {
-   let p = [151,160,137,91,90,15,131,13,201,95,96,53,194,233,7,225,140,36,103,30,69,142,8,99,37,240,21,10,23,190,6,148,247,120,234,75,0,26,197,62,94,252,219,203,117,35,11,32,57,177,33,88,237,149,56,87,174,20,125,136,171,168,68,175,74,165,71,134,139,48,27,166,77,146,158,231,83,111,229,122,60,211,133,230,220,105,92,41,55,46,245,40,244,102,143,54,65,25,63,161,1,216,80,73,209,76,132,187,208,89,18,169,200,196,135,130,116,188,159,86,164,100,109,198,173,186,3,64,52,217,226,250,124,123,5,202,38,147,118,126,255,82,85,212,207,206,59,227,47,16,58,17,182,189,28,42,223,183,170,213,119,248,152,2,44,154,163,70,221,153,101,155,167,43,172,9,129,22,39,253,19,98,108,110,79,113,224,232,178,185,112,104,218,246,97,228,251,34,242,193,238,210,144,12,191,179,162,241,81,51,145,235,249,14,239,107,49,192,214,31,181,199,106,157,184,84,204,176,115,121,50,45,127,4,150,254,138,236,205,93,222,114,67,29,24,72,243,141,128,195,78,66,215,61,156,180];
-   for (let i = 0 ; i < 256 ; i++) p.push(p[i]);
-   let fade = t => t * t * t * (t * (t * 6 - 15) + 10);
-   let lerp = (t,a,b) => a + t * (b - a);
-   let grad = (hash, x,y,z) => {
-      let h = hash & 15, u = h < 8 || h == 12 || h == 13 ? x : y,
-                         v = h < 4 || h == 12 || h == 13 ? y : z;
-      return ((h & 1) == 0 ? u : -u) + ((h & 2) == 0 ? v : -v);
-   }
-   this.noise = (x,y,z) => {
-         let X = floor(x) & 255, u = fade(x -= floor(x)),
-             Y = floor(y) & 255, v = fade(y -= floor(y)),
-             Z = floor(z) & 255, w = fade(z -= floor(z)),
-             A = p[X    ] + Y, AA = p[A] + Z, AB = p[A + 1] + Z,
-             B = p[X + 1] + Y, BA = p[B] + Z, BB = p[B + 1] + Z;
-      return lerp(w, lerp(v, lerp(u, grad(p[AA    ], x, y    , z    ), grad(p[BA    ], x - 1, y    , z    )),
-                             lerp(u, grad(p[AB    ], x, y - 1, z    ), grad(p[BB    ], x - 1, y - 1, z    ))),
-                     lerp(v, lerp(u, grad(p[AA + 1], x, y    , z - 1), grad(p[BA + 1], x - 1, y    , z - 1)),
-                             lerp(u, grad(p[AB + 1], x, y - 1, z - 1), grad(p[BB + 1], x - 1, y - 1, z - 1))));
-   }
-   }).noise;
-   let norm = v => Math.sqrt(dot(v,v));
-   let normalize = v => scale(v, 1 / norm(v));
-   let round = t => floor(t*1000) / 1000;
-   let sCurve = t => Math.max(0, Math.min(1, t * t * (3 - 2 * t)));
-   let scale = (v, s) => { let w = []; for (let i=0 ; i<v.length ; i++) w.push(s*v[i]); return w; }
-   let subtract = (a, b) => [ a[0] - b[0], a[1] - b[1], a[2] - b[2] ];
-   let uniqueID = () => 1000 * floor(Math.random() * 1000000) + (Date.now() % 1000);
-
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////// MATRICES //////////////////////////////////////////
@@ -245,32 +203,32 @@ let matrix_inverse = (src) => {
 
 
 let matrix_aimX = X => {
-   X = normalize(X);
-   let Y0 = cross([0,0,1], X), t0 = dot(Y0,Y0), Z0 = cross(X, Y0),
-       Y1 = cross([1,1,0], X), t1 = dot(Y1,Y1), Z1 = cross(X, Y1),
+   X = cg.normalize(X);
+   let Y0 = cg.cross([0,0,1], X), t0 = cg.dot(Y0,Y0), Z0 = cg.cross(X, Y0),
+       Y1 = cg.cross([1,1,0], X), t1 = cg.dot(Y1,Y1), Z1 = cg.cross(X, Y1),
        t = t1 / (4 * t0 + t1),
-       Y = normalize(mix(Y0, Y1, t)),
-       Z = normalize(mix(Z0, Z1, t));
+       Y = cg.normalize(cg.mix(Y0, Y1, t)),
+       Z = cg.normalize(cg.mix(Z0, Z1, t));
    return [ X[0],X[1],X[2],0, Y[0],Y[1],Y[2],0, Z[0],Z[1],Z[2],0, 0,0,0,1 ];
 }
 
 let matrix_aimY = Y => {
-   Y = normalize(Y);
-   let Z0 = cross([1,0,0], Y), t0 = dot(Z0,Z0), X0 = cross(Y, Z0),
-       Z1 = cross([0,0,1], Y), t1 = dot(Z1,Z1), X1 = cross(Y, Z1),
+   Y = cg.normalize(Y);
+   let Z0 = cg.cross([1,0,0], Y), t0 = cg.dot(Z0,Z0), X0 = cg.cross(Y, Z0),
+       Z1 = cg.cross([0,0,1], Y), t1 = cg.dot(Z1,Z1), X1 = cg.cross(Y, Z1),
        t = t1 / (4 * t0 + t1),
-       Z = normalize(mix(Z0, Z1, t)),
-       X = normalize(mix(X0, X1, t));
+       Z = cg.normalize(cg.mix(Z0, Z1, t)),
+       X = cg.normalize(cg.mix(X0, X1, t));
    return [ X[0],X[1],X[2],0, Y[0],Y[1],Y[2],0, Z[0],Z[1],Z[2],0, 0,0,0,1 ];
 }
 
 let matrix_aimZ = Z => {
-   Z = normalize(Z);
-   let X0 = cross([0,1,0], Z), t0 = dot(X0,X0), Y0 = cross(Z, X0),
-       X1 = cross([1,0,0], Z), t1 = dot(X1,X1), Y1 = cross(Z, X1),
+   Z = cg.normalize(Z);
+   let X0 = cg.cross([0,1,0], Z), t0 = cg.dot(X0,X0), Y0 = cg.cross(Z, X0),
+       X1 = cg.cross([1,0,0], Z), t1 = cg.dot(X1,X1), Y1 = cg.cross(Z, X1),
        t = t1 / (4 * t0 + t1),
-       X = normalize(mix(X0, X1, t)),
-       Y = normalize(mix(Y0, Y1, t));
+       X = cg.normalize(cg.mix(X0, X1, t)),
+       Y = cg.normalize(cg.mix(Y0, Y1, t));
    return [ X[0],X[1],X[2],0, Y[0],Y[1],Y[2],0, Z[0],Z[1],Z[2],0, 0,0,0,1 ];
 }
 
@@ -466,9 +424,9 @@ let drawMesh = (mesh, materialId, textureSrc, txtr, bumpTextureSrc, dull, flags,
      if (!textures.hasOwnProperty(textureSrc)) {
        if (typeof textureSrc === 'function') {
          textures[textureSrc] = {
-	    resource : [], 
+            resource : [], 
             resourceIdx : 0, width: textureCanvas.width, height: textureCanvas.height
-	 };
+         };
 
          const textureRecord = textures[textureSrc];
          for (let i = 0; i < 3; i += 1) {
@@ -657,15 +615,15 @@ let drawMesh = (mesh, materialId, textureSrc, txtr, bumpTextureSrc, dull, flags,
 
       for (let i = 0; i < this.views.length; ++i) {
          if (i == 0 && view == 1 || i == 1 && view == 0)
-	    continue;
+            continue;
          let v = this.views[i];
          let vp = v.viewport;
          gl.viewport(vp.x, vp.y, vp.width, vp.height);
          setUniform('Matrix4fv', 'uProj', false, v.projectionMatrix);
          setUniform('Matrix4fv', 'uView', false, v.viewMatrix);
-	 let m = cg.mMultiply(clay.inverseRootMatrix, cg.mInverse(v.viewMatrix));
-	 setUniform('3fv', 'uEye', m.slice(12,15));
-	 setUniform('1i', 'uViewIndex', i);
+         let m = cg.mMultiply(clay.inverseRootMatrix, cg.mInverse(v.viewMatrix));
+         setUniform('3fv', 'uEye', m.slice(12,15));
+         setUniform('1i', 'uViewIndex', i);
 
          gl.drawArrays(drawPrimitiveType, 0, vertexCount);
       }
@@ -751,7 +709,7 @@ let orthogonalVector = v => {
            y < Math.min(z, x) ? [-1, 0, 0] :
            z > Math.max(x, y) ? [ 0, 1, 0] :
                                 [ 0,-1, 0] ;
-   return normalize(cross(c, v));
+   return cg.normalize(cg.cross(c, v));
 }
 
 let createMesh = (nu, nv, f, data) => {
@@ -937,13 +895,13 @@ let renderParticlesMesh = mesh => {
    if (orient == 'yaw') {
       Z = cg.normalize([Z[0],0,Z[2]]);
       Y = [0,1,0];
-      X = cg.normalize(cg.cross(Y,Z));
+      X = cg.normalize(cg.cg.cross(Y,Z));
    }
 
    let order = [];
    for (let i = 0 ; i < N ; i++)
       order.push(i);
-   order.sort((a,b) => cg.dot(Z,data[a].p) - cg.dot(Z,data[b].p));
+   order.sort((a,b) => cg.cg.dot(Z,data[a].p) - cg.cg.dot(Z,data[b].p));
 
 /*
    Need to add an option for p to be 2 points.
@@ -954,25 +912,25 @@ let renderParticlesMesh = mesh => {
       let nx = X, ny = Y, nz = Z;
       let pos, d = [1,0,0];
       if (Array.isArray(p[0])) {
-         let c = cg.mix(p[0],p[1],.5,.5);
-	 d = cg.mix(p[0],p[1],-1, 1);
-	 ny = cg.normalize(cg.cross(nz,d));
-	 pos = [ c[0] + u * d[0] + v * s * ny[0],
-	         c[1] + u * d[1] + v * s * ny[1],
-	         c[2] + u * d[2] + v * s * ny[2] ];
+         let c = cg.cg.mix(p[0],p[1],.5,.5);
+         d = cg.cg.mix(p[0],p[1],-1, 1);
+         ny = cg.normalize(cg.cg.cross(nz,d));
+         pos = [ c[0] + u * d[0] + v * s * ny[0],
+                 c[1] + u * d[1] + v * s * ny[1],
+                 c[2] + u * d[2] + v * s * ny[2] ];
       }
       else {
          if (n) {
-	    if (n[0]==0 && n[2]==0) {
+            if (n[0]==0 && n[2]==0) {
                nz = cg.normalize(n);
-               nx = cg.normalize(cg.cross(d,nz));
-               ny = cg.normalize(cg.cross(nz,nx));
-	    }
-	    else {
+               nx = cg.normalize(cg.cg.cross(d,nz));
+               ny = cg.normalize(cg.cg.cross(nz,nx));
+            }
+            else {
                nz = cg.normalize(n);
-               nx = cg.normalize(cg.cross([0,1,0],nz));
-               ny = cg.normalize(cg.cross(nz,nx));
-	    }
+               nx = cg.normalize(cg.cg.cross([0,1,0],nz));
+               ny = cg.normalize(cg.cg.cross(nz,nx));
+            }
          }
          pos = [ p[0] + u * s * nx[0] + v * s * ny[0],
                  p[1] + u * s * nx[1] + v * s * ny[1],
@@ -1048,7 +1006,7 @@ let uvToCone = (u,v,du) => {
 let normalAtUV = (u,v,P,func) => {
    let U = func(u+.001,v);
    let V = func(u,v+.001);
-   return normalize(cross([U[0]-P[0],U[1]-P[1],U[2]-P[2]],
+   return cg.normalize(cg.cross([U[0]-P[0],U[1]-P[1],U[2]-P[2]],
                           [V[0]-P[0],V[1]-P[1],V[2]-P[2]]));
 }
 
@@ -1150,8 +1108,8 @@ this.animateWire = (wire, r, f) => {
 
    let z = cg.subtract(f(.01), f(0)),
        xx = z[0]*z[0], yy = z[1]*z[1], zz = z[2]*z[2],
-       x = cg.normalize(cg.cross(z, [ yy+zz, zz+xx, xx+yy ])),
-       y = cg.normalize(cg.cross(z, x));
+       x = cg.normalize(cg.cg.cross(z, [ yy+zz, zz+xx, xx+yy ])),
+       y = cg.normalize(cg.cg.cross(z, x));
 
    let X = [], Y = [];
    for (let i = 0 ; i <= nu ; i++) {
@@ -1159,8 +1117,8 @@ this.animateWire = (wire, r, f) => {
       Y.push(y);
       let u = i / nu;
       z = cg.subtract(f(u + .01), f(u));
-      x = cg.normalize(cg.cross(y, z));
-      y = cg.normalize(cg.cross(z, x));
+      x = cg.normalize(cg.cg.cross(y, z));
+      y = cg.normalize(cg.cg.cross(z, x));
    }
 
    wire.setVertices((u,v) => cg.add(cg.add(f(u), cg.scale(X[nu*u >> 0], r * Math.sin(2 * Math.PI * v))),
@@ -1391,7 +1349,7 @@ function Blobs() {
          N[a+1] + N[b+1] + N[c+1],
          N[a+2] + N[b+2] + N[c+2] ];
          if (isFaceted) {
-            let normal = normalize(normalDirection);
+            let normal = cg.normalize(normalDirection);
             for (let j = 0 ; j < 3 ; j++)
                N[a+j] = N[b+j] = N[c+j] = normal[j];
          }
@@ -1410,8 +1368,8 @@ function Blobs() {
          // FLIP ANY TRIANGLES THAT NEED TO BE FLIPPED
 
          let A = P.slice(a, a+3), B = P.slice(b, b+3), C = P.slice(c, c+3);
-         let outward = cross(subtract(B, A), subtract(C, B));
-         if (dot(outward, normalDirection) < 0) { let tmp = a; a = c; c = tmp; }
+         let outward = cg.cross(cg.subtract(B, A), cg.subtract(C, B));
+         if (cg.dot(outward, normalDirection) < 0) { let tmp = a; a = c; c = tmp; }
 
          addVertex(a);
          addVertex(b);
@@ -1426,18 +1384,18 @@ function Blobs() {
 
       switch (textureState) {
       case 1:
-         t += 2 * noise(14*x,14*y,14*z) - .5;
+         t += 2 * cg.noise(14*x,14*y,14*z) - .5;
          break;
       case 2:
-         t += .5 * (noise(7*x,7*y,7*z + time) - .3);
+         t += .5 * (cg.noise(7*x,7*y,7*z + time) - .3);
          break;
       case 3:
-         let u = Math.max(0, noise(20*x,20*y,20*z));
+         let u = Math.max(0, cg.noise(20*x,20*y,20*z));
          t -= 16 * u * u;
          break;
       case 4:
          for (let s = 4 ; s < 128 ; s *= 2)
-            t += 8 * (noise(7*s*x,7*s*y,7*s*z) - .3) / s;
+            t += 8 * (cg.noise(7*s*x,7*s*y,7*s*z) - .3) / s;
          break;
       case 5:
          t += Math.abs(Math.sin(30*x)*Math.sin(30*y)*Math.sin(30*z))/4 - .25;
@@ -1462,7 +1420,7 @@ function Blobs() {
    -----------------------------------------------------------------------------*/
 
    let displacementTexture = p =>
-      displacementTextureType == 1 ? noise(6*p[0],6*p[1],6*p[2]) / 5
+      displacementTextureType == 1 ? cg.noise(6*p[0],6*p[1],6*p[2]) / 5
       : displacementTextureType == 2 ? Math.sin(21*p[0]) * Math.sin(21*p[1]) * Math.sin(21*p[2]) / 10
       : 0;
 
@@ -1471,7 +1429,7 @@ function Blobs() {
             let R = info ? info : .37;
             let rxy = Math.sqrt(p[0] * p[0] + p[1] * p[1]),
                 dx = (1-R) * p[0] / rxy, dy = (1-R) * p[1] / rxy,
-                r = norm([p[0] - dx, p[1] - dy, p[2]]);
+                r = cg.norm([p[0] - dx, p[1] - dy, p[2]]);
             return { p: [ R/r * (p[0] - dx) + dx,
                           R/r * (p[1] - dy) + dy,
                           R/r *  p[2] ],
@@ -1486,13 +1444,13 @@ function Blobs() {
                        : form == 'tubeY'   ? max(yy, zz + xx, 0)
                        : form == 'tubeZ'   ? max(zz, xx + yy, 0)
                        :                     max(xx, yy, zz) );
-      return { p: scale(p, 1/r), n: p };
+      return { p: cg.scale(p, 1/r), n: p };
    }
 
    let sdf = (form, m, p, rounded, info) => {
       p = matrix_transform(m, p);
       let pn = projectPointToForm(form, p, rounded, info);
-      return norm(subtract(pn.p, p)) * Math.sign(dot(p,pn.n) - dot(pn.p,pn.n));
+      return cg.norm(cg.subtract(pn.p, p)) * Math.sign(cg.dot(p,pn.n) - cg.dot(pn.p,pn.n));
    }
 
    let implicitFunction = (form, m, blur, sgn, p, rounded, info) => {
@@ -1597,9 +1555,9 @@ function Blobs() {
             B1 = [m[1],m[5],m[ 9],m[13]],
             C1 = [m[2],m[6],m[10],m[14]],
 
-            da = 1 + ad * norm([A1[0],A1[1],A1[2]]),
-            db = 1 + ad * norm([B1[0],B1[1],B1[2]]),
-            dc = 1 + ad * norm([C1[0],C1[1],C1[2]]),
+            da = 1 + ad * cg.norm([A1[0],A1[1],A1[2]]),
+            db = 1 + ad * cg.norm([B1[0],B1[1],B1[2]]),
+            dc = 1 + ad * cg.norm([C1[0],C1[1],C1[2]]),
 
             A0 = [A1[0]/da,A1[1]/da,A1[2]/da,A1[3]/da],
             B0 = [B1[0]/db,B1[1]/db,B1[2]/db,B1[3]/db],
@@ -1659,7 +1617,7 @@ function Blobs() {
                      fx = this.eval(x+e,y  ,z  ),
                      fy = this.eval(x  ,y+e,z  ),
                      fz = this.eval(x  ,y  ,z+e);
-      return normalize([f0-fx,f0-fy,f0-fz]);
+      return cg.normalize([f0-fx,f0-fy,f0-fz]);
    }
 
    // USE computeBounds() TO MAKE THE COMPUTATION MORE EFFICIENT.
@@ -1680,7 +1638,7 @@ function Blobs() {
       let zBounds = (P, k,l,m, Q, a,b,c,d,e,f,g,h,i,j) => {
          a=Q[a],b=Q[b],c=Q[c],d=Q[d],e=Q[e],
          f=Q[f],g=Q[g],h=Q[h],i=Q[i],j=Q[j];
-         let W = normalize(cross([2*a,b,c],[b,2*e,f])),
+         let W = cg.normalize(cg.cross([2*a,b,c],[b,2*e,f])),
                vx = P[k], vy = P[l], vz = P[m],
                wx = W[0], wy = W[1], wz = W[2],
                A =   a*wx*wx + b*wx*wy + c*wz*wx + e*wy*wy +   f*wy*wz + h*wz*wz,
@@ -1961,7 +1919,7 @@ let onKeyUp = event => {
 //////////////////////////////////////////////////////////////////////////////////////////////
 
 let S = [], vm, vmi, computeQuadric, activeSet, implicitSurface,
-    rotatex, rotatey, rotatexState, rotateyState, modelMatrix, isTable = false, isRoom = false;
+    rotatex, rotatey, rotatexState, rotateyState, modelMatrix;
 let frameCount = 0;
 let fl = 5;                                                          // CAMERA FOCAL LENGTH
 {
@@ -2057,11 +2015,11 @@ let fl = 5;                                                          // CAMERA F
             r = color[0];
             g = color[1];
             b = color[2];
-	    if (color.length > 3) {
-	       sr = color[3];
-	       sg = color[4];
-	       sb = color[5];
-	       sp = color[6];
+            if (color.length > 3) {
+               sr = color[3];
+               sg = color[4];
+               sb = color[5];
+               sp = color[6];
             }
          }
          materials[color] = { ambient : [.2*r ,.2*g ,.2*b    ],
@@ -2235,7 +2193,6 @@ let fl = 5;                                                          // CAMERA F
    this.animate = view => {
       window.timestamp++;
       window.needUpdateInput = true;
-      //server.updateTimestamp();
       window.mySharedObj = [];
       this.updatePgm();
       this.model = model;
@@ -2243,28 +2200,18 @@ let fl = 5;                                                          // CAMERA F
       codeEditorObj.scale(0);
       const posePosition = this.pose.transform.position;
       setUniform('3f', 'uViewPosition', posePosition.x, posePosition.y, posePosition.z);
-      // server.track();
-      // let info = cg.unpack(trackInfo, -2, 2);
-      // let q = [parseFloat(info[7]), parseFloat(info[8]), parseFloat(info[9]), parseFloat(info[10]), parseFloat(info[11]), parseFloat(info[12]), parseFloat(info[13])];
-      // let quaternion = {x:-q[3],y:-q[4],z:q[5],w:[6]};
-      // window.M_trio = cg.mFromQuaternion(quaternion);
-      // window.M_trio[12] = q[0];
-      // window.M_trio[13] = q[1];
-      // window.M_trio[14] = q[2];
 
       for (let hand in this.controllerWidgets)
          if (window.handtracking)
-	    this.controllerWidgets[hand].scale(0);
+            this.controllerWidgets[hand].scale(0);
          else
-	    this.controllerWidgets[hand].setMatrix(cg.mInverse(root.getMatrix()))
-	                                .move(this.controllerOrigin(hand))
-	                                .scale(this.controllerBallSize)
+            this.controllerWidgets[hand].setMatrix(cg.mInverse(root.getMatrix()))
+                                        .move(this.controllerOrigin(hand))
+                                        .scale(this.controllerBallSize)
                                         .color(buttonState[hand][0].pressed
-					       ? scale(controllerLightColor[hand], 20) : [.48,.36,.27]);
+                                               ? cg.scale(controllerLightColor[hand], 20) : [.48,.36,.27]);
 
       if (window.clay) scenes();
-      // if (html.bgWindow)
-      //    html.bgWindow.style.left = flash ? -screen.width : 0;
 
       // HANDLE LOADING A NEW SCENE
 
@@ -2302,14 +2249,14 @@ let fl = 5;                                                          // CAMERA F
          }
 
          setUniform('1i', 'uWhitescreen', window.isWhitescreen);       
-	 clay.peopleBillboards.update();
-	 root.evalTextures();
+         clay.peopleBillboards.update();
+         root.evalTextures();
          root.render(vm);
-	 if (window.onlyScene) {
-	    if (! window.ONLY_SCENE_LOADED)
-	       chooseFlag(onlyScene);
-	    window.ONLY_SCENE_LOADED = true;
-	 }
+         if (window.onlyScene) {
+            if (! window.ONLY_SCENE_LOADED)
+               chooseFlag(onlyScene);
+            window.ONLY_SCENE_LOADED = true;
+         }
          model.setControls();
       }
 
@@ -2397,39 +2344,6 @@ let fl = 5;                                                          // CAMERA F
       viewMatrix = M.getValue();
       viewMatrixInverse = matrix_inverse(viewMatrix);
 
-      // DRAW THE ROOM
-
-      if (isRoom) {
-         if (! formMesh.roomBackground) {
-            let inch = 0.0254, foot = 12*inch, h = 10 * foot, w = 30 * foot, t = 2 * inch;
-            let M = (x,y,z, sx,sy,sz) => cg.mMultiply(cg.mTranslate(x,y,z), cg.mScale(sx,sy,sz));
-	    this.defineMesh('roomBackground', this.combineMeshes([
-	       ['cube', M(   0,  0,   0, w/2,t/2,w/2), [.8,1,.8]],
-	       ['cube', M(   0,  h,   0, w/2,t/2,w/2), [.8,1,.8]],
-	       ['cube', M( w/2,h/2,   0, t/2,h/2,w/2), [1,.8,.8]],
-	       ['cube', M(-w/2,h/2,   0, t/2,h/2,w/2), [1,.8,.8]],
-	       ['cube', M(   0,h/2, w/2, w/2,h/2,t/2), [.8,.8,1]],
-	       ['cube', M(   0,h/2,-w/2, w/2,h/2,t/2), [.8,.8,1]],
-	    ]));
-         }
-	 draw(formMesh.roomBackground, 'white');
-      }
-
-      // DRAW THE TABLE
-
-      if (isTable) {
-         let inches = 0.0254,
-             radius     = (70 + 11/16) * inches / 2,
-             height     = 29 * inches,
-             thickness  = 0.75 * inches,
-             legRadius  = 4 * inches / 2,
-             baseRadius = 24 * inches / 2;
-
-         draw(cylinderYMesh, '40,16,8', [0,height-thickness,0], null, [radius    ,thickness,radius    ]);
-         draw(cylinderYMesh, '40,16,8', [0,height/2        ,0], null, [legRadius ,height/2 ,legRadius ]);
-         draw(cylinderYMesh, '40,16,8', [0,thickness       ,0], null, [baseRadius,thickness,baseRadius]);
-      }
-
       // DRAW REMOTE OBJ
       this.renderSyncObj(remoteObjRoot);
 
@@ -2501,7 +2415,7 @@ let fl = 5;                                                          // CAMERA F
       if (S.length > 0 && walkFactor > 0) {
 
          let bird = ! hasPart('left_upper_leg') || hasPart('right_lower_arm') && ! hasPart('right_hand');
-         let w = sCurve(walkFactor) * .7;
+         let w = cg.ease(walkFactor) * .7;
          let tR = bird ? 8 * time : 4 * time;
          let tL = tR + Math.PI;
 
@@ -2559,7 +2473,7 @@ let fl = 5;                                                          // CAMERA F
                   M.setValue(matrix_multiply(vm, s.M));
                   if (s.jointPosition)
                      M.translate(s.jointPosition);
-                  let sc = i => .02 / norm(M.getValue().slice(4*i,4*i+3));
+                  let sc = i => .02 / cg.norm(M.getValue().slice(4*i,4*i+3));
                   M.scale(sc(0), sc(1), sc(2));
                   draw(sphereMesh, [1,1,1]);
                M.restore();
@@ -2568,10 +2482,10 @@ let fl = 5;                                                          // CAMERA F
          let drawLink = (p1, p2, r) => {       // DRAW A LINK BETWEEEN TWO JOINTS
             M.save();
                M.setValue(vm);
-               M.translate(mix(p1, p2, 0.5));
+               M.translate(cg.mix(p1, p2, 0.5));
                let dp = [p2[0]-p1[0],p2[1]-p1[1],p2[2]-p1[2]];
                M.aimZ(dp);
-               M.scale(r,r,norm(dp) / 2);
+               M.scale(r,r,cg.norm(dp) / 2);
                draw(tubeMesh, 'white');
             M.restore();
             linkCount++;
@@ -2605,7 +2519,7 @@ let fl = 5;                                                          // CAMERA F
 
             let materialId = S[n].color;
             let m = materials[materialId];
-	    if (isRubber)
+            if (isRubber)
                m.specular = [0,0,0,20];
 
             // IF IN BLOBBY MODE, ADD TO ARRAY OF BLOBS
@@ -2888,7 +2802,7 @@ let fl = 5;                                                          // CAMERA F
    let rMin = .025;
 
    let computeMatrix = s => {
-      let C = mix(s.A, s.B, 0.5),
+      let C = cg.mix(s.A, s.B, 0.5),
           R = [ Math.max(rMin, Math.abs(s.A[0] - s.B[0]) / 2),
                 Math.max(rMin, Math.abs(s.A[1] - s.B[1]) / 2),
                 Math.max(rMin, Math.abs(s.A[2] - s.B[2]) / 2) ];
@@ -2911,7 +2825,7 @@ let fl = 5;                                                          // CAMERA F
    
    let findBlob = (x,y) => {
       let p = matrix_transform(vmi, [0,0,fl,1]);
-      let u = matrix_transform(vmi, normalize([x,y,-fl,0]));
+      let u = matrix_transform(vmi, cg.normalize([x,y,-fl,0]));
       let tMin = 1000, nMin = -1;
       for (let n = 0 ; n < S.length ; n++) {
          let t = raytraceToQuadric(S[n].Q, p, u);
@@ -2937,9 +2851,9 @@ let fl = 5;                                                          // CAMERA F
    // RAY TRACE TO A BLOB
    
    let raytraceToQuadric = (Q,p,u) => {
-      let A = dot(u, matrix_transform(Q, u)),
-          B = dot(u, matrix_transform(Q, p)),
-          C = dot(p, matrix_transform(Q, p)),
+      let A = cg.dot(u, matrix_transform(Q, u)),
+          B = cg.dot(u, matrix_transform(Q, p)),
+          C = cg.dot(p, matrix_transform(Q, p)),
           D = B*B - A*C;
       return D < 0 ? 10000 : (-B - Math.sqrt(D)) / A;
    }
@@ -2948,7 +2862,7 @@ let fl = 5;                                                          // CAMERA F
 
    let blobZ = (n, x,y) => {
       let p = [0,0,fl,1];
-      let u = normalize([x,y,-fl,0]);
+      let u = cg.normalize([x,y,-fl,0]);
       let t = raytraceToQuadric(S[n].Q, p, u);
       return p[2] + t * u[2];
    }
@@ -3085,7 +2999,7 @@ let fl = 5;                                                          // CAMERA F
          B: [x+.01,y+.01,0],
          blur: 0.5,
          color: defaultColor,
-         id: uniqueID(),
+         id: cg.uniqueID(),
          isBlobby: true,
          isColored: false,
          rounded: false,
@@ -3204,7 +3118,7 @@ let fl = 5;                                                          // CAMERA F
                let s2 = {
                   M: s1.M.slice(),
                   color: s1.color,
-                  id: uniqueID(),
+                  id: cg.uniqueID(),
                   isBlobby: s1.isBlobby,
                   isColored: s1.isColored,
                   rounded: s1.rounded,
@@ -3249,9 +3163,9 @@ let fl = 5;                                                          // CAMERA F
 
    let setDepthToMaxOfWidthAndHeight = s => {
       let M = s.M;
-      let x = norm(M.slice(0, 3));
-      let y = norm(M.slice(4, 7));
-      let z = norm(M.slice(8,11));
+      let x = cg.norm(M.slice(0, 3));
+      let y = cg.norm(M.slice(4, 7));
+      let z = cg.norm(M.slice(8,11));
       s.M = matrix_multiply(M, matrix_scale(1, 1, Math.max(x,y)/z));
    }
 
@@ -3728,16 +3642,16 @@ let textures = [
 ,
 `// NOISE
 
-density += 2 * noise(7*x,7*y,7*z + time) - 1`
+density += 2 * cg.noise(7*x,7*y,7*z + time) - 1`
 ,
 `// SUBTLE NOISE
 
-density += .5 * (noise(7*x,7*y,7*z + time) - .3)`
+density += .5 * (cg.noise(7*x,7*y,7*z + time) - .3)`
 ,
 `// ERODED
 
 for (let s = 4 ; s < 16 ; s *= 2) {
-   let u = max(0, noise(density*7*x,
+   let u = max(0, cg.noise(density*7*x,
                         density*7*y,
                         density*7*z));
    density -= 16 * u * u / s;
@@ -3747,12 +3661,12 @@ for (let s = 4 ; s < 16 ; s *= 2) {
 
 f = 7;
 for (let s = 4*f ; s < 64*f ; s *= 2)
-   density += (noise(s*x,s*y,s*z) - .3)  * f/s;` 
+   density += (cg.noise(s*x,s*y,s*z) - .3)  * f/s;` 
 ,
 `// ROCK
 
 for (let s = 3 ; s < 100 ; s *= 2)
-   density += (noise(s*x,s*y,s*z) - .3) / s;`
+   density += (cg.noise(s*x,s*y,s*z) - .3) / s;`
 ];    
    
 }
@@ -3764,7 +3678,7 @@ for (let s = 3 ; s < 100 ; s *= 2)
 let wasInteractMode = true;
 
 function Node(_form) {
-   let id = uniqueID(),
+   let id = cg.uniqueID(),
        m = new Matrix(),
        form = _form,
        previousTime,
@@ -3777,84 +3691,84 @@ function Node(_form) {
       let tri = (a,b,c) => s += 'f ' + ' ' + (n+a) + ' ' + (n+b) + ' ' + (n+c) + '\n';
       let quad = (a,b,c,d) => { tri(a,b,c); tri(b,d,c); }
       let addVertices = node => {
-	 let printVertices = () => {
+         let printVertices = () => {
             let m = node.getGlobalMatrix();
             let r = t => (10000 * t >> 0) / 10;
-	    for (let i = 0 ; i < V.length ; i++) {
-	       let v = cg.mTransform(m, V[i]);
-	       s += 'v ' + r(v[0]) + ' ' + r(v[1]) + ' ' + r(v[2]) + '\n';
+            for (let i = 0 ; i < V.length ; i++) {
+               let v = cg.mTransform(m, V[i]);
+               s += 'v ' + r(v[0]) + ' ' + r(v[1]) + ' ' + r(v[2]) + '\n';
             }
-	 }
+         }
          switch (node._form) {
-	 case 'cube':
-	    V = [[-1,-1,-1],[ 1,-1,-1], [-1, 1,-1],[ 1, 1,-1],
-	         [-1,-1, 1],[ 1,-1, 1], [-1, 1, 1],[ 1, 1, 1]];
+         case 'cube':
+            V = [[-1,-1,-1],[ 1,-1,-1], [-1, 1,-1],[ 1, 1,-1],
+                 [-1,-1, 1],[ 1,-1, 1], [-1, 1, 1],[ 1, 1, 1]];
             printVertices();
-	    quad(0,4,2,6); quad(7,5,3,1);
-	    quad(0,1,4,5); quad(7,3,6,2);
-	    quad(0,2,1,3); quad(7,6,5,4);
-	    n += 8;
-	    break;
-	 case 'tubeY':
-	    V = [[0,-1,0],[0,1,0]];
-	    for (let i = 0 ; i < 32 ; i++) {
-	       let a = 2*Math.PI * i/32, c = Math.cos(a), s = Math.sin(a);
-	       V.push([s,-1,c], [s,1,c]);
-	    }
-	    printVertices();
-	    for (let i = 0 ; i < 64 ; i += 2) {
-	       tri(0,2+(i+2)%64,2+i);
-	       tri(1,2+i+1,2+(i+3)%64);
-	       quad(2+i,2+(i+2)%64,2+i+1,2+(i+3)%64);
+            quad(0,4,2,6); quad(7,5,3,1);
+            quad(0,1,4,5); quad(7,3,6,2);
+            quad(0,2,1,3); quad(7,6,5,4);
+            n += 8;
+            break;
+         case 'tubeY':
+            V = [[0,-1,0],[0,1,0]];
+            for (let i = 0 ; i < 32 ; i++) {
+               let a = 2*Math.PI * i/32, c = Math.cos(a), s = Math.sin(a);
+               V.push([s,-1,c], [s,1,c]);
+            }
+            printVertices();
+            for (let i = 0 ; i < 64 ; i += 2) {
+               tri(0,2+(i+2)%64,2+i);
+               tri(1,2+i+1,2+(i+3)%64);
+               quad(2+i,2+(i+2)%64,2+i+1,2+(i+3)%64);
             }
             n += 66;
-	    break;
-	 case 'coneY':
-	    V = [[0,-1,0],[0,1,0]];
-	    for (let i = 0 ; i < 32 ; i++) {
-	       let a = 2*Math.PI * i/32, c = Math.cos(a), s = Math.sin(a);
-	       V.push([s,-1,c]);
-	    }
-	    printVertices();
-	    for (let i = 0 ; i < 32 ; i++) {
-	       tri(0,2+(i+1)%32,2+i);
-	       tri(1,2+i,2+(i+1)%32);
-	    }
-            n += 34;
-	    break;
-	 case 'pyramidY':
-	    V = [[0,-1,0],[0,1,0]];
-	    for (let i = 0 ; i < 4 ; i++) {
-	       let a = 2*Math.PI * (i+.5)/4, c = Math.cos(a), s = Math.sin(a);
-	       V.push([s,-1,c]);
-	    }
-	    printVertices();
-	    for (let i = 0 ; i < 4 ; i++) {
-	       tri(0,2+(i+1)%4,2+i);
-	       tri(1,2+i,2+(i+1)%4);
-	    }
-            n += 6;
-	    break;
-         default:
-	    V = [];
-	    let mesh = clay.formMesh(this._form);
-	    if (mesh) {
-	       for (let i = 0 ; i < mesh.length ; i += 16)
-	          V.push(mesh.slice(i, i+3));
-               printVertices();
-	       let nv = V.length;
-               for (let i = 0 ; i < V.length - 2 ; i += 2) {
-	          let i2 = Math.min(nv-1,i+2);
-	          let i3 = Math.min(nv-1,i+3);
-	          tri(i , i+1, i2);
-	          tri(i2, i+1, i3);
-	       }
+            break;
+         case 'coneY':
+            V = [[0,-1,0],[0,1,0]];
+            for (let i = 0 ; i < 32 ; i++) {
+               let a = 2*Math.PI * i/32, c = Math.cos(a), s = Math.sin(a);
+               V.push([s,-1,c]);
             }
-	    n += V.length;
-	    break;
+            printVertices();
+            for (let i = 0 ; i < 32 ; i++) {
+               tri(0,2+(i+1)%32,2+i);
+               tri(1,2+i,2+(i+1)%32);
+            }
+            n += 34;
+            break;
+         case 'pyramidY':
+            V = [[0,-1,0],[0,1,0]];
+            for (let i = 0 ; i < 4 ; i++) {
+               let a = 2*Math.PI * (i+.5)/4, c = Math.cos(a), s = Math.sin(a);
+               V.push([s,-1,c]);
+            }
+            printVertices();
+            for (let i = 0 ; i < 4 ; i++) {
+               tri(0,2+(i+1)%4,2+i);
+               tri(1,2+i,2+(i+1)%4);
+            }
+            n += 6;
+            break;
+         default:
+            V = [];
+            let mesh = clay.formMesh(this._form);
+            if (mesh) {
+               for (let i = 0 ; i < mesh.length ; i += 16)
+                  V.push(mesh.slice(i, i+3));
+               printVertices();
+               let nv = V.length;
+               for (let i = 0 ; i < V.length - 2 ; i += 2) {
+                  let i2 = Math.min(nv-1,i+2);
+                  let i3 = Math.min(nv-1,i+3);
+                  tri(i , i+1, i2);
+                  tri(i2, i+1, i3);
+               }
+            }
+            n += V.length;
+            break;
          }
          for (let n = 0 ; n < node.nChildren() ; n++)
-	    addVertices(node.child(n));
+            addVertices(node.child(n));
       }
       addVertices(this);
       return {n:n, s:s};
@@ -4029,13 +3943,12 @@ function Node(_form) {
    this.getMatrix = ()      => { return m.getValue();               }
    this.setMatrix = value   => { m.setValue(value);    return this; }
    this.getMeshInfo = ()    => { return implicitSurface.meshInfo(); }
-   this.setTable  = tf      => { isTable = tf;         return this; }
    this.setRoom   = tf      => { isRoom = tf;          return this; }
    this.getDivs   = ()      => { return implicitSurface.divs();     }
    this.placeLimb = (a,b,radius) => {
-      let c = mix(a,b, .5,.5);
-      let d = mix(a,b,-.5,.5);
-      this.identity().move(c).aimZ(d).scale(radius,radius,norm(d));
+      let c = cg.mix(a,b, .5,.5);
+      let d = cg.mix(a,b,-.5,.5);
+      this.identity().move(c).aimZ(d).scale(radius,radius,cg.norm(d));
    }
    this.turnX     = theta   => { m.rotateX(theta);     return this; }
    this.turnY     = theta   => { m.rotateY(theta);     return this; }
@@ -4125,14 +4038,14 @@ function Node(_form) {
    this.newForm = form => {
       let vertices = [];
       let addVertices = (obj, M) => {
-	 M = cg.mMultiply(M, obj.getMatrix());
-	 let mesh = clay.formMesh(obj._form);
-	 if (mesh) {
-	    let TIM = cg.mTranspose(cg.mInverse(M));
-	    TIM[12] = TIM[13] = TIM[14] = 0;
-	    let color = obj._color ? obj._color : [1,1,1];
-	    let V = [];
-	    for (let n = 0 ; n < mesh.length ; n += 16) {
+         M = cg.mMultiply(M, obj.getMatrix());
+         let mesh = clay.formMesh(obj._form);
+         if (mesh) {
+            let TIM = cg.mTranspose(cg.mInverse(M));
+            TIM[12] = TIM[13] = TIM[14] = 0;
+            let color = obj._color ? obj._color : [1,1,1];
+            let V = [];
+            for (let n = 0 ; n < mesh.length ; n += 16) {
                let pos = mesh.slice(n+0, n+ 3);
                let nt  = mesh.slice(n+3, n+ 6);
                let uv  = mesh.slice(n+6, n+ 8);
@@ -4143,18 +4056,18 @@ function Node(_form) {
                let nor = cg.normalize(cg.mTransform(TIM, [ X[0],Y[0],Z[0] ]));
                let tan = cg.mTransform(TIM, [ X[1],Y[1],Z[1] ]);
                let rgb = unpackRGB(col[0]);
-	       if (Array.isArray(color))
+               if (Array.isArray(color))
                   rgb = [ color[0] * rgb[0], color[1] * rgb[1], color[2] * rgb[2] ];
                V.push(vertexArray(pos, nor, tan, uv, rgb, wts));
-	       let v = V[V.length-1];
-	    }
+               let v = V[V.length-1];
+            }
             if (vertices.length > 0)
-	       vertices.push(vertices[vertices.length-1], V[0]);
+               vertices.push(vertices[vertices.length-1], V[0]);
             for (let i = 0 ; i < V.length ; i++)
-	       vertices.push(V[i]);
-	 }
-	 for (let n = 0 ; n < obj.nChildren() ; n++)
-	    addVertices(obj.child(n), M);
+               vertices.push(V[i]);
+         }
+         for (let n = 0 ; n < obj.nChildren() ; n++)
+            addVertices(obj.child(n), M);
       }
       addVertices(this, cg.mIdentity());
       setFormMesh(form, new Float32Array(vertices.flat()));
@@ -4163,20 +4076,20 @@ function Node(_form) {
    this.merge = () => {
       let getMesh = obj => {
          let vertices = [];
-	 let mesh = clay.formMesh(obj._form);
-	 let M = obj.getMatrix();
-	 let TIM = cg.mTranspose(cg.mInverse(M));
-	 for (let n = 0 ; n < mesh.length ; n += 16) {
-	    let v = mesh.slice(n, n + 16);
-	    let P = cg.mTransform(M, [v[0],v[1],v[2]]);
-	    let N = cg.mTransform(TIM, [v[3],v[4],v[5],0]);
-	    vertices.push(P[0],P[1],P[2],
-	                  N[0],N[1],N[2],
-	                  v[6],v[7],
-			  v[8],v[9],v[10],
-			  v[11],v[12],v[13],v[14],v[15]);
-	 }
-	 return new Float32Array(vertices.flat());
+         let mesh = clay.formMesh(obj._form);
+         let M = obj.getMatrix();
+         let TIM = cg.mTranspose(cg.mInverse(M));
+         for (let n = 0 ; n < mesh.length ; n += 16) {
+            let v = mesh.slice(n, n + 16);
+            let P = cg.mTransform(M, [v[0],v[1],v[2]]);
+            let N = cg.mTransform(TIM, [v[3],v[4],v[5],0]);
+            vertices.push(P[0],P[1],P[2],
+                          N[0],N[1],N[2],
+                          v[6],v[7],
+                          v[8],v[9],v[10],
+                          v[11],v[12],v[13],v[14],v[15]);
+         }
+         return new Float32Array(vertices.flat());
       }
 
       let mergedMesh = getMesh(this.child(0));
@@ -4198,9 +4111,9 @@ function Node(_form) {
       let m = cg.mMultiply(clay.inverseRootMatrix, this.inverseViewMatrix());
       let Y = [0,1,0];
       let Z = m.slice(8,11);
-      let X = cg.normalize(cg.cross(Y,Z));
+      let X = cg.normalize(cg.cg.cross(Y,Z));
       if (changeY)
-         Y = cg.normalize(cg.cross(Z,X));
+         Y = cg.normalize(cg.cg.cross(Z,X));
       m = [ X[0],X[1],X[2],0, Y[0],Y[1],Y[2],0, Z[0],Z[1],Z[2],0, m[12],m[13],m[14],1 ];
       this.setMatrix(m);
       this.move(0,0,-1).scale(1 / (window.vr ? 2 : fl));
@@ -4215,7 +4128,7 @@ function Node(_form) {
       let worldOrigin = matrix => cg.mTransform(clay.inverseRootMatrix, matrix.slice(12,15));
       let Z = cg.normalize(cg.subtract(worldOrigin(clay.root().inverseViewMatrix(0)),
                                        worldOrigin(this.getGlobalMatrix())));
-      let X = cg.normalize(cg.cross([0,1,0], Z));
+      let X = cg.normalize(cg.cg.cross([0,1,0], Z));
       let m = this.getMatrix();
       this.setMatrix([ X[0],X[1],X[2],0, 0,1,0,0, Z[0],Z[1],Z[2],0, m[12],m[13],m[14],1 ]);
       return this;
@@ -4226,13 +4139,13 @@ function Node(_form) {
       let worldOrigin = matrix => cg.mTransform(clay.inverseRootMatrix, matrix.slice(12,15));
       let Z = cg.normalize(cg.subtract(worldOrigin(clay.root().inverseViewMatrix(0)),
                                        worldOrigin(this.getGlobalMatrix())));
-      let X = cg.normalize(cg.cross([0,1,0], Z));
+      let X = cg.normalize(cg.cg.cross([0,1,0], Z));
       this.child(0).setMatrix([ X[0],X[1],X[2],0, 0,1,0,0, Z[0],Z[1],Z[2],0, 0,0,0,1 ]).scale(1,1,.001);
       return this;
    }
-   this.link = (a,b,r) => this.move(cg.mix(a,b,.5))
+   this.link = (a,b,r) => this.move(cg.cg.mix(a,b,.5))
                               .aimZ(cg.subtract(b,a))
-	                      .scale(r,r,cg.distance(a,b)/2);
+                              .scale(r,r,cg.distance(a,b)/2);
    this.text = (text, textHeight) => {
       textHeight = cg.def(textHeight, .1);
       if (this.nChildren() == 0)
@@ -4240,7 +4153,7 @@ function Node(_form) {
       let lines = 0;
       for (let n = 0 ; n < text.length ; n++)
          if (text.charAt(n) == '\n')
-	    lines++;
+            lines++;
       this.child(0).color(10,10,10).texture(() => {
          g2.setColor('white');
          g2.textHeight(textHeight);
@@ -4369,11 +4282,11 @@ function Node(_form) {
       let color = this.prop('_color');
       if (Array.isArray(color)) {
          let materialName = '' + id;
-	 if (color.length == 10)
+         if (color.length == 10)
             materials[materialName] = { ambient : [ color[0], color[1], color[2] ],
                                         diffuse : [ color[3], color[4], color[5] ],
                                         specular: [ color[6], color[7], color[8], color[9] ] };
-	 else
+         else
             materials[materialName] = { ambient : [.2*color[0], .2*color[1], .2*color[2] ],
                                         diffuse : [.8*color[0], .8*color[1], .8*color[2] ],
                                         specular: [.9,.9,.9,20] };
@@ -4395,12 +4308,12 @@ function Node(_form) {
 
             input_state[clientID] = createInput();            //    COMPUTING ITS OWN INPUT DATA SEPARATELY
 
-	    if (window.inputObjects === undefined)            //    THEN CONVERTS INPUT DATA TO API OBJECTS
-	       window.inputObjects = [];
+            if (window.inputObjects === undefined)            //    THEN CONVERTS INPUT DATA TO API OBJECTS
+               window.inputObjects = [];
             for (id of clients) {
-	       if (inputObjects[id] === undefined)
-	          inputObjects[id] = new Input();
-	       inputObjects[id].update(input_state[id]);
+               if (inputObjects[id] === undefined)
+                  inputObjects[id] = new Input();
+               inputObjects[id].update(input_state[id]);
             }
 
             this._update(inputObjects);                       //    AND FINALLY UPDATES THE SCENE STATE
@@ -4564,7 +4477,7 @@ window._canvas_txtr = [];
 
    // NOTE(KTR): Extensions
 
-   // variant of cross() that accepts a destination array (out) and individual value components instead of an array
+   // variant of cg.cross() that accepts a destination array (out) and individual value components instead of an array
    let crossComponents = (out, a0,a1,a2, b0,b1,b2) => { out[0] = a1*b2 - a2*b1; out[1] = a2*b0 - a0*b2; out[2] = a0*b1 - a1*b0};
    this.crossComponents = crossComponents;
    // variant of matrix inverse accepting a destination buffer
@@ -4606,7 +4519,7 @@ window._canvas_txtr = [];
       }
       return out; 
    }
-   let normalizeWBuffer = (out, v) => scaleWBuffer(out, v, 1 / norm(v));
+   let normalizeWBuffer = (out, v) => scaleWBuffer(out, v, 1 / cg.norm(v));
    
 
    // variant of orthogonalVector() that accepts individual x,y,z instead of an array
