@@ -528,6 +528,25 @@ export let mTranspose = m => [ m[0],m[4],m[ 8],m[12],
 export let mProject = (x,y,z) => [1,0,0,x, 0,1,0,y, 0,0,1,z, 0,0,0,1 ];
 
 
+export let Matrix = function() {
+   let top = 0, m = [ mIdentity() ];
+   this.aimX      = X       => m[top] = mMultiply(m[top], mAimX(X,undefined));
+   this.aimY      = Y       => m[top] = mMultiply(m[top], mAimY(Y,undefined));
+   this.aimZ      = Z       => m[top] = mMultiply(m[top], mAimZ(Z,undefined));
+   this.identity  = ()      => m[top] = mIdentity();
+   this.translate = (x,y,z) => m[top] = mMultiply(m[top], mTranslate(x,y,z));
+   this.rotateX   = theta   => m[top] = mMultiply(m[top], mRotateX(theta));
+   this.rotateY   = theta   => m[top] = mMultiply(m[top], mRotateY(theta));
+   this.rotateZ   = theta   => m[top] = mMultiply(m[top], mRotateZ(theta));
+   this.scale     = (x,y,z) => m[top] = mMultiply(m[top], mScale(x,y,z));
+   this.project   = (x,y,z) => m[top] = mMultiply(m[top], mProject(x,y,z));
+   this.getValue  = ()      => m[top];
+   this.setValue  = value   => m[top] = value.slice();
+   this.save      = ()      => { m[top+1] = m[top].slice(); top++; }
+   this.restore   = ()      => --top;
+}
+
+
 
 
 export let vec2vecProj = (a,b) => {
