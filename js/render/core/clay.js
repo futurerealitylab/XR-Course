@@ -94,167 +94,20 @@ export function Clay(gl, canvas) {
    
    this.defineMesh = (name, value) => formMesh[name] = convertToMesh(value);
 
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////// MATRICES //////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////
-
-
-let matrix_identity = () => [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1];
-
-let matrix_translate = (x,y,z) => {
-   if (y === undefined) {
-      z = x[2];
-      y = x[1];
-      x = x[0];
-   }
-   let m = matrix_identity();
-   m[12] = x;
-   m[13] = y;
-   m[14] = z;
-   return m;
-}
-
-let matrix_rotateX = theta => {
-   let m = matrix_identity();
-   m[ 5] =  Math.cos(theta);
-   m[ 6] =  Math.sin(theta);
-   m[ 9] = -Math.sin(theta);
-   m[10] =  Math.cos(theta);
-   return m;
-}
-
-let matrix_rotateY = theta => {
-   let m = matrix_identity();
-   m[10] =  Math.cos(theta);
-   m[ 8] =  Math.sin(theta);
-   m[ 2] = -Math.sin(theta);
-   m[ 0] =  Math.cos(theta);
-   return m;
-}
-
-let matrix_rotateZ = theta => {
-   let m = matrix_identity();
-   m[ 0] =  Math.cos(theta);
-   m[ 1] =  Math.sin(theta);
-   m[ 4] = -Math.sin(theta);
-   m[ 5] =  Math.cos(theta);
-   return m;
-}
-
-let matrix_scale = (x,y,z) => {
-   if (y === undefined)
-      if (Array.isArray(x)) {
-         z = x[2];
-         y = x[1];
-         x = x[0];
-      }
-      else
-         y = z = x;
-   let m = matrix_identity();
-   m[ 0] = x;
-   m[ 5] = y;
-   m[10] = z;
-   return m;
-}
-
-let matrix_multiply = (a,b) => {
-   let m = [];
-   for (let col = 0 ; col < 4 ; col++)
-   for (let row = 0 ; row < 4 ; row++) {
-      let value = 0;
-      for (let i = 0 ; i < 4 ; i++)
-         value += a[4*i + row] * b[4*col + i];
-      m.push(value);
-   }
-   return m;
-}
-
-let matrix_transform = (m,p) => {
-   let x = p[0], y = p[1], z = p[2], w = p[3] === undefined ? 1 : p[3];
-   let q = [ m[0]*x + m[4]*y + m[ 8]*z + m[12]*w,
-             m[1]*x + m[5]*y + m[ 9]*z + m[13]*w,
-             m[2]*x + m[6]*y + m[10]*z + m[14]*w,
-             m[3]*x + m[7]*y + m[11]*z + m[15]*w ];
-   return p[3] === undefined ? [ q[0]/q[3],q[1]/q[3],q[2]/q[3] ] : q;
-}
-
-let matrix_inverse = (src) => {
-  let dst=[], det = 0, cofactor = (c, r) => {
-     let s = (i, j) => src[c+i & 3 | (r+j & 3) << 2];
-
-     const s1_1 = s(1,1);
-     const s1_2 = s(1,2);
-     const s1_3 = s(1,3);
-     const s2_2 = s(2,2);
-     const s2_3 = s(2,3);
-     const s3_2 = s(3,2);
-     const s3_3 = s(3,3);
-
-     return (c+r & 1 ? -1 : 1) * ( (s1_1 * (s2_2 * s3_3 - s3_2 * s2_3))
-                                 - (s(2,1) * (s1_2 * s3_3 - s3_2 * s1_3))
-                                 + (s(3,1) * (s1_2 * s2_3 - s2_2 * s1_3)) );
-  }
-  for (let n = 0 ; n < 16 ; n++) dst.push(cofactor(n >> 2, n & 3));
-  for (let n = 0 ; n <  4 ; n++) det += src[n] * dst[n << 2];
-  for (let n = 0 ; n < 16 ; n++) dst[n] /= det;
-  return dst;
-}
-
-
-let matrix_aimX = X => {
-   X = cg.normalize(X);
-   let Y0 = cg.cross([0,0,1], X), t0 = cg.dot(Y0,Y0), Z0 = cg.cross(X, Y0),
-       Y1 = cg.cross([1,1,0], X), t1 = cg.dot(Y1,Y1), Z1 = cg.cross(X, Y1),
-       t = t1 / (4 * t0 + t1),
-       Y = cg.normalize(cg.mix(Y0, Y1, t)),
-       Z = cg.normalize(cg.mix(Z0, Z1, t));
-   return [ X[0],X[1],X[2],0, Y[0],Y[1],Y[2],0, Z[0],Z[1],Z[2],0, 0,0,0,1 ];
-}
-
-let matrix_aimY = Y => {
-   Y = cg.normalize(Y);
-   let Z0 = cg.cross([1,0,0], Y), t0 = cg.dot(Z0,Z0), X0 = cg.cross(Y, Z0),
-       Z1 = cg.cross([0,0,1], Y), t1 = cg.dot(Z1,Z1), X1 = cg.cross(Y, Z1),
-       t = t1 / (4 * t0 + t1),
-       Z = cg.normalize(cg.mix(Z0, Z1, t)),
-       X = cg.normalize(cg.mix(X0, X1, t));
-   return [ X[0],X[1],X[2],0, Y[0],Y[1],Y[2],0, Z[0],Z[1],Z[2],0, 0,0,0,1 ];
-}
-
-let matrix_aimZ = Z => {
-   Z = cg.normalize(Z);
-   let X0 = cg.cross([0,1,0], Z), t0 = cg.dot(X0,X0), Y0 = cg.cross(Z, X0),
-       X1 = cg.cross([1,0,0], Z), t1 = cg.dot(X1,X1), Y1 = cg.cross(Z, X1),
-       t = t1 / (4 * t0 + t1),
-       X = cg.normalize(cg.mix(X0, X1, t)),
-       Y = cg.normalize(cg.mix(Y0, Y1, t));
-   return [ X[0],X[1],X[2],0, Y[0],Y[1],Y[2],0, Z[0],Z[1],Z[2],0, 0,0,0,1 ];
-}
-
-let matrix_perspective = fl => [ 1,0,0,0, 0,1,0,0, 0,0,-1,-1/fl, 0,0,-1,0 ];
-
-let matrix_project = (x,y,z) => [ 1,0,0,x, 0,1,0,y, 0,0,1,z, 0,0,0,1 ];
-
-let matrix_transpose = m => [ m[0],m[4],m[ 8],m[12],
-                              m[1],m[5],m[ 9],m[13],
-                              m[2],m[6],m[10],m[14],
-                              m[3],m[7],m[11],m[15] ];
-
 //---------- MATRIX OBJECT CLASS ------------
 
 let Matrix = function() {
-   let top = 0, m = [ matrix_identity() ];
-   this.aimX      = X       => m[top] = matrix_multiply(m[top], matrix_aimX(X));
-   this.aimY      = Y       => m[top] = matrix_multiply(m[top], matrix_aimY(Y));
-   this.aimZ      = Z       => m[top] = matrix_multiply(m[top], matrix_aimZ(Z));
-   this.identity  = ()      => m[top] = matrix_identity();
-   this.translate = (x,y,z) => m[top] = matrix_multiply(m[top], matrix_translate(x,y,z));
-   this.rotateX   = theta   => m[top] = matrix_multiply(m[top], matrix_rotateX(theta));
-   this.rotateY   = theta   => m[top] = matrix_multiply(m[top], matrix_rotateY(theta));
-   this.rotateZ   = theta   => m[top] = matrix_multiply(m[top], matrix_rotateZ(theta));
-   this.scale     = (x,y,z) => m[top] = matrix_multiply(m[top], matrix_scale(x,y,z));
-   this.project   = (x,y,z) => m[top] = matrix_multiply(m[top], matrix_project(x,y,z));
+   let top = 0, m = [ cg.mIdentity() ];
+   this.aimX      = X       => m[top] = cg.mMultiply(m[top], cg.mAimX(X,undefined));
+   this.aimY      = Y       => m[top] = cg.mMultiply(m[top], cg.mAimY(Y,undefined));
+   this.aimZ      = Z       => m[top] = cg.mMultiply(m[top], cg.mAimZ(Z,undefined));
+   this.identity  = ()      => m[top] = cg.mIdentity();
+   this.translate = (x,y,z) => m[top] = cg.mMultiply(m[top], cg.mTranslate(x,y,z));
+   this.rotateX   = theta   => m[top] = cg.mMultiply(m[top], cg.mRotateX(theta));
+   this.rotateY   = theta   => m[top] = cg.mMultiply(m[top], cg.mRotateY(theta));
+   this.rotateZ   = theta   => m[top] = cg.mMultiply(m[top], cg.mRotateZ(theta));
+   this.scale     = (x,y,z) => m[top] = cg.mMultiply(m[top], cg.mScale(x,y,z));
+   this.project   = (x,y,z) => m[top] = cg.mMultiply(m[top], cg.mProject(x,y,z));
    this.getValue  = ()      => m[top];
    this.setValue  = value   => m[top] = value.slice();
    this.save      = ()      => { m[top+1] = m[top].slice(); top++; }
@@ -1406,11 +1259,11 @@ let fl = 5;                                                          // CAMERA F
    let textureState = 0;
    let startTime = Date.now(), prevTime = startTime, fps = 10;    // TO TRACK FRAME RATE
    let xPrev, yPrev, xyTravel;
-   let viewMatrix = matrix_identity();
-   let viewMatrixInverse = matrix_inverse(viewMatrix);
+   let viewMatrix = cg.mIdentity();
+   let viewMatrixInverse = cg.mInverse(viewMatrix);
 
-   vm  = matrix_identity();
-   vmi = matrix_identity();
+   vm  = cg.mIdentity();
+   vmi = cg.mIdentity();
 
    // HANDLE SETTING WHETHER THE MODEL IS ACTIVELY CHANGING
 
@@ -1783,7 +1636,7 @@ let fl = 5;                                                          // CAMERA F
       M.save();
 
       viewMatrix = M.getValue();
-      viewMatrixInverse = matrix_inverse(viewMatrix);
+      viewMatrixInverse = cg.mInverse(viewMatrix);
 
       // DRAW REMOTE OBJ
       this.renderSyncObj(remoteObjRoot);
@@ -1957,7 +1810,7 @@ let fl = 5;                                                          // CAMERA F
                if (n == mn)
                   m.texture = [.5,0,0,0];
                M.save();
-               M.setValue(matrix_multiply(vm, S[n].M));
+               M.setValue(cg.mMultiply(vm, S[n].M));
                let name = S[n].form + (S[n].rounded ? ',rounded' : '');
                if (S[n].info) {
                   name += ',' + S[n].info;
@@ -2033,7 +1886,7 @@ let fl = 5;                                                          // CAMERA F
                rotateBy = delta;
             if (Math.abs(rotate - rotateTarget) < delta)
                rotateBy = rotateTarget - rotate;
-            modelMatrix = matrix_multiply(matrix_rotate(rotateBy), modelMatrix);
+            modelMatrix = cg.mMultiply(matrix_rotate(rotateBy), modelMatrix);
             rotate += rotateBy;
             mn = findBlob(xPrev, yPrev);
          }
@@ -2976,7 +2829,7 @@ function Node(_form) {
 
    this.clear = () => {
       previousTime = 0;
-      rm = matrix_identity;
+      rm = cg.mIdentity();
       this._update   = null;
       this._animate  = null;
       this._bevel    = false;
@@ -3001,7 +2854,7 @@ function Node(_form) {
       this._controlActions = {};
       this.resetControls();
       rotatex = rotatey = rotatexState = rotateyState = 0;
-      modelMatrix = matrix_identity();
+      modelMatrix = cg.mIdentity();
       return this;
    }
 
@@ -3468,9 +3321,9 @@ function Node(_form) {
       }
 
       rm = (this.ignoreParentTransform) ? m.getValue() : 
-                                          matrix_multiply(pm, m.getValue());
+                                          cg.mMultiply(pm, m.getValue());
       if (this == model)
-         rm = matrix_multiply(rm, modelMatrix);
+         rm = cg.mMultiply(rm, modelMatrix);
 
       if (form == 'root')
          S = [];
@@ -3495,7 +3348,7 @@ function Node(_form) {
             form: form,
             flags: this.prop('_flags'),
             customShader: this.prop('_customShader'),
-            M: matrix_multiply(vmi, rm)
+            M: cg.mMultiply(vmi, rm)
          };
          cg.computeQuadric(s);
          S.push(s);

@@ -525,6 +525,7 @@ export let mTranspose = m => [ m[0],m[4],m[ 8],m[12],
                                m[2],m[6],m[10],m[14],
                                m[3],m[7],m[11],m[15] ];
 
+export let mProject = (x,y,z) => [1,0,0,x, 0,1,0,y, 0,0,1,z, 0,0,0,1 ];
 
 
 
