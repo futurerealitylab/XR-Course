@@ -1892,11 +1892,11 @@ let fl = 5;                                                          // CAMERA F
          }
          return rotate;
       }
-      rotatex = rotateModel(rotatex, rotatexState, matrix_rotateX);
-      rotatey = rotateModel(rotatey, rotateyState, matrix_rotateY);
+      rotatex = rotateModel(rotatex, rotatexState, cg.mRotateX);
+      rotatey = rotateModel(rotatey, rotateyState, cg.mRotateY);
 
       vm  = viewMatrix;
-      vmi = matrix_inverse(vm);
+      vmi = cg.mInverse(vm);
 
       if (videoHandTracker && ! window.vr)
          videoHandTracker.update();
