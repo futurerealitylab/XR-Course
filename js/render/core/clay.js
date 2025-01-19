@@ -1801,15 +1801,6 @@ let fl = 5;                                                          // CAMERA F
          else
             draw(cubeMesh, 'black', null, null, [.0025,2,.0025]);
 
-      // SET IMPLICIT SURFACE PROPERTIES
-   
-      implicitSurface.setBlur(blur);
-      implicitSurface.setDivs(isFewerDivs ? 15 : activeState() ? 30 : 60);
-      implicitSurface.setFaceted(isFaceted);
-      implicitSurface.setNoise(textureState);
-      implicitSurface.setIsTexture(isTexture);
-      implicitSurface.setTextureSrc(isTextureSrc ? 'media/textures/wood.png' : '');
-
       // ADVANCE THE "ACTIVE REMESHING" TIMER
 
       activeTimer();
@@ -3506,7 +3497,7 @@ function Node(_form) {
             customShader: this.prop('_customShader'),
             M: matrix_multiply(vmi, rm)
          };
-         computeQuadric(s);
+         cg.computeQuadric(s);
          S.push(s);
       }
       for (let i = 0 ; i < this._children.length ; i++)

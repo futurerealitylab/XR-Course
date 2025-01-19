@@ -622,3 +622,12 @@ export function DOF() {
    let P = 0;
 }
 
+export let computeQuadric = (s) => {
+      let IM = mInverse(s.M);
+      s.Q = mMultiply(mTranspose(IM),
+                      mMultiply([1, 0, 0, 0,
+                                 0, 1, 0, 0,
+                                 0, 0, 1, 0,
+                                 0, 0, 0,-1], IM));
+}
+

@@ -840,3 +840,13 @@ function ImplicitSurface() {
       }
       computeQuadric(s);
    }
+
+
+// SET IMPLICIT SURFACE PROPERTIES
+   
+      implicitSurface.setBlur(blur);
+      implicitSurface.setDivs(isFewerDivs ? 15 : activeState() ? 30 : 60);
+      implicitSurface.setFaceted(isFaceted);
+      implicitSurface.setNoise(textureState);
+      implicitSurface.setIsTexture(isTexture);
+      implicitSurface.setTextureSrc(isTextureSrc ? 'media/textures/wood.png' : '');
