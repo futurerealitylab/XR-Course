@@ -1489,80 +1489,48 @@ let fl = 5;                                                          // CAMERA F
 
       // HANDLE LOADING A NEW SCENE
 
-      if (isModeler) {
-         if (window.vr && ! window.suppress_vrWidgets)
-            this.vrWidgets.identity();
-         else
-            this.vrWidgets.scale(0);
+      if (window.vr && ! window.suppress_vrWidgets)
+         this.vrWidgets.identity();
+      else
+         this.vrWidgets.scale(0);
 
-         if (window.animate)
-            window.animate();
+      if (window.animate)
+         window.animate();
 
-         if (! window.isVideo) {
-            videoScreen1.scale(0);
-            videoScreen2.scale(0);
-         }
-         else {
-            let s = 3.8;
-            let videoScreen = model._isHUD ? videoScreen1 : videoScreen2;
-            videoScreen.setMatrix(cg.mInverse(views[0].viewMatrix))
-                       //.move(0,0,-.3*s).turnY(Math.PI).scale(.3197*s,.2284*s,.001).scale(.181);
-                       .move(0,0,-.3*s).scale(.3197*s,.2284*s,.001).scale(.181);
-         }
-
-         if (window.interactMode != 2) {
-            anidrawScreen.scale(0);
-         }
-         else {
-            let s = 3.8;
-            anidrawScreen.setMatrix(cg.mInverse(views[0].viewMatrix))
-                         .move(0,0,-.3*s)
-                         .move(0,-.08*anidrawSlant,0).turnX(-1.2*anidrawSlant)
-                         //.turnY(Math.PI).scale(.3197*s,.2284*s,.001).scale(.181);
-                         .scale(.3197*s,.2284*s,.001).scale(.181);
-         }
-
-         setUniform('1i', 'uWhitescreen', window.isWhitescreen);       
-         clay.peopleBillboards.update();
-         root.evalTextures();
-         root.render(vm);
-         if (window.onlyScene) {
-            if (! window.ONLY_SCENE_LOADED)
-               chooseFlag(onlyScene);
-            window.ONLY_SCENE_LOADED = true;
-         }
-         model.setControls();
+      if (! window.isVideo) {
+         videoScreen1.scale(0);
+         videoScreen2.scale(0);
       }
-
       else {
-         if (scene_to_load) {
-            scene = scene_to_load;
-            scene_to_load = null;
-
-            modelIndex = 0;
-            let model = scene[modelIndex];
-            name         = model.name;
-            S            = model.S;
-            isRubber     = false;
-            toRubber     = model.isRubber;
-            isWalking    = model.isWalking;
-            isWiggling   = model.isWiggling;
-            textureState = model.textureState;
-            if (model.texture) {
-               textures[0] = model.texture;
-               codeText.value = textures[0];
-               this.setShowingCode(isShowingCode);
-               this.parseCode(textures[0]);
-            }
-            activeSet(true);
-         }
-
-         // IF ANY ANIMATED TEXTURE, OPTIMIZE RENDERING FOR THAT
-
-         isAnimatedTexture = textures[textureIndex].includes('time');
-         if (isAnimatedTexture)
-            activeSet(true);
+         let s = 3.8;
+         let videoScreen = model._isHUD ? videoScreen1 : videoScreen2;
+         videoScreen.setMatrix(cg.mInverse(views[0].viewMatrix))
+                    //.move(0,0,-.3*s).turnY(Math.PI).scale(.3197*s,.2284*s,.001).scale(.181);
+                    .move(0,0,-.3*s).scale(.3197*s,.2284*s,.001).scale(.181);
       }
+
+      if (window.interactMode != 2) {
+         anidrawScreen.scale(0);
+      }
+      else {
+         let s = 3.8;
+         anidrawScreen.setMatrix(cg.mInverse(views[0].viewMatrix))
+                      .move(0,0,-.3*s)
+                      .move(0,-.08*anidrawSlant,0).turnX(-1.2*anidrawSlant)
+                      //.turnY(Math.PI).scale(.3197*s,.2284*s,.001).scale(.181);
+                      .scale(.3197*s,.2284*s,.001).scale(.181);
+      }
+
+      setUniform('1i', 'uWhitescreen', window.isWhitescreen);       
+      clay.peopleBillboards.update();
+      root.evalTextures();
+      root.render(vm);
+      if (window.onlyScene) {
+         if (! window.ONLY_SCENE_LOADED)
+            chooseFlag(onlyScene);
+         window.ONLY_SCENE_LOADED = true;
+      }
+      model.setControls();
 
       if (frameCount == 0) {
          setUniform('1f', 'uAspectRatio', canvas.width / canvas.height);
