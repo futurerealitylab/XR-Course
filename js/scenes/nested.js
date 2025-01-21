@@ -4,12 +4,15 @@ export const init = async model => {
    // NEW MULTI-UNIT TEXTURE API
 
    let txtr_is_canvas = false;
+   let txtr_is_video = true;
    if (txtr_is_canvas) {
       window.txtrCanvas = document.createElement('canvas');
       txtrCanvas.width  = 512;
       txtrCanvas.height = 512;
       model.txtrSrc(2, txtrCanvas, false); // SET 3RD ARG TO TRUE TO RENDER ONLY ONCE
    }
+   else if (txtr_is_video)
+      model.txtrSrc(2, videoFromCamera);
    else
       model.txtrSrc(2, "../media/textures/concrete.png");
 

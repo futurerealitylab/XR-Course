@@ -447,6 +447,7 @@ precision highp float; // HIGH PRECISION FLOATS
  uniform int uTexture;
  uniform int uTxtr;
  uniform int uBumpTexture;
+ uniform int uBumpTxtr;
  uniform int uTransparentTexture;
  uniform int uVideo;
  uniform int uAnidraw;
@@ -595,10 +596,33 @@ vec3 lighting_contribution(
     }
 
     // bump mapping
+/*
     if (uBumpTexture == 1) {
        vec4 bumpTexture = 2. * texture(uSampler[1], uv) - 1.;
        normal = normalize(normal + bumpTexture.rgb);
     }
+*/
+    if (uBumpTexture == 1) normal = normalize(normal + (2.*texture(uSampler[1],uv).rgb-1.));
+
+    if (uBumpTxtr != -1) {
+       if (uBumpTxtr ==  0) normal = normalize(normal + (2.*texture(uSampler[ 0],uv).rgb-1.));
+       if (uBumpTxtr ==  1) normal = normalize(normal + (2.*texture(uSampler[ 1],uv).rgb-1.));
+       if (uBumpTxtr ==  2) normal = normalize(normal + (2.*texture(uSampler[ 2],uv).rgb-1.));
+       if (uBumpTxtr ==  3) normal = normalize(normal + (2.*texture(uSampler[ 3],uv).rgb-1.));
+       if (uBumpTxtr ==  4) normal = normalize(normal + (2.*texture(uSampler[ 4],uv).rgb-1.));
+       if (uBumpTxtr ==  5) normal = normalize(normal + (2.*texture(uSampler[ 5],uv).rgb-1.));
+       if (uBumpTxtr ==  6) normal = normalize(normal + (2.*texture(uSampler[ 6],uv).rgb-1.));
+       if (uBumpTxtr ==  7) normal = normalize(normal + (2.*texture(uSampler[ 7],uv).rgb-1.));
+       if (uBumpTxtr ==  8) normal = normalize(normal + (2.*texture(uSampler[ 8],uv).rgb-1.));
+       if (uBumpTxtr ==  9) normal = normalize(normal + (2.*texture(uSampler[ 9],uv).rgb-1.));
+       if (uBumpTxtr == 10) normal = normalize(normal + (2.*texture(uSampler[10],uv).rgb-1.));
+       if (uBumpTxtr == 11) normal = normalize(normal + (2.*texture(uSampler[11],uv).rgb-1.));
+       if (uBumpTxtr == 12) normal = normalize(normal + (2.*texture(uSampler[12],uv).rgb-1.));
+       if (uBumpTxtr == 13) normal = normalize(normal + (2.*texture(uSampler[13],uv).rgb-1.));
+       if (uBumpTxtr == 14) normal = normalize(normal + (2.*texture(uSampler[14],uv).rgb-1.));
+       if (uBumpTxtr == 15) normal = normalize(normal + (2.*texture(uSampler[15],uv).rgb-1.));
+    }
+ 
 
     // directional lights
     for (int l = 0; l < nl && l < uDLightCount; l += 1) {
@@ -665,22 +689,24 @@ vec3 lighting_contribution(
        opacity = anidraw.a;
     }
 
-    if (uTxtr ==  0) color *= texture(uSampler[ 0], vUV).rgb;
-    if (uTxtr ==  1) color *= texture(uSampler[ 1], vUV).rgb;
-    if (uTxtr ==  2) color *= texture(uSampler[ 2], vUV).rgb;
-    if (uTxtr ==  3) color *= texture(uSampler[ 3], vUV).rgb;
-    if (uTxtr ==  4) color *= texture(uSampler[ 4], vUV).rgb;
-    if (uTxtr ==  5) color *= texture(uSampler[ 5], vUV).rgb;
-    if (uTxtr ==  6) color *= texture(uSampler[ 6], vUV).rgb;
-    if (uTxtr ==  7) color *= texture(uSampler[ 7], vUV).rgb;
-    if (uTxtr ==  8) color *= texture(uSampler[ 8], vUV).rgb;
-    if (uTxtr ==  9) color *= texture(uSampler[ 9], vUV).rgb;
-    if (uTxtr == 10) color *= texture(uSampler[10], vUV).rgb;
-    if (uTxtr == 11) color *= texture(uSampler[11], vUV).rgb;
-    if (uTxtr == 12) color *= texture(uSampler[12], vUV).rgb;
-    if (uTxtr == 13) color *= texture(uSampler[13], vUV).rgb;
-    if (uTxtr == 14) color *= texture(uSampler[14], vUV).rgb;
-    if (uTxtr == 15) color *= texture(uSampler[15], vUV).rgb;
+    if (uTxtr != -1) {
+       if (uTxtr ==  0) color *= texture(uSampler[ 0], vUV).rgb;
+       if (uTxtr ==  1) color *= texture(uSampler[ 1], vUV).rgb;
+       if (uTxtr ==  2) color *= texture(uSampler[ 2], vUV).rgb;
+       if (uTxtr ==  3) color *= texture(uSampler[ 3], vUV).rgb;
+       if (uTxtr ==  4) color *= texture(uSampler[ 4], vUV).rgb;
+       if (uTxtr ==  5) color *= texture(uSampler[ 5], vUV).rgb;
+       if (uTxtr ==  6) color *= texture(uSampler[ 6], vUV).rgb;
+       if (uTxtr ==  7) color *= texture(uSampler[ 7], vUV).rgb;
+       if (uTxtr ==  8) color *= texture(uSampler[ 8], vUV).rgb;
+       if (uTxtr ==  9) color *= texture(uSampler[ 9], vUV).rgb;
+       if (uTxtr == 10) color *= texture(uSampler[10], vUV).rgb;
+       if (uTxtr == 11) color *= texture(uSampler[11], vUV).rgb;
+       if (uTxtr == 12) color *= texture(uSampler[12], vUV).rgb;
+       if (uTxtr == 13) color *= texture(uSampler[13], vUV).rgb;
+       if (uTxtr == 14) color *= texture(uSampler[14], vUV).rgb;
+       if (uTxtr == 15) color *= texture(uSampler[15], vUV).rgb;
+    }
  
     float isLit = sign(specularPower);
     if (uVideo == 0 && uAnidraw == 0 && uCustom == 1) {

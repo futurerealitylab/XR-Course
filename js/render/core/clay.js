@@ -232,7 +232,7 @@ let prevMesh = null;
 let prevTextureResource  = null;
 let prevTextureBindPoint = -1;
 
-let drawMesh = (mesh, materialId, textureSrc, txtr, bumpTextureSrc, dull, flags, customShader, opacity, view) => {
+let drawMesh = (mesh, materialId, textureSrc, txtr, bumpTextureSrc, bumptxtr, dull, flags, customShader, opacity, view) => {
    if (!this.renderingIsActive)
       return;
 
@@ -428,6 +428,7 @@ let drawMesh = (mesh, materialId, textureSrc, txtr, bumpTextureSrc, dull, flags,
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, _canvas_txtr[txtr].src);
    }
    setUniform('1i', 'uTxtr', txtr);
+   setUniform('1i', 'uBumpTxtr', bumptxtr);
 
 
    if (this.views.length == 1) {
@@ -1540,7 +1541,7 @@ function ImplicitSurface() {
    // FINAL PREPARATION FOR BLOBBY RENDERING FOR THIS ANIMATION FRAME
 
    this.endBlobs = () => {
-      if (blobMatrices.length == 0 || blobMatrices === undefined) {
+      if (blobMatrices === undefined || blobMatrices.length == 0) {
          return;
       }
 
@@ -1677,7 +1678,7 @@ let fl = 5;                                                          // CAMERA F
 
    // DRAW ROUTINE THAT ALLOWS CUSTOM COLORS, TEXTURES AND TRANSFORMATIONS
 
-   let draw = (mesh,color,move,turn,size,texture,txtr,bumpTexture,dull,flags,customShader,opacity,view) => {
+   let draw = (mesh,color,move,turn,size,texture,txtr,bumpTexture,bumptxtr,dull,flags,customShader,opacity,view) => {
 
       // IF NEEDED, CREATE A NEW MATERIAL FOR THIS COLOR.
 
@@ -1721,7 +1722,7 @@ let fl = 5;                                                          // CAMERA F
          M.scale(size);
 
       if (! isNaN(M.getValue()[0]))
-         drawMesh(mesh, color, texture, txtr, bumpTexture, dull, flags, customShader, opacity, view);
+         drawMesh(mesh, color, texture, txtr, bumpTexture, bumptxtr, dull, flags, customShader, opacity, view);
 
       if (move || turn || size)
          M.restore();
@@ -2002,7 +2003,7 @@ let fl = 5;                                                          // CAMERA F
                                                      info   : S[n].info
                                                    }));
                }
-               draw(formMesh[name], materialId, null, null, null, S[n].texture, S[n].txtr, S[n].bumpTexture, S[n].dull, S[n].flags, S[n].customShader, S[n].opacity, S[n].view);
+               draw(formMesh[name], materialId, null, null, null, S[n].texture, S[n].txtr, S[n].bumpTexture, S[n].bumptxtr, S[n].dull, S[n].flags, S[n].customShader, S[n].opacity, S[n].view);
                M.restore();
                if (m && m.texture)
                   delete m.texture;
@@ -2201,6 +2202,7 @@ function Node(_form) {
          texture: node._texture,
          txtr: node._txtr,
          bumpTexture: node._bumpTexture,
+         bumptxtr: node._bumptxtr,
          ignoreParentTransform: node.ignoreParentTransform,
       }
       return dataTree;
@@ -2256,6 +2258,7 @@ function Node(_form) {
       this._texture  = '';
       this._txtr     = -1;
       this._bumpTexture  = '';
+      this._bumptxtr = -1;
       this._precision = 1;
       this._flags    = {};
       this._customShader = '';
@@ -2760,6 +2763,7 @@ function Node(_form) {
                                      : this.prop('_texture'),
             txtr: this.prop('_txtr'),
             bumpTexture: this.prop('_bumpTexture'),
+            bumptxtr: this.prop('_bumptxtr'),
             form: form,
             flags: this.prop('_flags'),
             customShader: this.prop('_customShader'),
@@ -2807,6 +2811,10 @@ function Node(_form) {
 
    this.txtr = n => {
       this._txtr = n;
+      return this;
+   }
+   this.bumptxtr = n => {
+      this._bumptxtr = n;
       return this;
    }
    this.txtrSrc = (txtr, src, do_not_animate) => {
