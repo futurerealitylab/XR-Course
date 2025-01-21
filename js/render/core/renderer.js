@@ -533,6 +533,16 @@ vec3 lighting_contribution(
 
 ` + CUSTOM_FRAG_SHADER_FUNCTIONS_MARKER + `
 
+ vec4 txtrLogic(vec4 t, vec3 ambient) {
+    vec3 rgb = mix(vec3(1.), t.rgb, t.a);
+    float a = t.a;
+    if (uTransparentTexture == 1) {
+       rgb = 5. * ambient;
+       a *= max(0., 1. - (t.r + t.g + t.b) / 3.);
+    }
+    return vec4(rgb, a);
+ }  
+       
  void main() {
     vec2 uv = vUV;
     if (uTriangleDisk == 1) {
@@ -690,22 +700,22 @@ vec3 lighting_contribution(
     }
 
     if (uTxtr != -1) {
-       if (uTxtr ==  0) color *= texture(uSampler[ 0], vUV).rgb;
-       if (uTxtr ==  1) color *= texture(uSampler[ 1], vUV).rgb;
-       if (uTxtr ==  2) color *= texture(uSampler[ 2], vUV).rgb;
-       if (uTxtr ==  3) color *= texture(uSampler[ 3], vUV).rgb;
-       if (uTxtr ==  4) color *= texture(uSampler[ 4], vUV).rgb;
-       if (uTxtr ==  5) color *= texture(uSampler[ 5], vUV).rgb;
-       if (uTxtr ==  6) color *= texture(uSampler[ 6], vUV).rgb;
-       if (uTxtr ==  7) color *= texture(uSampler[ 7], vUV).rgb;
-       if (uTxtr ==  8) color *= texture(uSampler[ 8], vUV).rgb;
-       if (uTxtr ==  9) color *= texture(uSampler[ 9], vUV).rgb;
-       if (uTxtr == 10) color *= texture(uSampler[10], vUV).rgb;
-       if (uTxtr == 11) color *= texture(uSampler[11], vUV).rgb;
-       if (uTxtr == 12) color *= texture(uSampler[12], vUV).rgb;
-       if (uTxtr == 13) color *= texture(uSampler[13], vUV).rgb;
-       if (uTxtr == 14) color *= texture(uSampler[14], vUV).rgb;
-       if (uTxtr == 15) color *= texture(uSampler[15], vUV).rgb;
+       if (uTxtr ==  0) { rgba = txtrLogic(texture(uSampler[ 0],uv), ambient);
+       if (uTxtr ==  1) { rgba = txtrLogic(texture(uSampler[ 1],uv), ambient);
+       if (uTxtr ==  2) { rgba = txtrLogic(texture(uSampler[ 2],uv), ambient);
+       if (uTxtr ==  3) { rgba = txtrLogic(texture(uSampler[ 3],uv), ambient);
+       if (uTxtr ==  4) { rgba = txtrLogic(texture(uSampler[ 4],uv), ambient);
+       if (uTxtr ==  5) { rgba = txtrLogic(texture(uSampler[ 5],uv), ambient);
+       if (uTxtr ==  6) { rgba = txtrLogic(texture(uSampler[ 6],uv), ambient);
+       if (uTxtr ==  7) { rgba = txtrLogic(texture(uSampler[ 7],uv), ambient);
+       if (uTxtr ==  8) { rgba = txtrLogic(texture(uSampler[ 8],uv), ambient);
+       if (uTxtr ==  9) { rgba = txtrLogic(texture(uSampler[ 9],uv), ambient);
+       if (uTxtr == 10) { rgba = txtrLogic(texture(uSampler[10],uv), ambient);
+       if (uTxtr == 11) { rgba = txtrLogic(texture(uSampler[11],uv), ambient);
+       if (uTxtr == 12) { rgba = txtrLogic(texture(uSampler[12],uv), ambient);
+       if (uTxtr == 13) { rgba = txtrLogic(texture(uSampler[13],uv), ambient);
+       if (uTxtr == 14) { rgba = txtrLogic(texture(uSampler[14],uv), ambient);
+       if (uTxtr == 15) { rgba = txtrLogic(texture(uSampler[15],uv), ambient);
     }
  
     float isLit = sign(specularPower);

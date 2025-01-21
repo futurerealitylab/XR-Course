@@ -729,13 +729,13 @@ let renderParticlesMesh = mesh => {
    if (orient == 'yaw') {
       Z = cg.normalize([Z[0],0,Z[2]]);
       Y = [0,1,0];
-      X = cg.normalize(cg.cg.cross(Y,Z));
+      X = cg.normalize(cg.cross(Y,Z));
    }
 
    let order = [];
    for (let i = 0 ; i < N ; i++)
       order.push(i);
-   order.sort((a,b) => cg.cg.dot(Z,data[a].p) - cg.cg.dot(Z,data[b].p));
+   order.sort((a,b) => cg.dot(Z,data[a].p) - cg.dot(Z,data[b].p));
 
 /*
    Need to add an option for p to be 2 points.
@@ -746,9 +746,9 @@ let renderParticlesMesh = mesh => {
       let nx = X, ny = Y, nz = Z;
       let pos, d = [1,0,0];
       if (Array.isArray(p[0])) {
-         let c = cg.cg.mix(p[0],p[1],.5,.5);
-         d = cg.cg.mix(p[0],p[1],-1, 1);
-         ny = cg.normalize(cg.cg.cross(nz,d));
+         let c = cg.mix(p[0],p[1],.5,.5);
+         d = cg.mix(p[0],p[1],-1, 1);
+         ny = cg.normalize(cg.cross(nz,d));
          pos = [ c[0] + u * d[0] + v * s * ny[0],
                  c[1] + u * d[1] + v * s * ny[1],
                  c[2] + u * d[2] + v * s * ny[2] ];
@@ -757,13 +757,13 @@ let renderParticlesMesh = mesh => {
          if (n) {
             if (n[0]==0 && n[2]==0) {
                nz = cg.normalize(n);
-               nx = cg.normalize(cg.cg.cross(d,nz));
-               ny = cg.normalize(cg.cg.cross(nz,nx));
+               nx = cg.normalize(cg.cross(d,nz));
+               ny = cg.normalize(cg.cross(nz,nx));
             }
             else {
                nz = cg.normalize(n);
-               nx = cg.normalize(cg.cg.cross([0,1,0],nz));
-               ny = cg.normalize(cg.cg.cross(nz,nx));
+               nx = cg.normalize(cg.cross([0,1,0],nz));
+               ny = cg.normalize(cg.cross(nz,nx));
             }
          }
          pos = [ p[0] + u * s * nx[0] + v * s * ny[0],
@@ -942,8 +942,8 @@ this.animateWire = (wire, r, f) => {
 
    let z = cg.subtract(f(.01), f(0)),
        xx = z[0]*z[0], yy = z[1]*z[1], zz = z[2]*z[2],
-       x = cg.normalize(cg.cg.cross(z, [ yy+zz, zz+xx, xx+yy ])),
-       y = cg.normalize(cg.cg.cross(z, x));
+       x = cg.normalize(cg.cross(z, [ yy+zz, zz+xx, xx+yy ])),
+       y = cg.normalize(cg.cross(z, x));
 
    let X = [], Y = [];
    for (let i = 0 ; i <= nu ; i++) {
@@ -951,8 +951,8 @@ this.animateWire = (wire, r, f) => {
       Y.push(y);
       let u = i / nu;
       z = cg.subtract(f(u + .01), f(u));
-      x = cg.normalize(cg.cg.cross(y, z));
-      y = cg.normalize(cg.cg.cross(z, x));
+      x = cg.normalize(cg.cross(y, z));
+      y = cg.normalize(cg.cross(z, x));
    }
 
    wire.setVertices((u,v) => cg.add(cg.add(f(u), cg.scale(X[nu*u >> 0], r * Math.sin(2 * Math.PI * v))),
@@ -2512,9 +2512,9 @@ function Node(_form) {
       let m = cg.mMultiply(clay.inverseRootMatrix, this.inverseViewMatrix());
       let Y = [0,1,0];
       let Z = m.slice(8,11);
-      let X = cg.normalize(cg.cg.cross(Y,Z));
+      let X = cg.normalize(cg.cross(Y,Z));
       if (changeY)
-         Y = cg.normalize(cg.cg.cross(Z,X));
+         Y = cg.normalize(cg.cross(Z,X));
       m = [ X[0],X[1],X[2],0, Y[0],Y[1],Y[2],0, Z[0],Z[1],Z[2],0, m[12],m[13],m[14],1 ];
       this.setMatrix(m);
       this.move(0,0,-1).scale(1 / (window.vr ? 2 : fl));
@@ -2529,7 +2529,7 @@ function Node(_form) {
       let worldOrigin = matrix => cg.mTransform(clay.inverseRootMatrix, matrix.slice(12,15));
       let Z = cg.normalize(cg.subtract(worldOrigin(clay.root().inverseViewMatrix(0)),
                                        worldOrigin(this.getGlobalMatrix())));
-      let X = cg.normalize(cg.cg.cross([0,1,0], Z));
+      let X = cg.normalize(cg.cross([0,1,0], Z));
       let m = this.getMatrix();
       this.setMatrix([ X[0],X[1],X[2],0, 0,1,0,0, Z[0],Z[1],Z[2],0, m[12],m[13],m[14],1 ]);
       return this;
@@ -2540,11 +2540,11 @@ function Node(_form) {
       let worldOrigin = matrix => cg.mTransform(clay.inverseRootMatrix, matrix.slice(12,15));
       let Z = cg.normalize(cg.subtract(worldOrigin(clay.root().inverseViewMatrix(0)),
                                        worldOrigin(this.getGlobalMatrix())));
-      let X = cg.normalize(cg.cg.cross([0,1,0], Z));
+      let X = cg.normalize(cg.cross([0,1,0], Z));
       this.child(0).setMatrix([ X[0],X[1],X[2],0, 0,1,0,0, Z[0],Z[1],Z[2],0, 0,0,0,1 ]).scale(1,1,.001);
       return this;
    }
-   this.link = (a,b,r) => this.move(cg.cg.mix(a,b,.5))
+   this.link = (a,b,r) => this.move(cg.mix(a,b,.5))
                               .aimZ(cg.subtract(b,a))
                               .scale(r,r,cg.distance(a,b)/2);
    this.text = (text, textHeight) => {
