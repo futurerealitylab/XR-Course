@@ -1,15 +1,16 @@
 import * as cg from "../render/core/cg.js";
+import { G2 } from "../util/g2.js";
 export const init = async model => {
 
    // NEW MULTI-UNIT TEXTURE API
 
-   let txtr_is_canvas = false;
-   let txtr_is_video = true;
+   let txtr_is_canvas = true;
+   let txtr_is_video = false;
+
+   let g2_instance = new G2(true, 512);
+
    if (txtr_is_canvas) {
-      window.txtrCanvas = document.createElement('canvas');
-      txtrCanvas.width  = 512;
-      txtrCanvas.height = 512;
-      model.txtrSrc(2, txtrCanvas, false); // SET 3RD ARG TO TRUE TO RENDER ONLY ONCE
+      model.txtrSrc(2, g2_instance.getCanvas(), false); // SET 3RD ARG TO TRUE TO RENDER ONLY ONCE
    }
    else if (txtr_is_video)
       model.txtrSrc(2, videoFromCamera);
@@ -61,7 +62,7 @@ export const init = async model => {
    model.animate(() => {
 
       if (txtr_is_canvas) {
-         let ctx = txtrCanvas.getContext('2d');
+         let ctx = g2_instance.getCanvas().getContext('2d');
          ctx.fillStyle = '#000000';
          ctx.fillRect(0, 0, 512, 512);
          ctx.fillStyle = '#ff00ff';

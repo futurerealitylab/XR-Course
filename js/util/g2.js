@@ -5,11 +5,17 @@ import { lcb, rcb } from "../handle_scenes.js";
 
 // SUPPORT LIBRARY FOR 2D GRAPHICS
 
-function G2() {
+export function G2(animate_flag=true, canvasWidth=1024, canvasHeight) {
 
-   let context = textureCanvas.getContext('2d');
-   let width   = textureCanvas.width;
-   let height  = textureCanvas.height;
+   let txtrCanvas = document.createElement('canvas');
+   txtrCanvas.width = canvasWidth;
+   txtrCanvas.height = canvasHeight===undefined ? canvasWidth : canvasHeight;
+
+   let context = txtrCanvas.getContext('2d');
+   let width   = txtrCanvas.width;
+   let height  = txtrCanvas.height;
+   let animate = animate_flag;
+
    let mouseZPrev = false;
    let mouseState = 'move';
 
@@ -36,6 +42,10 @@ function G2() {
    context.lineCap = 'round';
 
    let widgets = [];
+
+   this.getCanvas = () => {
+      return txtrCanvas;
+   }
 
    this.addWidget = (obj, type, x, y, color, label, action, size) => {
       switch (type) {
