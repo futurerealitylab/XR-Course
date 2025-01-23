@@ -1,5 +1,5 @@
 import * as cg from "../render/core/cg.js";
-import { g2 } from "../util/g2.js";
+import { G2 } from "../util/g2.js";
 import { uiBox } from "../render/core/UIBox.js";
 
 let button1State = 'off';
@@ -7,6 +7,8 @@ let button2State = 'no';
 let slider1Value = 0.5;
 
 export const init = async model => {
+
+   let g2 = new G2();
 
    let button1Box = uiBox('button', model,
       () => {

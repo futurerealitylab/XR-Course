@@ -37,7 +37,7 @@ export default () => {
 //          { name: "DemoControllers"    , path: "./demoControllers.js"    , public: false},
 //          { name: "DemoCroquet"        , path: "./demoCroquet.js"        , public: false},
 //          { name: "demoHands"          , path: "./demoHands.js"          , public: false},
-//          { name: "DemoHUD"            , path: "./demoHUD.js"            , public: false},
+          { name: "DemoHUD"            , path: "./demoHUD.js"            , public: false},
 //          { name: "DemoIntersect"      , path: "./demoIntersect.js"      , public: false},
 //          { name: "DemoOpacity"        , path: "./demoOpacity.js"        , public: false},
 //          { name: "DemoParticles"      , path: "./demoParticles.js"      , public: false},
