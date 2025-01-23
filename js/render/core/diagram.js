@@ -1,7 +1,9 @@
 import * as cg from "./cg.js";
-import { g2 } from "../../util/g2.js";
+import { G2 } from "../../util/g2.js";
 
 export function Diagram(model, center, size, callback) {
+
+   let g2 = new G2();
 
    // INITIALIZE THE FLATTENED CUBES CONTAINING THE CANVAS FOR THE USER'S TWO EYES.
 

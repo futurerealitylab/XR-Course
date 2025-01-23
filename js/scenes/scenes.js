@@ -67,7 +67,7 @@ export default () => {
 //          { name: "construct"          , path: "./demoBalls.js"          , public: false },
 //          { name: "crayon"             , path: "./demoDraw.js"           , public: false },
 //          { name: "agent"              , path: "./demoAgent.js"          , public: false},
-//          { name: "diagram"            , path: "./demoDiagram.js"        , public: false},
+          { name: "diagram"            , path: "./demoDiagram.js"        , public: false},
 //          { name: "dodeca"             , path: "./demoDodeca.js"         , public: false},
 //          { name: "dots"               , path: "./demoDots.js"           , public: false},
 //          { name: "exhibit"            , path: "./demoExhibit.js"        , public: false},
