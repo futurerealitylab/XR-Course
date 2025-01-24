@@ -1,7 +1,7 @@
 import * as cg from "../render/core/cg.js";
 
 window.nestedState = {
-  chair: [.2,-.05,-.2];
+  chair: [.2,-.05,-.2],
 };
 
 export const init = async model => {
@@ -9,7 +9,7 @@ export const init = async model => {
    // NEW MULTI-UNIT TEXTURE API
 
    let txtr_is_canvas = false;
-   let txtr_is_video = true;
+   let txtr_is_video = false;
    if (txtr_is_canvas) {
       window.txtrCanvas = document.createElement('canvas');
       txtrCanvas.width  = 512;
@@ -55,9 +55,9 @@ export const init = async model => {
 
    inputEvents.onDrag = hand => {
       let p = inputEvents.pos(hand);
-      nestedState.chair = [ Math.max(-tr, Math.min(tr, p[0])),
-                            Math.max(-4*cr, p[1] - ry),
-                            Math.max(-tr, Math.min(tr, p[2])) ];
+      nestedState.chair = cg.roundVec(3, [ Math.max(-tr, Math.min(tr, p[0])),
+					   Math.max(-4*cr, p[1] - ry),
+                                           Math.max(-tr, Math.min(tr, p[2])) ]);
       server.broadcastGlobal('nestedState');
    }
 

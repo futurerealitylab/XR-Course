@@ -1,21 +1,16 @@
 import * as cg from "../render/core/cg.js";
-import { G2 } from "../util/g2.js";
+import { Avatar } from "../render/core/avatar.js";
+
+window.nestedAvatarData = [];
+window.nestedState = {
+   chair: [.2,-.05,-.2],
+};
+
 export const init = async model => {
 
-   // NEW MULTI-UNIT TEXTURE API
+   let avatars = [];
 
-   let txtr_is_canvas = false;
-   let txtr_is_video = false;
-
-   let g2_instance = new G2(true, 512);
-
-   if (txtr_is_canvas) {
-      model.txtrSrc(2, g2_instance.getCanvas(), false); // SET 3RD ARG TO TRUE TO RENDER ONLY ONCE
-   }
-   else if (txtr_is_video)
-      model.txtrSrc(2, videoFromCamera);
-   else
-      model.txtrSrc(2, "../media/textures/concrete.png");
+   model.txtrSrc(2, "../media/textures/concrete.png");
 
    model.customShader(`
       uniform mat4 uWorld;
@@ -27,7 +22,7 @@ export const init = async model => {
 
    let touched = false;
    let tr = .375, cr = .0375, ry = .8;
-   let dragPos = [.2,-.05,-.2], movePos = { left: [0,1,0], right: [0,1,0] };
+   let movePos = { left: [0,1,0], right: [0,1,0] };
    let ilo = -2, ihi = 4;
    let container = model.add('sphere').scale(1000,1000,-1000);
    let rooms = model.add().move(0,ry,0);
@@ -35,7 +30,6 @@ export const init = async model => {
    for (let i = ilo ; i <= ihi ; i++) {
       let room = rooms.add();
          let table = room.add();
-         // table.add('cube').scale(1.5).move(0,-.11,0).scale(.3,.01,.3).texture("../media/textures/concrete.png");
             table.add('cube').scale(1.5).move(0,-.11,0).scale(.3,.01,.3).txtr(2); // NEW MULTI-UNIT TEXTURE API
             table.add('cube').scale(1.5).move(0,-.45,0).scale(.05,.345,.05).color(0,0,0);
          let chair = room.add();
@@ -45,8 +39,6 @@ export const init = async model => {
             chair.add('cube').move( .9,.9,-.9).scale(.1,.9,.1);
             chair.add('cube').move(-.9,.9, .9).scale(.1,.9,.1);
             chair.add('cube').move( .9,.9, .9).scale(.1,.9,.1);
-	    //if (i == 1)
-               //chair.add('cube').scale(.99).opacity(.1);
          room.add('tubeY');
    }
 
@@ -54,24 +46,42 @@ export const init = async model => {
 
    inputEvents.onDrag = hand => {
       let p = inputEvents.pos(hand);
-      dragPos = [ Math.max(-tr, Math.min(tr, p[0])),
-                  Math.max(-4*cr, p[1] - ry),
-                  Math.max(-tr, Math.min(tr, p[2])) ];
+      nestedState.chair = cg.roundVec(2, [ Math.max(-tr, Math.min(tr, p[0])),
+                                           Math.max(-4*cr, p[1] - ry),
+                                           Math.max(-tr, Math.min(tr, p[2])) ]);
+      server.broadcastGlobal('nestedState');
    }
 
    model.animate(() => {
 
-      if (txtr_is_canvas) {
-         let ctx = g2_instance.getCanvas().getContext('2d');
-         ctx.fillStyle = '#000000';
-         ctx.fillRect(0, 0, 512, 512);
-         ctx.fillStyle = '#ff00ff';
-	 let a = 50;
-	 let c = 256 + (256-a) * Math.cos(2 * model.time);
-	 let s = 256 + (256-a) * Math.sin(2 * model.time);
-         ctx.fillRect(s-a/2, c-a/2, a, a);
-      }
 
+      // MAKE SURE THERE IS AN AVATAR FOR EVERY ACTIVE CLIENT.
+
+      for (let n = 0 ; n < clients.length ; n++)
+         if (! avatars[clients[n]])
+            avatars[clients[n]] = new Avatar(model);
+
+      // COMPUTE MY AVATAR'S POSE, THEN BROADCAST MY POSE DATA TO ALL CLIENTS.
+
+      avatars[clientID].update();
+      nestedAvatarData[clientID] = avatars[clientID].packData();
+      server.broadcastGlobalSlice('nestedAvatarData', clientID, clientID+1);
+
+      // UPDATE CLIENT AVATARS FROM THE POSE DATA OF ALL ACTIVE CLIENTS.
+
+      nestedAvatarData = server.synchronize('nestedAvatarData');
+      for (let n = 0 ; n < clients.length ; n++)
+         avatars[clients[n]].unpackData(nestedAvatarData[clients[n]]);
+
+      // ONLY SHOW THE AVATARS OF ACTIVE CLIENTS.
+
+      for (let i in avatars)
+         avatars[i].getRoot().scale(0);
+      for (let n = 0 ; n < clients.length ; n++)
+         avatars[clients[n]].getRoot().identity();
+
+
+      nestedState = server.synchronize('nestedState')
       model.setUniform('Matrix4fv', 'uWorld', false, worldCoords);
       let bigChairPos;
       for (let i = ihi ; i >= ilo ; i--) {
@@ -81,7 +91,7 @@ export const init = async model => {
 	 let chair = room.child(1);
 	 let thing = room.child(2);
 
-         chair.identity().move(dragPos).color(i==1&&touched?[1,.5,.5]:[0,.25,.5]).scale(cr);
+         chair.identity().move(nestedState.chair).color(i==1&&touched?[1,.5,.5]:[0,.25,.5]).scale(cr);
 	 if (i == 1) {
 	    bigChairPos = chair.getGlobalMatrix().slice(12,15);
 	    bigChairPos[1] += cr * 8;
@@ -89,6 +99,8 @@ export const init = async model => {
 
          thing.identity().turnY(model.time/2).move(1,1.5,0).scale(.15);
       }
+
+
       let dL = cg.subtract(movePos.left , bigChairPos);
       let dR = cg.subtract(movePos.right, bigChairPos);
       let tL = Math.max(Math.abs(dL[0]), Math.abs(dL[1]), Math.abs(dL[2]));

@@ -546,8 +546,15 @@ export let Matrix = function() {
    this.restore   = ()      => --top;
 }
 
+export let packMatrix = m => { // PACK A ROTATION+TRANSLATION MATRIX (SCALING IS NOT SUPPORTED)
+   let I = t => 1000 * t >> 0, Q = mToQuaternion(m);
+   return [ I(Q.x), I(Q.y), I(Q.z), I(Q.w), I(m[12]), I(m[13]), I(m[14]) ];
+}
 
-
+export let unpackMatrix = P => { // UNPACK A ROTATION+TRANSLATION MATRIX
+   let m = mFromQuaternion({x:P[0]/1000, y:P[1]/1000, z:P[2]/1000, w:P[3]/1000});
+   return m.slice(0, 12).concat([P[4]/1000, P[5]/1000, P[6]/1000, 1]);
+}
 
 export let vec2vecProj = (a,b) => {
    let proj = dot(a,b)/dot(b,b);

@@ -20,7 +20,10 @@ export default () => {
             { name: "example7"           , path: "./example7.js"           , public: false },
             { name: "example8"           , path: "./example8.js"           , public: false },
 
-          { name: "nested"             , path: "./nested.js"             , public: true  },
+            { name: "nested"             , path: "./nested.js"             , public: true  },
+            { name: "nestedA"            , path: "./nestedA.js"            , public: true  },
+            { name: "nestedB"            , path: "./nestedB.js"            , public: true  },
+
 //          { name: "pinscreen"          , path: "./pinscreen.js"          , public: true  },
 //          { name: "share_ball"         , path: "./share_ball.js"         , public: false },
 //          { name: "drag_objects"       , path: "./drag_objects.js"       , public: false },
