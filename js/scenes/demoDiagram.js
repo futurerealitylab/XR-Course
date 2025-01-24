@@ -1,7 +1,7 @@
 import { Diagram } from "../render/core/diagram.js";
 
 export const init = async model => {
-   let diagram = new Diagram(model, [0,1.6,0], .3, draw => {
+   let diagram = new Diagram(model, 14,15, [0,1.6,0], .3, draw => {
       draw.save();
          draw.move(0,.05,0);
          draw.scale(.06);
@@ -13,7 +13,10 @@ export const init = async model => {
          draw.cube({ color: 'white', lineWidth: .003 });
       draw.restore();
 
-      draw.globe({ color: 'blue', step: .04 });
+      draw.save();
+         draw.scale(.8);
+         draw.globe({ color: 'blue', step: .04 });
+      draw.restore();
 
       draw.save();
          let path = [];

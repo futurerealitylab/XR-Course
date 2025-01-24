@@ -2830,6 +2830,8 @@ function Node(_form) {
          image.src = src;
       }
       else {                                      // FOR ANY OTHER TEXTURE SOURCE,
+         if (! src._animate)
+	    do_not_animate = true;
          gl.activeTexture (gl.TEXTURE0 + txtr);   // ASSUME THAT ITS CONTENT CAN BE ANIMATED.
          gl.bindTexture   (gl.TEXTURE_2D, gl.createTexture());
          gl.texParameteri (gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);

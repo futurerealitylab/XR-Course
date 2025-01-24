@@ -35,9 +35,11 @@ export function Avatar(model) {
    }
 
    this.unpackData = data => {
-      head.setMatrix     (cg.mMultiply(cg.unpackMatrix(data.H), cg.mRotateY(Math.PI)));
-      leftHand.setMatrix (cg.mMultiply(cg.unpackMatrix(data.L), cg.mRotateY(Math.PI)));
-      rightHand.setMatrix(cg.mMultiply(cg.unpackMatrix(data.R), cg.mRotateY(Math.PI)));
+      if (data) {
+         head.setMatrix     (cg.mMultiply(cg.unpackMatrix(data.H), cg.mRotateY(Math.PI)));
+         leftHand.setMatrix (cg.mMultiply(cg.unpackMatrix(data.L), cg.mRotateY(Math.PI)));
+         rightHand.setMatrix(cg.mMultiply(cg.unpackMatrix(data.R), cg.mRotateY(Math.PI)));
+      }
    }
 }
 

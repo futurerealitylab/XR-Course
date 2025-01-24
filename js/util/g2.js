@@ -5,16 +5,16 @@ import { lcb, rcb } from "../handle_scenes.js";
 
 // SUPPORT LIBRARY FOR 2D GRAPHICS
 
-export function G2(animate_flag=true, canvasWidth=1024, canvasHeight) {
+export function G2(do_not_animate_flag=false, canvasWidth=1024, canvasHeight) {
 
    let txtrCanvas = document.createElement('canvas');
    txtrCanvas.width = canvasWidth;
    txtrCanvas.height = canvasHeight===undefined ? canvasWidth : canvasHeight;
+   txtrCanvas._animate = ! do_not_animate_flag;
 
    let context = txtrCanvas.getContext('2d');
    let width   = txtrCanvas.width;
    let height  = txtrCanvas.height;
-   let animate = animate_flag;
 
    let mouseZPrev = false;
    let mouseState = 'move';
@@ -339,7 +339,7 @@ export function G2(animate_flag=true, canvasWidth=1024, canvasHeight) {
                       [b[0]-d[0]*r+2*d[1]*r, b[1]-d[1]*r-2*d[0]*r] ]);
    }
    this.clear = () => {
-      context.clearRect(0, 0, screen.width, screen.height);
+      context.clearRect(0, 0, width, height);
    }
    this.computeUVZ = objMatrix => {
       if (! window.vr) {
