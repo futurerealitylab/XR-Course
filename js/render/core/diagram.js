@@ -1,7 +1,9 @@
 import * as cg from "./cg.js";
-import { g2 } from "../../util/g2.js";
+import { G2 } from "../../util/g2.js";
 
 export function Diagram(model, center, size, callback) {
+
+   let g2 = new G2();
 
    // INITIALIZE THE FLATTENED CUBES CONTAINING THE CANVAS FOR THE USER'S TWO EYES.
 
@@ -91,8 +93,8 @@ export function Diagram(model, center, size, callback) {
 
    let imageData = null;
    this.points = ({ points=[] }) => {
-      let w = textureCanvas.width,
-          h = textureCanvas.height;
+      let w = g2.getCanvas().width,
+          h = g2.getCanvas().height;
       if (! imageData)
          imageData = new ImageData(w, h);
       let data = imageData.data;
@@ -195,7 +197,7 @@ for (let v = -4 ; v <= 4 ; v++)
       imageData = null;
       callback(this);
       if (imageData) {
-         textureCanvas.getContext('2d').putImageData(imageData,0,0);
+         g2.getCanvas().getContext('2d').putImageData(imageData,0,0);
 	 return;
       }
 
