@@ -1,14 +1,9 @@
 import * as cg from "../render/core/cg.js";
-import { Avatar } from "../render/core/avatar.js";
+import { updateAvatars } from "../render/core/avatar.js";
 
-window.avatarData = [];
-window.nestedState = {
-   chair: [.2,-.05,-.2],
-};
+window.nestedState = { chair: [.2,-.05,-.2] };
 
 export const init = async model => {
-
-   let avatars = [];
 
    model.txtrSrc(2, "../media/textures/concrete.png");
 
@@ -53,57 +48,23 @@ export const init = async model => {
    }
 
    model.animate(() => {
+      updateAvatars(model);
 
-
-      // MAKE SURE THERE IS AN AVATAR FOR EVERY ACTIVE CLIENT.
-
-      for (let n = 0 ; n < clients.length ; n++) {
-         let id = clients[n];
-         if (! avatars[id]) {
-            avatars[id] = new Avatar(model);
-	    avatarData.push({ id: id, data: {} });
-         }
-      }
-
-      // COMPUTE MY AVATAR'S POSE, THEN BROADCAST MY POSE DATA TO ALL CLIENTS.
-
-      avatars[clientID].update();
-      for (let j in avatarData.length)
-         if (avatarData[j].id == clientID) {
-            avatarData[j].data = avatars[clientID].packData();
-            server.broadcastGlobalSlice('avatarData', j, j+1);
-         }
-
-      // UPDATE CLIENT AVATARS FROM THE POSE DATA OF ALL ACTIVE CLIENTS.
-
-      avatarData = server.synchronize('avatarData');
-      for (let j in avatarData)
-         avatars[avatarData[j].id].unpackData(avatarData[j].data);
-
-      // ONLY SHOW THE AVATARS OF ACTIVE CLIENTS.
-
-      for (let id in avatars)
-         avatars[id].getRoot().scale(0);
-      for (let n = 0 ; n < clients.length ; n++) {
-         let id = clients[n];
-         avatars[id].getRoot().identity();
-      }
-
-
-      nestedState = server.synchronize('nestedState')
+      nestedState = server.synchronize('nestedState');
+      console.log(nestedState);
       model.setUniform('Matrix4fv', 'uWorld', false, worldCoords);
       let bigChairPos;
       for (let i = ihi ; i >= ilo ; i--) {
          let room = rooms.child(i - ilo);
-	 room.identity().scale(Math.pow(8, i));
+         room.identity().scale(Math.pow(8, i));
 
-	 let chair = room.child(1);
-	 let thing = room.child(2);
+         let chair = room.child(1);
+         let thing = room.child(2);
 
          chair.identity().move(nestedState.chair).color(i==1&&touched?[1,.5,.5]:[0,.25,.5]).scale(cr);
-	 if (i == 1) {
-	    bigChairPos = chair.getGlobalMatrix().slice(12,15);
-	    bigChairPos[1] += cr * 8;
+         if (i == 1) {
+            bigChairPos = chair.getGlobalMatrix().slice(12,15);
+            bigChairPos[1] += cr * 8;
          }
 
          thing.identity().turnY(model.time/2).move(1,1.5,0).scale(.15);

@@ -184,6 +184,8 @@ function Server(wsPort) {
                if (obj.start !== undefined)
                   for (let i = 0 ; i < obj.value.length ; i++)
                      window[obj.global][obj.start + i] = this.construct(obj.value[i]);
+               else if (obj.element !== undefined)
+                  window[obj.global][obj.element] = this.construct(obj.value);
                else
                   window[obj.global] = this.construct(obj.value);
             }
@@ -204,6 +206,8 @@ function Server(wsPort) {
 
    this.broadcastGlobalSlice = (name, start, end) =>
       this.broadcastObject( { global:name, start:start, value:window[name].slice(start,end) } );
+   this.broadcastGlobalElement = (name, element) =>
+      this.broadcastObject( { global:name, element:element, value:window[name][element] } );
    this.broadcastGlobal = name => {
       if (typeof name !== 'string')
          console.log('ERROR: argument to server.broadcastGlobal must be of type string');

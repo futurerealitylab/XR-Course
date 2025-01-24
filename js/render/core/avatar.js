@@ -1,7 +1,30 @@
 import * as cg from "./cg.js";
 import { controllerMatrix } from "./controllerInput.js";
 
+window.avatarData = {};
+export let avatars = [];
+
+export let updateAvatars = model => {
+   avatarData = server.synchronize('avatarData');             // FETCH AVATAR POSE DATA FROM ALL CLIENTS.
+   for (let n = 0 ; n < clients.length ; n++)
+      if (! avatars[clients[n]])                              // MAKE SURE THERE'S AN AVATAR FOR EVERY CLIENT.
+         avatars[clients[n]] = new Avatar(model);
+   avatars[clientID].update();                                // UPDATE MY AVATAR'S POSE FROM HEAD AND HANDS.
+   avatarData[clientID] = avatars[clientID].packData();
+   server.broadcastGlobalElement('avatarData', clientID);     // BROADCAST MY AVATAR'S POSE TO ALL CLIENTS.
+   for (let n = 0 ; n < clients.length ; n++)
+      avatars[clients[n]].unpackData(avatarData[clients[n]]); // UPDATE MY AVATAR DATA FROM ALL CLIENTS.
+   for (let id in avatars)
+      avatars[id].getRoot().scale(0);                         // SUPPRESS AVATAR DISPLAY OF INACTIVE CLIENTS.
+   for (let n = 0 ; n < clients.length ; n++)
+      avatars[clients[n]].getRoot().identity();               // DISPLAY AVATARS OF ACTIVE CLIENTS.
+}
+
 export function Avatar(model) {
+
+   this.head      = () => head.getMatrix();
+   this.leftHand  = () => leftHand.getMatrix();
+   this.rightHand = () => rightHand.getMatrix();
 
    this.getRoot = () => root;
 
@@ -37,6 +60,7 @@ export function Avatar(model) {
    this.unpackData = data => {
       if (data) {
          head.setMatrix     (cg.unpackMatrix(data.H));
+         eyes.setMatrix     (cg.unpackMatrix(data.H));
          leftHand.setMatrix (cg.unpackMatrix(data.L));
          rightHand.setMatrix(cg.unpackMatrix(data.R));
       }
