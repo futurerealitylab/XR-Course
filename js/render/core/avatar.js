@@ -11,12 +11,12 @@ export function Avatar(model) {
    let leftHand  = root.add();
    let rightHand = root.add();
    head.add('cube' ).scale(.1).scale(.95,1.2,.8);
-   eyes.add('tubeZ').scale(.1).move(-.42,.3,-.8).scale(.2,.2,.01).color('black').dull();
-   eyes.add('tubeZ').scale(.1).move( .42,.3,-.8).scale(.2,.2,.01).color('black').dull();
+   eyes.add('tubeZ').scale(.1).move(-.42,.3,-.81).scale(.2,.2,.01).color('black').dull();
+   eyes.add('tubeZ').scale(.1).move( .42,.3,-.81).scale(.2,.2,.01).color('black').dull();
    leftHand.add('cube').scale(.015,.02,.05);
-   leftHand.add('sphere').move(-.01,-.04,.08).scale(.02).color(.48,.36,.27).dull();
+   leftHand.add('sphere').move( .01,-.04,-.08).scale(.02).color(.48,.36,.27).dull();
    rightHand.add('cube').scale(.015,.02,.05);
-   rightHand.add('sphere').move( .01,-.04,.08).scale(.02).color(.48,.36,.27).dull();
+   rightHand.add('sphere').move(-.01,-.04,-.08).scale(.02).color(.48,.36,.27).dull();
 
    this.update = () => {
       head.setMatrix(cg.mMultiply(clay.inverseRootMatrix,
@@ -36,9 +36,9 @@ export function Avatar(model) {
 
    this.unpackData = data => {
       if (data) {
-         head.setMatrix     (cg.mMultiply(cg.unpackMatrix(data.H), cg.mRotateY(Math.PI)));
-         leftHand.setMatrix (cg.mMultiply(cg.unpackMatrix(data.L), cg.mRotateY(Math.PI)));
-         rightHand.setMatrix(cg.mMultiply(cg.unpackMatrix(data.R), cg.mRotateY(Math.PI)));
+         head.setMatrix     (cg.unpackMatrix(data.H));
+         leftHand.setMatrix (cg.unpackMatrix(data.L));
+         rightHand.setMatrix(cg.unpackMatrix(data.R));
       }
    }
 }

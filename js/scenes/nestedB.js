@@ -1,7 +1,7 @@
 import * as cg from "../render/core/cg.js";
 import { Avatar } from "../render/core/avatar.js";
 
-window.nestedAvatarData = [];
+window.avatarData = [];
 window.nestedState = {
    chair: [.2,-.05,-.2],
 };
@@ -57,28 +57,37 @@ export const init = async model => {
 
       // MAKE SURE THERE IS AN AVATAR FOR EVERY ACTIVE CLIENT.
 
-      for (let n = 0 ; n < clients.length ; n++)
-         if (! avatars[clients[n]])
-            avatars[clients[n]] = new Avatar(model);
+      for (let n = 0 ; n < clients.length ; n++) {
+         let id = clients[n];
+         if (! avatars[id]) {
+            avatars[id] = new Avatar(model);
+	    avatarData.push({ id: id, data: {} });
+         }
+      }
 
       // COMPUTE MY AVATAR'S POSE, THEN BROADCAST MY POSE DATA TO ALL CLIENTS.
 
       avatars[clientID].update();
-      nestedAvatarData[clientID] = avatars[clientID].packData();
-      server.broadcastGlobalSlice('nestedAvatarData', clientID, clientID+1);
+      for (let j in avatarData.length)
+         if (avatarData[j].id == clientID) {
+            avatarData[j].data = avatars[clientID].packData();
+            server.broadcastGlobalSlice('avatarData', j, j+1);
+         }
 
       // UPDATE CLIENT AVATARS FROM THE POSE DATA OF ALL ACTIVE CLIENTS.
 
-      nestedAvatarData = server.synchronize('nestedAvatarData');
-      for (let n = 0 ; n < clients.length ; n++)
-         avatars[clients[n]].unpackData(nestedAvatarData[clients[n]]);
+      avatarData = server.synchronize('avatarData');
+      for (let j in avatarData)
+         avatars[avatarData[j].id].unpackData(avatarData[j].data);
 
       // ONLY SHOW THE AVATARS OF ACTIVE CLIENTS.
 
-      for (let i in avatars)
-         avatars[i].getRoot().scale(0);
-      for (let n = 0 ; n < clients.length ; n++)
-         avatars[clients[n]].getRoot().identity();
+      for (let id in avatars)
+         avatars[id].getRoot().scale(0);
+      for (let n = 0 ; n < clients.length ; n++) {
+         let id = clients[n];
+         avatars[id].getRoot().identity();
+      }
 
 
       nestedState = server.synchronize('nestedState')
