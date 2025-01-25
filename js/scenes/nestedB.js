@@ -1,5 +1,5 @@
 import * as cg from "../render/core/cg.js";
-import { updateAvatars } from "../render/core/avatar.js";
+import { updateAvatars, avatars } from "../render/core/avatar.js";
 
 window.nestedState = { chair: [.2,-.05,-.2] };
 
@@ -47,11 +47,19 @@ export const init = async model => {
       server.broadcastGlobal('nestedState');
    }
 
+   let frameCount = 0;
+
    model.animate(() => {
       updateAvatars(model);
+      if (frameCount++ == 0)
+         for (let i = ilo ; i <= ihi ; i++)
+	    if (i != 0) {
+	       let a = model.add().move(0,ry,0).scale(Math.pow(8, i)).move(0,-ry,0);
+	       for (let n in clients)
+	          a._children.push(avatars[clients[n]].getRoot());
+	    }
 
       nestedState = server.synchronize('nestedState');
-      console.log(nestedState);
       model.setUniform('Matrix4fv', 'uWorld', false, worldCoords);
       let bigChairPos;
       for (let i = ihi ; i >= ilo ; i--) {
