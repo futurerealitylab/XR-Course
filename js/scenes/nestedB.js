@@ -9,17 +9,75 @@ export const init = async model => {
 
    model.customShader(`
       uniform mat4 uWorld;
+      uniform int uAvatarStroke;
+      uniform int uAvatarHead;
+      uniform int uAvatarEye;
+      uniform int uAvatarArm;
+      --------------------------
+      vec3 worldPos = obj2World(aPos);
+
+      if (uAvatarStroke == 1){
+         apos.xyz += aNor * .05;
+         pos.xyz = obj2Clip(apos.xyz);
+      }
+       if (uAvatarEye == 1) {
+        float blinkFactor = abs(sin(uTime * 5.0));
+        float scaleY = mix(1.0, 0.2, blinkFactor);
+        worldPos.y *= scaleY;
+        //pos.xyz = obj2Clip(worldPos);
+      }
+      *********************
+
+      uniform mat4 uWorld;
+      uniform highp int uAvatarStroke;
+      uniform highp int uAvatarHead;
+      uniform highp int uAvatarEye;
+      uniform highp int uAvatarArm;
       -------------------------------
       vec4 pos = uProj * uView * uWorld * vec4(vPos, 1.);
       float mist = pow(.985, length(pos.xyz));
       color = mix(vec3(.5), color, mist);
+
+      if(uAvatarHead == 1){
+         color = vec3(0.,0.,0.);
+      }
+
+      if (uAvatarStroke == 1) {
+         vec3 lightPosition = vec3(10.,10.,0.);
+         vec3 lightColor = vec3(1.,1.,0.);
+         vec3 ambientColor = vec3(.7,.2,.0);
+         vec3 worldPos = obj2World(vAPos);
+         vec3 worldNormal = normalize(world2Obj(vNor));
+         vec3 lightDir = normalize(lightPosition - worldPos);
+         float diffuse = max(dot(lightDir, worldNormal), 0.0);
+         diffuse = floor(diffuse * 8.0) / 8.0;
+         vec3 finalColor = ambientColor + diffuse * lightColor;
+         finalColor = mix(vec3(0.5), finalColor, mist);
+         color = vec3(finalColor);
+     }
+     if (uAvatarEye == 1) {
+         color = vec3(0.,0.,0.);
+      }
+      if (uAvatarArm == 1) {
+         vec3 lightPosition = vec3(10.,10.,0.);
+         vec3 lightColor = vec3(1.,1.,0.);
+         vec3 ambientColor = vec3(.7,.2,.0);
+         vec3 worldPos = obj2World(vAPos);
+         vec3 worldNormal = normalize(world2Obj(vNor));
+         vec3 lightDir = normalize(lightPosition - worldPos);
+         float diffuse = max(dot(lightDir, worldNormal), 0.0);
+         diffuse = floor(diffuse * 8.0) / 8.0;
+         vec3 finalColor = ambientColor + diffuse * lightColor;
+         finalColor = mix(vec3(0.5), finalColor, mist);
+         color = vec3(finalColor);
+      }
    `);
 
    let touched = false;
    let tr = .375, cr = .0375, ry = .8; // table radius, chair radius, room Y (table height)
    let movePos = { left: [0,1,0], right: [0,1,0] };
    let ilo = -3, ihi = 4;
-   let scalePower = 3;
+   let scalePower = 2.5;
    let container = model.add('sphere').scale(1000,1000,-1000);
    let rooms = model.add().move(0,ry,0);
    let dragMarker = model.add();
@@ -52,13 +110,6 @@ export const init = async model => {
 
    model.animate(() => {
       updateAvatars(model);
-      if (frameCount++ == 0)
-         for (let i = ilo ; i <= ihi ; i++)
-            if (i != 0) {
-               let a = model.add().move(0,ry,0).scale(Math.pow(scalePower, i)).move(0,-ry,0);
-               for (let n in clients)
-                  a._children.push(avatars[clients[n]].getRoot());
-            }
 
       nestedState = server.synchronize('nestedState');
       model.setUniform('Matrix4fv', 'uWorld', false, worldCoords);
@@ -85,6 +136,22 @@ export const init = async model => {
       let tL = Math.max(Math.abs(dL[0]), Math.abs(dL[1]), Math.abs(dL[2]));
       let tR = Math.max(Math.abs(dR[0]), Math.abs(dR[1]), Math.abs(dR[2]));
       touched = Math.min(tL, tR) < cr * scalePower;
+
+
+
+      if (frameCount++ == 0){
+         let count = 0;
+         for (let i = ilo ; i <= ihi ; i++)
+         if (i != 0) {
+            let a = model.add().move(0,ry,0).scale(Math.pow(scalePower, i)).move(0,-ry, 0);
+            for (let n in clients){
+               //avatars[clients[n]].getRoot().flag('uAvatar');
+               a._children.push(avatars[clients[n]].getRoot());
+            }
+            count++;
+         }
+      }
+
    });
 }
 

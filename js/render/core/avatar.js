@@ -33,13 +33,19 @@ export function Avatar(model) {
    let eyes      = root.add();
    let leftHand  = root.add();
    let rightHand = root.add();
-   head.add('cube' ).scale(.1).scale(.95,1.2,.8).opacity(.5);
-   eyes.add('tubeZ').scale(.1).move(-.42,.3,-.81).scale(.2,.2,.01).color('black').dull();
-   eyes.add('tubeZ').scale(.1).move( .42,.3,-.81).scale(.2,.2,.01).color('black').dull();
-   leftHand.add('cube').scale(.015,.02,.05);
-   leftHand.add('sphere').move( .01,-.04,-.08).scale(.02).color(.48,.36,.27).dull();
-   rightHand.add('cube').scale(.015,.02,.05);
-   rightHand.add('sphere').move(-.01,-.04,-.08).scale(.02).color(.48,.36,.27).dull();
+   let body = root.add();
+
+   body.add('cube').scale(.05).scale(.2,10,.2).move(0,-.8,0).color('black');
+
+   head.add('cube' ).scale(.1).scale(.95,1.2,.8).flag('uAvatarStroke');
+   head.add('cube' ).scale(.1).scale(.95,1.2,.8).flag('uAvatarHead');
+
+   eyes.add('tubeZ').scale(.1).move(-.42,.3,-.81).scale(.2,.2,.04).color('black').dull().flag('uAvatarEye');
+   eyes.add('tubeZ').scale(.1).move( .42,.3,-.81).scale(.2,.2,.04).color('black').dull().flag('uAvatarEye');
+   leftHand.add('cube').scale(.015,.02,.05).flag('uAvatarArm');
+   leftHand.add('sphere').move( .01,-.04,-.08).scale(.03).color(.48,.36,.27).dull();
+   rightHand.add('cube').scale(.015,.02,.05).flag('uAvatarArm');
+   rightHand.add('sphere').move(-.01,-.04,-.08).scale(.03).color(.48,.36,.27).dull();
 
    this.update = () => {
       head.setMatrix(cg.mMultiply(clay.inverseRootMatrix,
@@ -49,6 +55,22 @@ export function Avatar(model) {
 
       leftHand .setMatrix (cg.mMultiply(clay.inverseRootMatrix, controllerMatrix.left ));
       rightHand.setMatrix(cg.mMultiply(clay.inverseRootMatrix, controllerMatrix.right));
+
+      let headMatrix = head.getMatrix();
+
+      let translation = [headMatrix[12], headMatrix[13], headMatrix[14]];
+      let scaleX = Math.sqrt(headMatrix[0] * headMatrix[0] + headMatrix[1] * headMatrix[1] + headMatrix[2] * headMatrix[2]);
+      let scaleY = Math.sqrt(headMatrix[4] * headMatrix[4] + headMatrix[5] * headMatrix[5] + headMatrix[6] * headMatrix[6]);
+      let scaleZ = Math.sqrt(headMatrix[8] * headMatrix[8] + headMatrix[9] * headMatrix[9] + headMatrix[10] * headMatrix[10]);
+      
+      let identityRotationMatrix = [
+        scaleX, 0,      0,      0,
+        0,      scaleY, 0,      0,
+        0,      0,      scaleZ, 0,
+        translation[0], translation[1], translation[2], 1,
+      ];
+      
+      body.setMatrix(identityRotationMatrix);
    }
 
    this.packData = () => {
