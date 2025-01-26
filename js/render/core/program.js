@@ -287,6 +287,7 @@ export class Program {
     gl.shaderSource(this._fragShader, this.definesString + fragSrc);
     gl.compileShader(this._fragShader);
 
+
     if (!gl.getShaderParameter(this._fragShader, gl.COMPILE_STATUS)) {
       gl.detachShader(this.program, this._fragShader);
       gl.deleteShader(this._fragShader);

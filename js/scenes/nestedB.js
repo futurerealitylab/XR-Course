@@ -16,9 +16,10 @@ export const init = async model => {
    `);
 
    let touched = false;
-   let tr = .375, cr = .0375, ry = .8;
+   let tr = .375, cr = .0375, ry = .8; // table radius, chair radius, room Y (table height)
    let movePos = { left: [0,1,0], right: [0,1,0] };
-   let ilo = -2, ihi = 4;
+   let ilo = -3, ihi = 4;
+   let scalePower = 3;
    let container = model.add('sphere').scale(1000,1000,-1000);
    let rooms = model.add().move(0,ry,0);
    let dragMarker = model.add();
@@ -53,18 +54,18 @@ export const init = async model => {
       updateAvatars(model);
       if (frameCount++ == 0)
          for (let i = ilo ; i <= ihi ; i++)
-	    if (i != 0) {
-	       let a = model.add().move(0,ry,0).scale(Math.pow(8, i)).move(0,-ry,0);
-	       for (let n in clients)
-	          a._children.push(avatars[clients[n]].getRoot());
-	    }
+            if (i != 0) {
+               let a = model.add().move(0,ry,0).scale(Math.pow(scalePower, i)).move(0,-ry,0);
+               for (let n in clients)
+                  a._children.push(avatars[clients[n]].getRoot());
+            }
 
       nestedState = server.synchronize('nestedState');
       model.setUniform('Matrix4fv', 'uWorld', false, worldCoords);
       let bigChairPos;
       for (let i = ihi ; i >= ilo ; i--) {
          let room = rooms.child(i - ilo);
-         room.identity().scale(Math.pow(8, i));
+         room.identity().scale(Math.pow(scalePower, i));
 
          let chair = room.child(1);
          let thing = room.child(2);
@@ -72,10 +73,10 @@ export const init = async model => {
          chair.identity().move(nestedState.chair).color(i==1&&touched?[1,.5,.5]:[0,.25,.5]).scale(cr);
          if (i == 1) {
             bigChairPos = chair.getGlobalMatrix().slice(12,15);
-            bigChairPos[1] += cr * 8;
+            bigChairPos[1] += cr * scalePower;
          }
 
-         thing.identity().turnY(model.time/2).move(1,1.5,0).scale(.15);
+         thing.identity().turnY(model.time/2).move(1,1.5,0).scale(.000015);
       }
 
 
@@ -83,7 +84,7 @@ export const init = async model => {
       let dR = cg.subtract(movePos.right, bigChairPos);
       let tL = Math.max(Math.abs(dL[0]), Math.abs(dL[1]), Math.abs(dL[2]));
       let tR = Math.max(Math.abs(dR[0]), Math.abs(dR[1]), Math.abs(dR[2]));
-      touched = Math.min(tL, tR) < cr * 8;
+      touched = Math.min(tL, tR) < cr * scalePower;
    });
 }
 

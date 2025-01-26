@@ -47,7 +47,7 @@ export default () => {
 //          { name: "DemoParticles2"     , path: "./demoParticles2.js"     , public: false},
 //          { name: "DemoRayTrace"       , path: "./demoRayTrace.js"       , public: false},
 //          { name: "DemoRobot"          , path: "./demoRobot.js"          , public: false},
-//          { name: "DemoShader"         , path: "./demoShader.js"         , public: false},
+          { name: "DemoShader"         , path: "./demoShader.js"         , public: false},
 //          { name: "DemoShapes"         , path: "./demoShapes.js"         , public: false},
 //          { name: "DemoSimplest"       , path: "./demoSimplest.js"       , public: false},
 //          { name: "demoShared"         , path: "./demoShared.js"         , public: false},

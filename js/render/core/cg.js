@@ -546,14 +546,16 @@ export let Matrix = function() {
    this.restore   = ()      => --top;
 }
 
+let decimalFactor = 10000; // number of digits after the decimal for floats
+
 export let packMatrix = m => { // PACK A ROTATION+TRANSLATION MATRIX (SCALING IS NOT SUPPORTED)
-   let I = t => 1000 * t >> 0, Q = mToQuaternion(m);
+   let I = t => decimalFactor * t >> 0, Q = mToQuaternion(m);
    return [ I(Q.x), I(Q.y), I(Q.z), I(Q.w), I(m[12]), I(m[13]), I(m[14]) ];
 }
 
 export let unpackMatrix = P => { // UNPACK A ROTATION+TRANSLATION MATRIX
-   let m = mFromQuaternion({x:P[0]/1000, y:P[1]/1000, z:P[2]/1000, w:P[3]/1000});
-   return m.slice(0, 12).concat([P[4]/1000, P[5]/1000, P[6]/1000, 1]);
+   let m = mFromQuaternion({x:P[0]/decimalFactor, y:P[1]/decimalFactor, z:P[2]/decimalFactor, w:P[3]/decimalFactor});
+   return m.slice(0, 12).concat([P[4]/decimalFactor, P[5]/decimalFactor, P[6]/decimalFactor, 1]);
 }
 
 export let vec2vecProj = (a,b) => {

@@ -418,7 +418,6 @@ export let clayFragWithCustomShader = str => {
    let i = src.indexOf(CUSTOM_FRAG_SHADER_CODE_MARKER);
    let n = CUSTOM_FRAG_SHADER_CODE_MARKER.length;
    src = src.substring(0, i) + str + src.substring(i+n, src.length);
-
    return src;
 }
 
@@ -440,7 +439,7 @@ precision highp float; // HIGH PRECISION FLOATS
  uniform mat4  uPhong;               // MATERIAL
  uniform mat4  uIRM, uModel, uProj, uView;         // MODEL, PROJECTION AND VIEW
  uniform mat4  uInvModel;
- uniform sampler2D uSampler[8];
+ uniform sampler2D uSampler[16];
  uniform float uDull;
 
  uniform int uMirrored;
@@ -699,6 +698,7 @@ vec3 lighting_contribution(
        opacity = anidraw.a;
     }
 
+    vec4 rgba = vec4(1.);
     if (uTxtr != -1) {
        if (uTxtr ==  0) { rgba = txtrLogic(texture(uSampler[ 0],uv), ambient); }
        if (uTxtr ==  1) { rgba = txtrLogic(texture(uSampler[ 1],uv), ambient); }
@@ -717,7 +717,9 @@ vec3 lighting_contribution(
        if (uTxtr == 14) { rgba = txtrLogic(texture(uSampler[14],uv), ambient); }
        if (uTxtr == 15) { rgba = txtrLogic(texture(uSampler[15],uv), ambient); }
     }
- 
+    color *= rgba.rgb;
+    opacity *= rgba.a;
+    
     float isLit = sign(specularPower);
     if (uVideo == 0 && uAnidraw == 0 && uCustom == 1) {
       isLit = 1.0;

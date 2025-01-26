@@ -33,7 +33,7 @@ export function Avatar(model) {
    let eyes      = root.add();
    let leftHand  = root.add();
    let rightHand = root.add();
-   head.add('cube' ).scale(.1).scale(.95,1.2,.8);
+   head.add('cube' ).scale(.1).scale(.95,1.2,.8).opacity(.5);
    eyes.add('tubeZ').scale(.1).move(-.42,.3,-.81).scale(.2,.2,.01).color('black').dull();
    eyes.add('tubeZ').scale(.1).move( .42,.3,-.81).scale(.2,.2,.01).color('black').dull();
    leftHand.add('cube').scale(.015,.02,.05);
