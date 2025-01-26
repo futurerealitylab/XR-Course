@@ -35,10 +35,10 @@ export function Avatar(model) {
    let rightHand = root.add();
    let body = root.add();
 
-   body.add('cube').scale(.05).scale(.2,10,.2).move(0,-.8,0).color('black');
+   body.add('cube').scale(.05).scale(.2,10,.2).move(0,-1,0).color('black');
 
-   head.add('cube' ).scale(.1).scale(.95,1.2,.8).flag('uAvatarStroke');
-   head.add('cube' ).scale(.1).scale(.95,1.2,.8).flag('uAvatarHead');
+   head.add('cube' ).scale(.06).scale(.95,1.2,.8).flag('uAvatarStroke');
+   head.add('cube' ).scale(.06).scale(.95,1.2,.8).flag('uAvatarHead');
 
    eyes.add('tubeZ').scale(.1).move(-.42,.3,-.81).scale(.2,.2,.04).color('black').dull().flag('uAvatarEye');
    eyes.add('tubeZ').scale(.1).move( .42,.3,-.81).scale(.2,.2,.04).color('black').dull().flag('uAvatarEye');
