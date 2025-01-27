@@ -60,7 +60,10 @@ export function Diagram(model, txtrUnitL, txtrUnitR, center, size, callback) {
 
    let projectPoint = point => {
       let beamMatrix = cg.mMultiply(worldCoords, createBeamMatrix(eye, point));
-      return cg.mHitRect(beamMatrix, objMatrix);
+      let p = cg.mHitRect(beamMatrix, objMatrix);
+      if (p)
+         p = [ 2*p[0]-1, 2*p[1]-1, p[2] ];
+      return p;
    }
 
    // TEXT ITEMS ALWAYS FACE THE CAMERA.
@@ -222,7 +225,7 @@ for (let v = -4 ; v <= 4 ; v++)
          switch (item.type) {
          case 'text':
             g2.textHeight(item.height / item.z);
-            g2.fillText(item.text, item.pos[0], item.pos[1], 'center');
+            g2.text(item.text, item.pos[0], item.pos[1], 'center');
             break;
          case 'line':
             g2.lineWidth(item.lineWidth);

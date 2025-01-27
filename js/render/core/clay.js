@@ -2292,7 +2292,7 @@ function Node(_form) {
 
    this.control = (ch, label, func) => this._controlActions[ch] = { label: label, func: func };
 
-   this.add = (form) => {
+   this.add = form => {
       let child = new Node(form);
       this._children.push(child);
       child._bevel  = null;
@@ -2309,7 +2309,6 @@ function Node(_form) {
       child._flags  = null;
       child._customShader = null;
       this.dataTree.children.push(child.dataTree);
-      // this.dataTree.children.add(childJson);
       return child;
    }
 

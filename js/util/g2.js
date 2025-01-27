@@ -18,12 +18,18 @@ export function G2(do_not_animate_flag=false, canvasWidth=1024, canvasHeight) {
 
    let mouseZPrev = false;
    let mouseState = 'move';
-
+/*
    let x2c = x => width * x;
    let y2c = y => height * (1 - y);
    let w2c = w => width * w;
    let h2c = h => height * h;
    let c2w = w => w / width;
+*/
+   let x2c = x => width * (.5 * x + .5);
+   let y2c = y => height * (1 - (.5 * y + .5));
+   let w2c = w => width * (.5 * w);
+   let h2c = h => height * (.5 * h);
+   let c2w = w => (2 * w) / width;
 
    let i2c = i => ('0123456789abcdef').substring(i,i+1);
    let i2h = i => i2c(i >> 4) + i2c(i % 15);
@@ -356,7 +362,8 @@ export function G2(do_not_animate_flag=false, canvasWidth=1024, canvasHeight) {
    }
    this.drawOval = (x,y,w,h) => {
       context.beginPath();
-      context.arc(x2c(x+w/2), y2c(y+h/2), w2c(w/2), 0, 2 * Math.PI);
+//    context.arc(x2c(x+w/2), y2c(y+h/2), w2c(w/2), 0, 2 * Math.PI);
+      context.ellipse(x2c(x+w/2), y2c(y+h/2), w2c(w/2), h2c(h/2), 0, 0, 2 * Math.PI);
       context.stroke();
    }
    this.drawPath = path => {
@@ -386,7 +393,8 @@ export function G2(do_not_animate_flag=false, canvasWidth=1024, canvasHeight) {
    }
    this.fillOval = (x,y,w,h) => {
       context.beginPath();
-      context.arc(x2c(x+w/2), y2c(y+h/2), w2c(w/2), 0, 2 * Math.PI);
+//    context.arc(x2c(x+w/2), y2c(y+h/2), w2c(w/2), 0, 2 * Math.PI);
+      context.ellipse(x2c(x+w/2), y2c(y+h/2), w2c(w/2), h2c(h/2), 0, 0, 2 * Math.PI);
       context.fill();
    }
    this.fillPath = path => {
@@ -407,21 +415,7 @@ export function G2(do_not_animate_flag=false, canvasWidth=1024, canvasHeight) {
          context.fill();
       }
    }
-   this.fillText = (text,x,y,alignment,rotation) => {
-      context.save();
-      let lines = text.split('\n');
-      let dy = parseFloat(context.font) / height;
-      context.translate(x2c(x), y2c(y-dy/3));
-      if (rotation)
-         context.rotate(-Math.PI/2 * rotation);
-      if (alignment)
-         context.textAlign = alignment;
-      for (let n = 0 ; n < lines.length ; n++, y -= dy) {
-         context.fillText(lines[n],0,h2c(n*dy));
-         context.strokeText(lines[n],0,h2c(n*dy));
-      }
-      context.restore();
-   }
+   this.fillText = (text,x,y,alignment,rotation) => this.text(text,x,y,alignment,rotation);
    this.getContext = () => context;
    this.line = (a,b) => this.drawPath([a,b]);
    this.lineWidth = w => context.lineWidth = width * w;
@@ -435,6 +429,21 @@ export function G2(do_not_animate_flag=false, canvasWidth=1024, canvasHeight) {
          context.fillStyle = context.strokeStyle = isRgba(color) ? rgbaToHex(color[0],color[1],color[2],color[3]) : color;
    }
    let _h = 0.1;
+   this.text = (text,x,y,alignment,rotation) => {
+      context.save();
+      let lines = text.split('\n');
+      let dy = 2 * parseFloat(context.font) / height;
+      context.translate(x2c(x), y2c(y-dy/3));
+      if (rotation)
+         context.rotate(-Math.PI/2 * rotation);
+      if (alignment)
+         context.textAlign = alignment;
+      for (let n = 0 ; n < lines.length ; n++, y -= dy) {
+         context.fillText(lines[n],0,h2c(n*dy));
+         context.strokeText(lines[n],0,h2c(n*dy));
+      }
+      context.restore();
+   }
    this.textHeight = h => { _h = h; context.font = (height * h) + 'px ' + font; }
    this.setFont = f => { font = f; this.textHeight(_h); }
 
