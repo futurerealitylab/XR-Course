@@ -37,7 +37,7 @@ export function Avatar(model) {
 
    body.add('cube').scale(.05).scale(.2,10,.2).move(0,-1,0).color('black');
 
-   head.add('cube' ).scale(.06).scale(.95,1.2,.8).flag('uAvatarStroke');
+   head.add('cube' ).scale(.06).scale(.95,1.2,.8).opacity(.5).flag('uAvatarStroke');
    head.add('cube' ).scale(.06).scale(.95,1.2,.8).flag('uAvatarHead');
 
    eyes.add('tubeZ').scale(.1).move(-.42,.3,-.81).scale(.2,.2,.04).color('black').dull().flag('uAvatarEye');

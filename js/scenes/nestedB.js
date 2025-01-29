@@ -106,11 +106,12 @@ export const init = async model => {
       server.broadcastGlobal('nestedState');
    }
 
+   let sphere = model.add('sphere').scale(.1);
+
    let frameCount = 0;
-
+   let time = 0;
    model.animate(() => {
-      updateAvatars(model);
-
+      time+=.02;
       nestedState = server.synchronize('nestedState');
       model.setUniform('Matrix4fv', 'uWorld', false, worldCoords);
       let bigChairPos;
@@ -138,12 +139,12 @@ export const init = async model => {
       touched = Math.min(tL, tR) < cr * scalePower;
 
 
-
+      updateAvatars(model);
       if (frameCount++ == 0){
          let count = 0;
          for (let i = ilo ; i <= ihi ; i++)
          if (i != 0) {
-            let a = model.add().move(0,ry,0).scale(Math.pow(scalePower, i)).move(0,-ry, 0);
+            let a = model.add().move(0,ry + .3 * i,0).scale(Math.pow(scalePower, i)).move(0,-ry, 0);
             for (let n in clients){
                //avatars[clients[n]].getRoot().flag('uAvatar');
                a._children.push(avatars[clients[n]].getRoot());
@@ -151,6 +152,9 @@ export const init = async model => {
             count++;
          }
       }
+
+      sphere.identity().move(.2, ry + .5, .5).scale(0.1 * Math.pow(scalePower, ilo + (Math.sin(time)*0.5+0.5) * (ihi-ilo)));
+  
 
    });
 }
