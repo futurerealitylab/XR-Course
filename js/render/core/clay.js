@@ -735,7 +735,7 @@ let renderParticlesMesh = mesh => {
    let order = [];
    for (let i = 0 ; i < N ; i++)
       order.push(i);
-   order.sort((a,b) => cg.dot(Z,data[a].p) - cg.dot(Z,data[b].p));
+   order.sort((a,b) => cg.dot(Z,data[a]?data[a].p: -1) - cg.dot(Z,data[b]?data[b].p: -1));
 
 /*
    Need to add an option for p to be 2 points.
@@ -775,6 +775,7 @@ let renderParticlesMesh = mesh => {
          mesh[16 * j + k] = V[k];
    }
    for (let i = 0 ; i < N ; i++) {
+      if(!data[order[i]]) continue;
       let d = data[order[i]];
       let p = d.p;
       let n = d.n;
