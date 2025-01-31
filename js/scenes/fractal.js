@@ -49,6 +49,7 @@ let ball;
 let ballID = { left: -1, right: -1 }; // WHICH BALL IS IN EACH HAND?
 
 let findBall = hand => {              // FIND THE BALL LOCATED AT THE
+   if(!balls) return 0;
    let dMin = 10000, idMin = -1;      // 'left' OR 'right' HAND, IF ANY.
    for (let id in balls) {
       let d = cg.distance(inputEvents.pos(hand), balls[id]);
@@ -69,7 +70,7 @@ let msg = (op, id, hand) => {
 
 
 export const init = async model => {
-
+   
    let dragDistance = {left: 0, right: 0};
    let prevHandPos = {left: [0,0,0], right: [0,0,0]};
    let spawnDistance = 0.05;
@@ -137,7 +138,7 @@ export const init = async model => {
    }
 
 
-   let N = 5000;
+   let N = 50000;
    let fractalData1 = [];
    let worldCenter = [0, 0, 0];
 
@@ -167,14 +168,15 @@ export const init = async model => {
           --------------------------
           if (uFractalBall == 1){
              color = vec3(sin01(worldPosition.x),sin01(worldPosition.y),sin01(worldPosition.z));
+             color += .9;
           }
 
           if (uFractalBackground == 1) {
             float starDensity = 0.05;  // Adjust density (higher = more stars)
             float brightness = 2.9;     // Adjust star brightness
             float flicker = 0.2;        // Control the star size sharpness
-            float scale = 250.0;        // Scale factor for star distribution
-            float baseStarRadius = 0.2; // Base size of the stars
+            float scale = 150.0;        // Scale factor for star distribution
+            float baseStarRadius = 0.00004; // Base size of the stars
         
             // Generate a pseudo-random star field based on UV coordinates
             vec2 uv = vUV * scale;  // Scale UV for more variation
@@ -214,7 +216,7 @@ export const init = async model => {
             // Star color and blending with background
             vec3 starColor = vec3(starMask * brightness * depthFactor * timeFactor); // Apply flickering
             color = 1.-mix(color, starColor, starMask);
-            color *= 0.5;
+            color *= 0.01;
         }
         
           
@@ -264,6 +266,7 @@ export const init = async model => {
       
       for (let id in balls) {
          let ball = balls[id];
+         if(!ball) continue;
          let dir = [
              ball[0] - worldCenter[0],
              ball[1] - worldCenter[1],
@@ -275,7 +278,7 @@ export const init = async model => {
              dir = [dir[0] / length, dir[1] / length, dir[2] / length];
          }
    
-         let speed = 0.01;
+         let speed = 0.002;
          balls[id] = [
              ball[0] + dir[0] * speed,
              ball[1] + dir[1] * speed,
@@ -288,27 +291,38 @@ export const init = async model => {
       while (model.nChildren() > 0)
          model.remove(0);
 
-      let background = model.add('sphere').scale(1000,1000,-1000).flag('uFractalBackground');
+     // let background = model.add('sphere').scale(1000,1000,-1000).flag('uFractalBackground');
 
       fractalData1 = [];
       fractalData1.push({s: 0.00001, p: [0,0,0]});
 
-model.add('tubeY').move(worldCenter).color('white').scale(.001, 100, .001).dull();
+      model.add('tubeY').move(worldCenter).color('white').scale(.001, 100, .001).dull();
 
-      function createFractalArm(position, scale, depth) {
-         if (depth === 0 || fractalData1.length >= N) return;
+      function createFractalArm(position, scale, depth, isUp) {
+         if (!position || depth === 0 || fractalData1.length >= N) return;
      
          let expansionFactor = 1.5;
-         let heightFactor = 2.5 * scale;
-         let scaleGrowth = 2;
+         let heightFactor = 1.0;
+         let scaleGrowth = 1.5;
+         let scaleGrowthDown = .5;
          let angleStep = (Math.PI * 2) / 6; // 6 symmetric copies
      
          // Compute the base direction from world center
          let direction = [
              position[0] - worldCenter[0],
-             position[1] - worldCenter[1],
+             0,
              position[2] - worldCenter[2]
          ];
+         let length = Math.sqrt(direction[0] ** 2 + direction[1] ** 2 + direction[2] ** 2);
+
+         let nDirection = direction;
+         if (length !== 0) { // Avoid division by zero
+            nDirection = [
+               direction[0] / length,
+               direction[1] / length,
+               direction[2] / length
+            ];
+         }
          let baseAngle = Math.atan2(direction[2], direction[0]); // Angle relative to center
      
          // Create 6 mirrored particles
@@ -325,23 +339,28 @@ model.add('tubeY').move(worldCenter).color('white').scale(.001, 100, .001).dull(
          }
      
          // Recursively generate the next level
-         let newPos = [
-             position[0],
-             position[1] + heightFactor, // Increase height
-             position[2]
+         let newPosUp = [
+             position[0] + nDirection[0] * expansionFactor,
+             position[1] + heightFactor + nDirection[1] * expansionFactor, // Increase height
+             position[2]+ nDirection[2] * expansionFactor
          ];
-         createFractalArm(newPos, scale * scaleGrowth, depth - 1);
-     }
-     
-     
-     
+         createFractalArm(newPosUp, scale * scaleGrowth, depth - 1);
+      }
+
 
    for (let id in balls) {
-      createFractalArm(balls[id], 0.02, 3); // Start with given ball positions
+      createFractalArm(balls[id], 0.15, 5); // Start with given ball positions
+      if(Math.abs(balls[id][0]) > 10 || Math.abs(balls[id][1]) > 10 || Math.abs(balls[id][2] > 10))
+         server.send('balls', msg('delete', id, 'left'));
    }
-   let particles = model.add('particles').info(N).texture('../media/textures/magic_orb2.png').flag('uFractalBall');
+   let particles = model.add('particles').info(N).texture('../media/textures/magic_orb.png').flag('uFractalBall');
    particles.setParticles(fractalData1);
    
+
+
+   if(!balls){
+      server.init('balls', {});  
+   }
    });
 }
 
