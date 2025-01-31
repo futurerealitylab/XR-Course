@@ -217,6 +217,8 @@ export const init = async model => {
       while (model.nChildren() > 0)
          model.remove(0);
 
+      let container = model.add('sphere').scale(1000,1000,-1000).color('black');
+
       data = [];
       data.push({s: 0.00001, p: [0,0,0]}); //?
       let worldCenter = [0,0,0];
