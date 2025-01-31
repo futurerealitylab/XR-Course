@@ -252,6 +252,9 @@ vec3 lighting_contribution(
       isLit = 1.0;
     }
 
+    if (opacity == 0.)
+       discard;
+
     fragColor = (
       (vec4(sqrt(color * vRGB), 1.0) * isLit)
       + (vec4(diffuseColor, 1.0) * (1.0 - isLit)) 

@@ -726,6 +726,8 @@ vec3 lighting_contribution(
 ` + CUSTOM_FRAG_SHADER_CODE_MARKER + `
     }
     
+    if (opacity == 0.)
+       discard;
        
     fragColor = (
       (vec4(sqrt(color * vRGB), 1.0) * isLit)
