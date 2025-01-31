@@ -138,13 +138,12 @@ export const init = async model => {
 
 
    let N = 5000;
-   let data = [];
+   let fractalData1 = [];
    let worldCenter = [0, 0, 0];
-
 
    model.animate(() => {
       model.customShader(`
-          uniform int uFractalBall;
+          uniform int uFractalBall, uFractalBackground;
           --------------------------
           if (uFractalBall == 1){
             //apos.xyz += noise(apos.xyz + uTime * .5) * aNor * .5;
@@ -155,7 +154,8 @@ export const init = async model => {
 
           // Have to specify precision here because vertex shaders support
           // highp as default and we have to match precision.
-          uniform highp int uFractalBall;
+
+          uniform highp int uFractalBall, uFractalBackground;
 
           float frac(float p){
             return p-floor(p);
@@ -167,7 +167,19 @@ export const init = async model => {
           --------------------------
           if (uFractalBall == 1){
              color = vec3(sin01(worldPosition.x),sin01(worldPosition.y),sin01(worldPosition.z));
-          }
+         }
+
+          if (uFractalBackground == 1) {
+            float starDensity = 0.005;
+            float brightness = 2.0;
+            vec3 starDir = normalize(worldPosition); 
+            float starValue = noise(starDir * 0.005);
+            float starMask = step(1.0 - starDensity, frac(starValue * 1500.5453));
+            float depthFactor = clamp(1.0 - length(worldPosition) * 0.002, 0.1, 1.0);
+            vec3 starColor = vec3(starMask * brightness * depthFactor);
+            color = mix(color, starColor, starMask);
+        }
+        
           
        `);
 
@@ -210,22 +222,25 @@ export const init = async model => {
       });
 
 
-
-
+      //MAKE BALLS MOVE
+      
+      for (let id in balls) {
+         balls[id][2]-=.01;
+      }
 
      // RENDER THE 3D SCENE.
       while (model.nChildren() > 0)
          model.remove(0);
 
-      let container = model.add('sphere').scale(1000,1000,-1000).color('black');
+      let background = model.add('sphere').scale(1000,1000,-1000).color('black').flag('uFractalBackground');
 
-      data = [];
-      data.push({s: 0.00001, p: [0,0,0]}); //?
+      fractalData1 = [];
+      fractalData1.push({s: 0.00001, p: [0,0,0]});
       let worldCenter = [0,0,0];
        function createFractalArm(position, scale, depth) {
-        if (depth === 0 || data.length >= N) return;
+        if (depth === 0 || fractalData1.length >= N) return;
 
-        data.push({ s: scale * 0.8, p: [...position] });
+        fractalData1.push({ s: scale * 0.8, p: [...position] });
 
         let expansionFactor = 8.5;
         let heightFactor = 4.5 * scale;
@@ -249,10 +264,10 @@ export const init = async model => {
     }
 
    for (let id in balls) {
-      createFractalArm(balls[id], 0.05, 15); // Start with given ball positions
+      createFractalArm(balls[id], 0.02, 15); // Start with given ball positions
    }
    let particles = model.add('particles').info(N).texture('../media/textures/snowflake.png').flag('uFractalBall');
-   particles.setParticles(data);
+   particles.setParticles(fractalData1);
    
    });
 }
