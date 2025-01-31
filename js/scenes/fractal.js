@@ -167,17 +167,46 @@ export const init = async model => {
           --------------------------
           if (uFractalBall == 1){
              color = vec3(sin01(worldPosition.x),sin01(worldPosition.y),sin01(worldPosition.z));
-         }
+          }
 
           if (uFractalBackground == 1) {
-            float starDensity = 0.005;
-            float brightness = 2.0;
-            vec3 starDir = normalize(worldPosition); 
-            float starValue = noise(starDir * 0.005);
-            float starMask = step(1.0 - starDensity, frac(starValue * 1500.5453));
-            float depthFactor = clamp(1.0 - length(worldPosition) * 0.002, 0.1, 1.0);
-            vec3 starColor = vec3(starMask * brightness * depthFactor);
-            color = mix(color, starColor, starMask);
+            float starDensity = 0.05;  // Adjust density (higher = more stars)
+            float brightness = 2.9;     // Adjust star brightness
+            float flicker = 0.2;        // Control the star size sharpness
+            float scale = 250.0;        // Scale factor for star distribution
+            float baseStarRadius = 0.2; // Base size of the stars
+        
+            // Generate a pseudo-random star field based on UV coordinates
+            vec2 uv = vUV * scale;  // Scale UV for more variation
+            // uv.x += noise(vec3(uTime)+uv.x * 3.);
+            // uv.y += noise(vec3(uTime)+uv.y * 5.);
+            vec2 grid = floor(uv);  // Discrete grid cells
+            vec2 id = fract(uv);    // Fractional part for positioning stars (local star coordinates)
+        
+            // Random seed for star placement
+            float starSeed = dot(grid + vec2(noise(vec3(uTime)+uv.x * 3.),noise(vec3(uTime)+uv.y * 5.)), vec2(12.9898, 78.233)); 
+            float starValue = fract(sin(starSeed) * 43758.5453);
+        
+            // Randomize star size using a secondary noise function
+            float sizeSeed = fract(sin(starSeed * 1.5) * 43758.5453);
+            float starRadius = baseStarRadius + sizeSeed * 0.3; // Random size variation
+        
+            // Compute distance from the center of the star
+            float dist = length(id - vec2(0.5));
+        
+            // Make the stars blink using a sine wave over time
+            float timeFactor = 0.5 + .5 * sin(uTime * 0.2 + starSeed * 10.0); // Slow flickering
+        
+            // Create a circular mask with fading edges
+            float starMask = smoothstep(starRadius, starRadius - flicker, dist) * step(starValue, starDensity);
+        
+            // Depth fade effect to simulate distance
+            float depthFactor = clamp(1.0 - length(uv) * 0.002, 0.1, 1.0);
+        
+            // Star color and blending with background
+            vec3 starColor = vec3(starMask * brightness * depthFactor * timeFactor); // Apply flickering
+            color = 1.-mix(color, starColor, starMask);
+            color *= 0.5;
         }
         
           
@@ -221,52 +250,88 @@ export const init = async model => {
          }
       });
 
+      let worldCenter = [0,0,0];
 
       //MAKE BALLS MOVE
       
       for (let id in balls) {
-        // balls[id][2]-=.01;
-      }
+         let ball = balls[id];
+         let dir = [
+             ball[0] - worldCenter[0],
+             ball[1] - worldCenter[1],
+             ball[2] - worldCenter[2]
+         ];
+     
+         let length = Math.sqrt(dir[0] ** 2 + dir[1] ** 2 + dir[2] ** 2);
+         if (length > 0) {
+             dir = [dir[0] / length, dir[1] / length, dir[2] / length];
+         }
+   
+         let speed = 0.01;
+         balls[id] = [
+             ball[0] + dir[0] * speed,
+             ball[1] + dir[1] * speed,
+             ball[2] + dir[2] * speed
+         ];
+     }
+     
 
      // RENDER THE 3D SCENE.
       while (model.nChildren() > 0)
          model.remove(0);
 
-      let background = model.add('sphere').scale(1000,1000,-1000).color('black').flag('uFractalBackground');
+      let background = model.add('sphere').scale(1000,1000,-1000).flag('uFractalBackground');
 
       fractalData1 = [];
       fractalData1.push({s: 0.00001, p: [0,0,0]});
-      let worldCenter = [0,0,0];
-       function createFractalArm(position, scale, depth) {
-        if (depth === 0 || fractalData1.length >= N) return;
 
-        fractalData1.push({ s: scale * 0.8, p: [...position] });
+model.add('tubeY').move(worldCenter).color('white').scale(.001, 100, .001).dull();
 
-        let expansionFactor = 8.5;
-        let heightFactor = 4.5 * scale;
-        let scaleGrowth = 2;
-
-        let direction = [
-            position[0] - worldCenter[0],
-            position[1] - worldCenter[1],
-            position[2] - worldCenter[2]
-        ];
-        let length = Math.sqrt(direction[0] ** 2 + direction[2] ** 2);
-        let angle = Math.atan2(direction[2], direction[0]);
-
-        let newPos = [
-            position[0] + Math.cos(angle) * scale * expansionFactor,
-            position[1] + heightFactor,
-            position[2] + Math.sin(angle) * scale * expansionFactor
-        ];
-
-        createFractalArm(newPos, scale * scaleGrowth, depth - 1);
-    }
+      function createFractalArm(position, scale, depth) {
+         if (depth === 0 || fractalData1.length >= N) return;
+     
+         let expansionFactor = 1.5;
+         let heightFactor = 2.5 * scale;
+         let scaleGrowth = 2;
+         let angleStep = (Math.PI * 2) / 6; // 6 symmetric copies
+     
+         // Compute the base direction from world center
+         let direction = [
+             position[0] - worldCenter[0],
+             position[1] - worldCenter[1],
+             position[2] - worldCenter[2]
+         ];
+         let baseAngle = Math.atan2(direction[2], direction[0]); // Angle relative to center
+     
+         // Create 6 mirrored particles
+         for (let i = 0; i < 6; i++) {
+             let angle = baseAngle + i * angleStep; // Rotate around the world center
+     
+             let mirroredPos = [
+                 worldCenter[0] + Math.cos(angle) * Math.sqrt(direction[0] ** 2 + direction[2] ** 2),
+                 position[1], // Keep the same height
+                 worldCenter[2] + Math.sin(angle) * Math.sqrt(direction[0] ** 2 + direction[2] ** 2)
+             ];
+     
+             fractalData1.push({ s: scale * 0.8, p: mirroredPos });
+         }
+     
+         // Recursively generate the next level
+         let newPos = [
+             position[0],
+             position[1] + heightFactor, // Increase height
+             position[2]
+         ];
+         createFractalArm(newPos, scale * scaleGrowth, depth - 1);
+     }
+     
+     
+     
 
    for (let id in balls) {
-      createFractalArm(balls[id], 0.02, 15); // Start with given ball positions
+      createFractalArm(balls[id], 0.02, 3); // Start with given ball positions
    }
-   let particles = model.add('particles').info(N).texture('../media/textures/snowflake.png').flag('uFractalBall');
+   let particles = model.add('particles').info(N).texture('../media/textures/magic_orb2.png').flag('uFractalBall');
    particles.setParticles(fractalData1);
    
    });
