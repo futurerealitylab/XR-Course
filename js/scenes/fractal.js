@@ -225,7 +225,7 @@ export const init = async model => {
       //MAKE BALLS MOVE
       
       for (let id in balls) {
-         balls[id][2]-=.01;
+        // balls[id][2]-=.01;
       }
 
      // RENDER THE 3D SCENE.
