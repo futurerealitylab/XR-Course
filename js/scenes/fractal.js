@@ -1,6 +1,7 @@
 import * as cg from "../render/core/cg.js";
 import { loadSound, playSoundAtPosition, playLoopingSoundAtPosition02, 
-         stopLoopingSound02, updateSound02Position } from "../util/positional-audio.js";
+         stopLoopingSound02, updateSound02Position} from "../util/positional-audio.js";
+import { loadStereoSound, playStereoAudio } from "../util/stereo-audio.js";         
 
 
 /*
@@ -16,14 +17,14 @@ import { loadSound, playSoundAtPosition, playLoopingSoundAtPosition02,
 let createSoundBuffer = null;
 let deleteSoundBuffer = null;
 let dragSoundBuffer = null;
-
+let backgroundSoundBuffer = null;
 
 function preloadSounds() {
     Promise.all([
         loadSound('../../media/sound/SFXs/demoBalls/SFX_Ball_Create_Mono_01.wav', buffer => createSoundBuffer = buffer),
         loadSound('../../media/sound/SFXs/demoBalls/SFX_Ball_Delete_Mono_01.wav', buffer => deleteSoundBuffer = buffer),
-        loadSound('../../media/sound/SFXs/demoBalls/SFX_Ball_Drag_Mono_LP_01.wav', buffer => dragSoundBuffer = buffer)
-
+        loadSound('../../media/sound/SFXs/demoBalls/SFX_Ball_Drag_Mono_LP_01.wav', buffer => dragSoundBuffer = buffer),
+        loadStereoSound('../../media/sound/SFXs/demoMoon/Amb_Moon_Stereo_LP_01.wav', buffer => backgroundSoundBuffer = buffer)
     ])
     .then(() => {
         //console.log('All sounds loaded successfully');
@@ -43,8 +44,6 @@ server.init('balls', {});             // INITIALIZE GLOBAL STATE OBJECT.
 const radius = 0.05;                  // ALL BALLS HAVE THE SAME RADIUS.
 
 let ball;
-
-
 
 let ballID = { left: -1, right: -1 }; // WHICH BALL IS IN EACH HAND?
 
@@ -70,7 +69,8 @@ let msg = (op, id, hand) => {
 
 
 export const init = async model => {
-   
+   playStereoAudio(backgroundSoundBuffer);
+
    let dragDistance = {left: 0, right: 0};
    let prevHandPos = {left: [0,0,0], right: [0,0,0]};
    let spawnDistance = 0.05;
@@ -142,6 +142,11 @@ export const init = async model => {
    let fractalData1 = [];
    let worldCenter = [0, 0, 0];
 
+   function random1(x){
+      let r = Math.sin(x * 1298461.13817+9847161.1231);
+      return r - Math.floor(r);
+   }
+
    model.animate(() => {
       model.customShader(`
           uniform int uFractalBall, uFractalBackground;
@@ -168,7 +173,7 @@ export const init = async model => {
           --------------------------
           if (uFractalBall == 1){
              color = vec3(sin01(worldPosition.x),sin01(worldPosition.y),sin01(worldPosition.z));
-             color += .9;
+             color += .5;
           }
 
           if (uFractalBackground == 1) {
@@ -261,6 +266,7 @@ export const init = async model => {
       });
 
       let worldCenter = [0,0,0];
+      let ceilingHeight = 10;
 
       //MAKE BALLS MOVE
       
@@ -278,7 +284,7 @@ export const init = async model => {
              dir = [dir[0] / length, dir[1] / length, dir[2] / length];
          }
    
-         let speed = 0.002;
+         let speed = 0.004 + 0.0005 * random1(id);
          balls[id] = [
              ball[0] + dir[0] * speed,
              ball[1] + dir[1] * speed,
@@ -334,7 +340,10 @@ export const init = async model => {
                  position[1], // Keep the same height
                  worldCenter[2] + Math.sin(angle) * Math.sqrt(direction[0] ** 2 + direction[2] ** 2)
              ];
-     
+             if(mirroredPos[1]>ceilingHeight){
+               mirroredPos[1] = ceilingHeight - mirroredPos[1] + ceilingHeight;
+             }
+
              fractalData1.push({ s: scale * 0.8, p: mirroredPos });
          }
      
@@ -348,11 +357,22 @@ export const init = async model => {
       }
 
 
-   for (let id in balls) {
-      createFractalArm(balls[id], 0.15, 5); // Start with given ball positions
-      if(Math.abs(balls[id][0]) > 10 || Math.abs(balls[id][1]) > 10 || Math.abs(balls[id][2] > 10))
-         server.send('balls', msg('delete', id, 'left'));
+// Filter out balls that are too far away
+for (let id in balls) {
+   createFractalArm(balls[id], 0.15, 5); // Start with given ball positions
+
+   // Ensure correct condition checking
+   if (Math.abs(balls[id][0]) > 50 || Math.abs(balls[id][1]) > 50 || Math.abs(balls[id][2]) > 50) {
+       server.send('balls', msg('delete', id, 'left')); // Send delete message
+
+       // Convert id to integer since for...in provides string keys
+       let index = parseInt(id);
+       if (!isNaN(index)) {
+           balls.splice(index, 1); // Remove the ball from the array
+       }
    }
+}
+
    let particles = model.add('particles').info(N).texture('../media/textures/magic_orb.png').flag('uFractalBall');
    particles.setParticles(fractalData1);
    
