@@ -184,15 +184,23 @@ export const init = async model => {
             vec2 id = fract(uv);    // Fractional part for positioning stars (local star coordinates)
         
             // Random seed for star placement
-            float starSeed = dot(grid + vec2(noise(vec3(uTime)+uv.x * 3.),noise(vec3(uTime)+uv.y * 5.)), vec2(12.9898, 78.233)); 
+            float starSeed = dot(grid, vec2(12.9898, 78.233)); 
             float starValue = fract(sin(starSeed) * 43758.5453);
         
             // Randomize star size using a secondary noise function
             float sizeSeed = fract(sin(starSeed * 1.5) * 43758.5453);
             float starRadius = baseStarRadius + sizeSeed * 0.3; // Random size variation
         
-            // Compute distance from the center of the star
-            float dist = length(id - vec2(0.5));
+            // // Compute distance from the center of the star
+            // float dist = length(id - vec2(0.5));
+
+            // Continuous movement using a sine wave
+            float speed = 0.2 + sizeSeed * 0.3;   // Random movement speed
+            float amplitude = 0.5 + sizeSeed * 0.5; // Random movement range
+            float yOffset = amplitude * sin(uTime * speed + starSeed * 10.0); // Movement offset
+
+            // Adjust the star’s vertical position
+            float dist = length(id - vec2(0.5, 0.5 + yOffset)); // Modify Y position
         
             // Make the stars blink using a sine wave over time
             float timeFactor = 0.5 + .5 * sin(uTime * 0.2 + starSeed * 10.0); // Slow flickering
