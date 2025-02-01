@@ -5,7 +5,7 @@ import { lcb, rcb } from "../handle_scenes.js";
 
 // SUPPORT LIBRARY FOR 2D GRAPHICS
 
-export function G2(do_not_animate_flag=false, canvasWidth=1024, canvasHeight) {
+export function G2(do_not_animate_flag=false, canvasWidth=512, canvasHeight) {
 
    let txtrCanvas = document.createElement('canvas');
    txtrCanvas.width = canvasWidth;
@@ -18,13 +18,9 @@ export function G2(do_not_animate_flag=false, canvasWidth=1024, canvasHeight) {
 
    let mouseZPrev = false;
    let mouseState = 'move';
-/*
-   let x2c = x => width * x;
-   let y2c = y => height * (1 - y);
-   let w2c = w => width * w;
-   let h2c = h => height * h;
-   let c2w = w => w / width;
-*/
+
+   // CONVERT COORDS [-1 ... +1] x [-1 ... +1] <=> [0 ... width] x [0 ... height]
+
    let x2c = x => width * (.5 * x + .5);
    let y2c = y => height * (1 - (.5 * y + .5));
    let w2c = w => width * (.5 * w);
@@ -480,7 +476,6 @@ export function G2(do_not_animate_flag=false, canvasWidth=1024, canvasHeight) {
          this.fillOval(0,0,1,1);
          this.setColor('white');
          this.fillOval(.01,.01,.98,.98);
-
          this.setColor('black');
          let c = t => Math.cos(2 * Math.PI * t);
          let s = t => Math.sin(2 * Math.PI * t);
@@ -495,11 +490,13 @@ export function G2(do_not_animate_flag=false, canvasWidth=1024, canvasHeight) {
             this.lineWidth(w);
             this.arrow([.5,.5], [.5 + r * s(t), .5 + r * c(t) ]);
          }
-         clockHand(.037, (hour   + minute / 60) / 12, .25);
-         clockHand(.028, (minute + second / 60) / 60, .32);
+         clockHand(.023, (hour   + minute / 60) / 12, .23);
+         clockHand(.015, (minute + second / 60) / 60, .32);
          clockHand(.010,           second / 60      , .42);
       context.restore();
    }
+
+   this.textHeight(.05);
 }
 
 export let g2 = new G2();

@@ -10,17 +10,25 @@ import { G2 } from "../util/g2.js";
 ***********************************************************************/
 
 export const init = async model => {
-   let g2 = new G2();
-   model.txtrSrc(1, g2.getCanvas());
-   model.txtrSrc(2, g2.getCanvas());
 
-   g2.textHeight(.1);
-   let obj1 = model.add('cube').txtr(1); // HUD object.
-   let obj2 = model.add('cube').txtr(2); // non-HUD object.
+   let g2L = new G2(true);
+   let g2R = new G2(true);
+
+   model.txtrSrc(1,g2L.getCanvas());
+   model.txtrSrc(2,g2R.getCanvas());
+
+   let obj1 = model.add('cube').color(1,.5,.5).txtr(1); // HUD object.
+   let obj2 = model.add('cube').color(.5,.7,1).txtr(2); // non-HUD object.
 
    model.animate(() => {
-      g2.clock(0,0,1,1)
+
+      g2L.setColor([1,.5,.5]);
+      g2L.fillOval(-1,-1,2,2);
+
+      g2R.setColor([.5,.5,1]);
+      g2R.fillOval(-1,-1,2,2);
+
       obj1.hud().scale(.2,.2,.0001);
-      obj2.identity().move(0,1.5,-1).scale(.2,.2,.0001);
+      obj2.identity().move(0,1.5,-1.5).scale(.2,.2,.0001);
    });
 }

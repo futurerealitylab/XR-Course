@@ -24,6 +24,8 @@ export default () => {
             // { name: "nestedA"            , path: "./nestedA.js"            , public: true  },
             // { name: "nestedB"            , path: "./nestedB.js"            , public: true  },
 
+            { name: "particleNoise"       , path: "./particleNoise.js"       , public: true  },
+
 //          { name: "pinscreen"          , path: "./pinscreen.js"          , public: true  },
 //          { name: "share_ball"         , path: "./share_ball.js"         , public: false },
 //          { name: "drag_objects"       , path: "./drag_objects.js"       , public: false },

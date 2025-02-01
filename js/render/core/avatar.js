@@ -33,19 +33,21 @@ export function Avatar(model) {
    let eyes      = root.add();
    let leftHand  = root.add();
    let rightHand = root.add();
-   let body = root.add();
 
-   body.add('cube').scale(.05).scale(.2,10,.2).move(0,-1,0).color('black');
+   head.add('cube').scale(.06).scale(.95,1.2,.8);
+/*
+   head.add('cube').scale(.06).move(-.95,0,0).scale(.01,1.2,.8);
+   head.add('cube').scale(.06).move( .95,0,0).scale(.01,1.2,.8);
+   head.add('cube').scale(.06).move(0,-1.2,0).scale(.95,.01,.8);
+   head.add('cube').scale(.06).move(0, 1.2,0).scale(.95,.01,.8);
+*/
 
-   head.add('cube' ).scale(.06).scale(.95,1.2,.8).opacity(.5).flag('uAvatarStroke');
-   head.add('cube' ).scale(.06).scale(.95,1.2,.8).flag('uAvatarHead');
-
-   eyes.add('tubeZ').scale(.1).move(-.42,.3,-.81).scale(.2,.2,.04).color('black').dull().flag('uAvatarEye');
-   eyes.add('tubeZ').scale(.1).move( .42,.3,-.81).scale(.2,.2,.04).color('black').dull().flag('uAvatarEye');
+   eyes.add('tubeZ').scale(.1).move(-.32,.3,-.81).scale(.15,.15,.04).color('black').dull().flag('uAvatarEye');
+   eyes.add('tubeZ').scale(.1).move( .32,.3,-.81).scale(.15,.15,.04).color('black').dull().flag('uAvatarEye');
    leftHand.add('cube').scale(.015,.02,.05).flag('uAvatarArm');
-   leftHand.add('sphere').move( .01,-.04,-.08).scale(.03).color(.48,.36,.27).dull();
+   leftHand.add('sphere').move( .01,-.04,-.08).scale(.021).color(.48,.36,.27).dull().opacity(.5);
    rightHand.add('cube').scale(.015,.02,.05).flag('uAvatarArm');
-   rightHand.add('sphere').move(-.01,-.04,-.08).scale(.03).color(.48,.36,.27).dull();
+   rightHand.add('sphere').move(-.01,-.04,-.08).scale(.021).color(.48,.36,.27).dull().opacity(.5);
 
    this.update = () => {
       head.setMatrix(cg.mMultiply(clay.inverseRootMatrix,
@@ -69,8 +71,6 @@ export function Avatar(model) {
         0,      0,      scaleZ, 0,
         translation[0], translation[1], translation[2], 1,
       ];
-      
-      body.setMatrix(identityRotationMatrix);
    }
 
    this.packData = () => {
