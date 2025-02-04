@@ -184,10 +184,11 @@ const addDemoButtons = (demoNames, scenesInit) => {
          if (!names[n] != "Speak") {
             header.innerHTML += '<button onclick=chooseFlag("' + names[n] + '");'
                     + 'window.syncDemos();>' + names[n] + '</button>';
-            clay.vrWidgets.add('label').info(names[n])
-                                       .move(-1,1.7-n*.1,-.7)
-                                       .turnY(Math.PI/6)
-                                       .scale(.045);
+            let label = clay.vrWidgets.add('label').info(names[n])
+                                                   .move(-1,1.7-n*.1,-.7)
+                                                   .turnY(Math.PI/6)
+                                                   .scale(.045);
+            label.txtrSrc(15, 'media/textures/fixed-width-font.png');
          }
          else {
             header.innerHTML += '<button id=\"Speak\" onclick=\"window.' + flag + '=!window.' + flag
