@@ -2759,9 +2759,14 @@ function Node(_form) {
             rounded: this.prop('_bevel'),
             sign: 1,
             symmetry: 0,
+/*
             texture: form == 'label' ? DEFAULT_FONT
                                      : this.prop('_texture'),
             txtr: this.prop('_txtr'),
+*/
+            texture: this.prop('_texture'),
+            txtr: form == 'label' ? 15 : this.prop('_txtr'),
+
             bumpTexture: this.prop('_bumpTexture'),
             bumptxtr: this.prop('_bumptxtr'),
             form: form,
@@ -2846,6 +2851,7 @@ window._canvas_txtr = [];
 // EXPOSE A ROOT NODE FOR EXTERNAL MODELING.
 
    let root = new Node('root');
+
    this.root = () => root;
    this.inverseRootMatrix = cg.mIdentity();
    this.vrWidgets = root.add();
