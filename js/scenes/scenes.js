@@ -95,7 +95,7 @@ export default () => {
 //          { name: "snowOriginal"       , path: "./demoSnow.js"           , public: false},
 //          { name: "snow"               , path: "./demoSnowDots.js"       , public: false },
 //          { name: "snow2"              , path: "./demoSnow2.js"          , public: false},
-//          { name: "statue"             , path: "./demoGLTF.js"           , public: false },
+          { name: "statue"             , path: "./demoGLTF.js"           , public: false },
 //          { name: "attic"              , path: "./attic.js"              , public: false },
 //          { name: "sync"               , path: "./demoSync.js"           , public: false},
 //          { name: "table"              , path: "./demoTable.js"          , public: false},
