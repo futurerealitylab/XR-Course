@@ -49,6 +49,9 @@ export function MeshInfo() {
 
 let debug = false;
 
+// A hashmap to keep track of the texture that needs to be bind
+window.txtrMap = new Map();
+
 export function Clay(gl, canvas) {
    this.debug = state => debug = state;
 
@@ -1871,6 +1874,9 @@ let fl = 5;                                                          // CAMERA F
    this.controllerBallSize = 0.02;
 
    this.animate = view => {
+      if (window.txtrMap !== undefined)
+         for (let [key, val] of window.txtrMap)
+            this.txtrCallback(key, val[0], val[1]);
       window.timestamp++;
       window.needUpdateInput = true;
       window.mySharedObj = [];
@@ -2823,6 +2829,8 @@ function Node(_form) {
       return this;
    }
    this.txtrSrc = (txtr, src, do_not_animate) => {
+      window.txtrMap.set(txtr, [src, do_not_animate]);
+
       if (typeof src == 'string') {               // IF THE TEXTURE SOURCE IS AN IMAGE FILE,
          let image = new Image();                 // IT ONLY NEEDS TO BE SENT TO THE GPU ONCE.
          image.onload = () => {
@@ -2888,6 +2896,9 @@ window._canvas_txtr = [];
    window.editText = new EditText();
    window.codeEditorObj = root.add();
    window.codeEditor = new CodeEditor(codeEditorObj);
+
+   // Call the txtr function
+   this.txtrCallback = (txtr, src, do_not_animate) => model.txtrSrc(txtr, src, do_not_animate);
 
    // NOTE(KTR): Extensions
 
