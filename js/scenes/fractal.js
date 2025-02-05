@@ -78,22 +78,26 @@ export const init = async model => {
    // HANDLE CONTROLLER EVENTS FROM THIS CLIENT.
    inputEvents.onPress = hand => {
       ballID[hand] = findBall(hand);
-      if (ballID[hand] >= 0){
-         let emptyObj = model.add().move(cg.roundVec(4, inputEvents.pos(hand)));
-         let objPos = emptyObj.getGlobalMatrix();
-         playLoopingSoundAtPosition02(dragSoundBuffer, [objPos[12], objPos[13], objPos[14]]);
-         model.remove(emptyObj);
-      }
+
+      let emptyObj = model.add().move(cg.roundVec(4, inputEvents.pos(hand)));
+      let objPos = emptyObj.getGlobalMatrix();
+      playLoopingSoundAtPosition02(dragSoundBuffer, [objPos[12], objPos[13], objPos[14]]);
+      model.remove(emptyObj);
+
    }
 
    inputEvents.onDrag = hand => {
 
+
+      let emptyObj = model.add().move(cg.roundVec(4, inputEvents.pos(hand)));
+      let objPos = emptyObj.getGlobalMatrix();
+      updateSound02Position([objPos[12], objPos[13], objPos[14]]);
+      model.remove(emptyObj);
+
+
       if (ballID[hand] >= 0){
          server.send('balls', msg('move', ballID[hand], hand));
-         let emptyObj = model.add().move(cg.roundVec(4, inputEvents.pos(hand)));
-         let objPos = emptyObj.getGlobalMatrix();
-         updateSound02Position([objPos[12], objPos[13], objPos[14]]);
-         model.remove(emptyObj);
+
       }
       else{
          let handPosition = cg.roundVec(4, inputEvents.pos(hand));
@@ -239,7 +243,7 @@ export const init = async model => {
                   {
                      let emptyObj = model.add().move(msg.pos);
                      let objPos = emptyObj.getGlobalMatrix();
-                     playSoundAtPosition(deleteSoundBuffer, [objPos[12], objPos[13], objPos[14]]);
+                     //playSoundAtPosition(deleteSoundBuffer, [objPos[12], objPos[13], objPos[14]]);
                      model.remove(emptyObj);
                      //console.log('delete ball sound');
 
@@ -255,7 +259,7 @@ export const init = async model => {
                   {
                      let emptyObj = model.add().move(msg.pos);
                      let objPos = emptyObj.getGlobalMatrix();
-                     playSoundAtPosition(createSoundBuffer, [objPos[12], objPos[13], objPos[14]]);
+                     //playSoundAtPosition(createSoundBuffer, [objPos[12], objPos[13], objPos[14]]);
                      model.remove(emptyObj);
                      //console.log('add ball sound');
                   }
