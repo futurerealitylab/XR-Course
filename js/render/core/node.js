@@ -51,6 +51,8 @@ export class Node {
     this._renderer = null;
 
     this._selectHandler = null;
+
+    this._isGLTF = false;
   }
 
   _setRenderer(renderer) {
@@ -147,6 +149,8 @@ export class Node {
   }
 
   addNode(value) {
+    if (value._isGLTF)
+      window.gltfLoadCount = 10;
     if (!value || value.parent == this) {
       return this.children[this.children.length - 1];
     }

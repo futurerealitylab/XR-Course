@@ -1874,9 +1874,13 @@ let fl = 5;                                                          // CAMERA F
    this.controllerBallSize = 0.02;
 
    this.animate = view => {
-      if (window.txtrMap !== undefined)
-         for (let [key, val] of window.txtrMap)
-            this.txtrCallback(key, val[0], val[1]);
+      if (window.gltfLoadCount !== undefined)
+      {
+         if (window.gltfLoadCount > 0 && window.txtrMap !== undefined)
+            for (let [key, val] of window.txtrMap)
+               this.txtrCallback(key, val[0], val[1]);
+         window.gltfLoadCount--;
+      }
       window.timestamp++;
       window.needUpdateInput = true;
       window.mySharedObj = [];
