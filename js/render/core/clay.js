@@ -803,7 +803,7 @@ let createSquareMesh = (i,j,k, z) => {
    let N = []; N[i] = z < 0 ? -1 : 1; N[j] = 0; N[k] = 0;
 
    let V = [];
-   let s = i==2 == z>0;
+   let s = i==2 == z>=0;
    V.push(vertexArray( A, N, [1,0,0], [s?0:0, s?0:1] ));
    V.push(vertexArray( B, N, [1,0,0], [s?0:1, s?1:1] ));
    V.push(vertexArray( C, N, [1,0,0], [s?1:0, s?0:0] ));
@@ -2320,6 +2320,8 @@ function Node(_form) {
       child._flags  = null;
       child._customShader = null;
       this.dataTree.children.push(child.dataTree);
+      if (form == 'label')
+         child.txtrSrc(15, 'media/textures/fixed-width-font.png');
       return child;
    }
 
@@ -2845,6 +2847,7 @@ function Node(_form) {
             gl.texParameteri (gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
          }
          image.src = src;
+	 delete _canvas_txtr[txtr];
       }
       else {                                      // FOR ANY OTHER TEXTURE SOURCE,
          if (! src._animate)
