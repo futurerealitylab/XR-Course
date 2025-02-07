@@ -73,6 +73,7 @@ export const init = async model => {
    ];
 
    let helpMenu = model.add('square').move(.64,1.5,.5).turnY(-.8).scale(.125).txtr(1);
+   //let helpMenu = model.add('square').move(0,1.5,0).scale(.5).txtr(1);
 
    let drawHelpMenu = () => {
       g2.setFont('helvetica');
@@ -150,7 +151,39 @@ export const init = async model => {
       return dst;
    }
 
+   let triangle = [ [ [0,1,0],[-.866,-.5,0],[.866,-.5,0],[0,1,0] ] ];
+
    let square = [ [ [-1,1,0],[-1,-1,0],[1,-1,0],[1,1,0],[-1,1,0] ] ];
+
+   let pentagon = [ [
+      [    0,    1,0],
+      [-.951, .309,0],
+      [-.588,-.809,0],
+      [ .588,-.809,0],
+      [ .951, .309,0],
+      [    0,    1,0],
+   ] ];
+
+   let star = [ [
+      [    0,    1,0],
+      [-.588,-.809,0],
+      [ .951, .309,0],
+      [-.951, .309,0],
+      [ .588,-.809,0],
+      [    0,    1,0],
+   ] ];
+
+   let crescent = [[]];
+   for (let n = 0 ; n <= 32 ; n++) {
+      let x = -Math.sin(2*Math.PI * n / 32);
+      let y =  Math.cos(2*Math.PI * n / 32);
+      if (n >= 24) {
+         let u = x, v = y;
+         x = 1 - v;
+         y = 1 - u;
+      }
+      crescent[0].push([x,y,0]);
+   }
 
    let cube = [];
    for (let u = -1 ; u <= 1 ; u += 2)
@@ -219,8 +252,17 @@ export const init = async model => {
       return dst;
    }
 
-   addGlyphFromCurves('cube', square, (time, T) =>
-      matchCurves.animate(() => cube, cg.mRotateY(time/2), time, T));
+   addGlyphFromCurves('triangle', triangle, (time, T) =>
+      matchCurves.animate(() => triangle, cg.mIdentity(), time, T));
+
+   addGlyphFromCurves('square', square, (time, T) =>
+      matchCurves.animate(() => square, cg.mIdentity(), time, T));
+
+   addGlyphFromCurves('star', star, (time, T) =>
+      matchCurves.animate(() => star, cg.mIdentity(), time, T));
+
+   addGlyphFromCurves('crescent', crescent, (time, T) =>
+      matchCurves.animate(() => crescent, cg.mIdentity(), time, T));
 
    addGlyphFromCurves('bird', bird(0), (time,T) =>
       matchCurves.animate(time => bird(time), cg.mIdentity(), time, T));
@@ -238,8 +280,6 @@ export const init = async model => {
          if (curves[n].length > 1) {
             let outer = wires.add(clay.wire(curves[n].length, 6, n));
             let inner = wires.add(clay.wire(curves[n].length, 6, n + 100));
-            //clay.animateWire(outer, .014, t => cg.sample(curves[n], t));
-            //clay.animateWire(inner, .007, t => cg.sample(curves[n], t));
             clay.animateWire(outer, .006, t => cg.sample(curves[n], t));
             clay.animateWire(inner, .003, t => cg.sample(curves[n], t));
          }
