@@ -1,5 +1,5 @@
 import * as cg from "../render/core/cg.js";
-import { g2 } from "../util/g2.js";
+import { G2 } from "../util/g2.js";
 import { matchCurves } from "../render/core/matchCurves3D.js";
 
 import { loadSound, playSoundAtPosition, playLoopingSoundAtPosition02, 
@@ -10,7 +10,6 @@ import { loadSound, playSoundAtPosition, playLoopingSoundAtPosition02,
 
 let drawSoundBuffer = null;
 let magicSoundBuffer = null;
-
 
 function preloadSounds() {
     Promise.all([
@@ -31,6 +30,10 @@ function preloadSounds() {
 preloadSounds();
 
 export const init = async model => {
+   let g2 = new G2(true);
+
+   model.txtrSrc(1, g2.getCanvas());
+
    let drawings = [];
 
    model.customShader(`
@@ -69,35 +72,38 @@ export const init = async model => {
       '#400000',
    ];
 
-   let helpMenu = model.add('cube').move(.65,1.5,.5).turnY(-.8).scale(.25,.25,.0001).texture(() => {
+   let helpMenu = model.add('square').move(.64,1.5,.5).turnY(-.8).scale(.125).txtr(1);
+
+   let drawHelpMenu = () => {
+      g2.setFont('helvetica');
       g2.setColor('#ff80ff80');
-      g2.fillRect(0,0,1,1);
+      g2.fillRect(-1,-1,2,2);
       g2.setColor('#ff80ff');
       g2.textHeight(.07);
-      g2.fillText('Things you can draw', .02, .95, 'left');
+      g2.fillText('Things you can draw', 0, .9, 'center');
 
-      g2.setFont('helvetica');
       g2.textHeight(.05);
-      g2.fillText('Stroke order:', .02, .86, 'left');
+      g2.fillText('Stroke order:', -.9, .7);
       for (let i = 0 ; i < colors.length ; i++) {
          g2.setColor(colors[i]);
-         g2.fillRect(.33 + i * .05, .84, .04, .04);
+         g2.fillRect(-.27 + .1 * i, .655, .08, .08);
       }
 
+      g2.textHeight(.055);
       g2.setColor('#ff80ff');
       let msg = (a,b,y) => {
-         g2.fillText(a+b, .01, y, 'left');
-         g2.fillText(a,  .012, y, 'left');
+         g2.fillText(a+b, -.9  , y, 'left');
+         g2.fillText(a,   -.905, y, 'left');
       }
-      msg('To draw:'   ,' Hold down the right trigger', .155);
-      msg('To erase:'  ,' Click the right trigger'    , .095);
-      msg('To animate:',' Click the left trigger'     , .035);
+      msg('To draw:'   ,' Hold down the right trigger', -.60);
+      msg('To erase:'  ,' Click the right trigger'    , -.725);
+      msg('To animate:',' Click the left trigger'     , -.85);
 
       for (let n = 0 ; n < drawings.length ; n++) {
          let name    = drawings[n].name;
          let drawing = drawings[n].drawing;
-         let x = .128 + .24 * (n%4);
-         let y = .760 - .31 * (n/4>>0);
+         let x = -.75 + .5 * (n%4);
+         let y =  .5 - .6 * (n/4>>0);
          g2.setColor('#ff80ff');
          g2.fillText(name, x, y, 'center');
          for (let i = 0 ; i < drawing.length ; i++) {
@@ -106,15 +112,15 @@ export const init = async model => {
             let nj = drawing[i].length;
             for (let j = 0 ; j < nj ; j++) {
                let p = drawing[i][j];
-               path.push([x + .08 * p[0], y - .13 + .08 * p[1]]);
+               path.push([x + .08 * p[0], y - .2 + .08 * p[1]]);
             }
-            g2.lineWidth(.01);
+            g2.lineWidth(.005);
             g2.drawPath(path.slice(0, nj-1));
             g2.arrow(path[nj-2], cg.mix(path[nj-2], path[nj-1], .8));
             g2.lineWidth(.001);
          }
       }
-   });
+   }
 
    let strokes = [], ST = null, mode = null, timer;
    let isDrawing = false;
@@ -295,7 +301,9 @@ export const init = async model => {
    }
 
    model.animate(() => {
-      //console.log(strokes.length);
+
+      drawHelpMenu();
+
       if (isDrawing) {
          let curves = [];
 	 for (let n = 0 ; n < strokes.length ; n++)
