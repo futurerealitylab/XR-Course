@@ -70,7 +70,7 @@ export default () => {
 //          { name: "code"               , path: "./demoCode.js"           , public: true },
 //          { name: "code_shader"        , path: "./demoCode2.js"          , public: false}, 
 //          { name: "construct"          , path: "./demoBalls.js"          , public: true },
-//          { name: "crayon"             , path: "./demoDraw.js"           , public: false },
+            { name: "crayon"             , path: "./demoDraw.js"           , public: true },
 //          { name: "agent"              , path: "./demoAgent.js"          , public: false},
             { name: "diagram"            , path: "./demoDiagram.js"        , public: false},
 //          { name: "dodeca"             , path: "./demoDodeca.js"         , public: false},

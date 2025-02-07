@@ -2,7 +2,7 @@ import * as cg from "../render/core/cg.js";
 import { loadSound, playSoundAtPosition, playLoopingSoundAtPosition02, 
          stopLoopingSound02, updateSound02Position} from "../util/positional-audio.js";
 import { loadStereoSound, playStereoAudio } from "../util/stereo-audio.js";         
-
+import { updateAvatars, avatars } from "../render/core/avatar.js";
 
 /*
    To do:
@@ -37,7 +37,6 @@ function preloadSounds() {
 
 // Call this function at the start of application
 preloadSounds();
-
 
 server.init('balls', {});             // INITIALIZE GLOBAL STATE OBJECT.
 
@@ -86,31 +85,51 @@ export const init = async model => {
 
    }
 
+   const dragHistorySize = 10;
+   let dragHistory = { left: [], right: [] };
+
+   function calculateAverageDrag(hand) {
+      if (dragHistory[hand].length === 0) return 0;
+      let sum = dragHistory[hand].reduce((a, b) => a + b, 0);
+      return sum / dragHistory[hand].length;
+   }
+
    inputEvents.onDrag = hand => {
+      let handPosition = cg.roundVec(4, inputEvents.pos(hand));
 
+      let movement = Math.abs(handPosition[0] - prevHandPos[hand][0]) +
+                     Math.abs(handPosition[1] - prevHandPos[hand][1]) +
+                     Math.abs(handPosition[2] - prevHandPos[hand][2]);
 
-      let emptyObj = model.add().move(cg.roundVec(4, inputEvents.pos(hand)));
-      let objPos = emptyObj.getGlobalMatrix();
-      updateSound02Position([objPos[12], objPos[13], objPos[14]]);
-      model.remove(emptyObj);
-
-
-      if (ballID[hand] >= 0){
-         //server.send('balls', msg('move', ballID[hand], hand));
-
+      dragDistance[hand] += movement;
+      if (!dragHistory[hand]) dragHistory[hand] = []; 
+      dragHistory[hand].push(movement);
+      
+      if (dragHistory[hand].length > dragHistorySize) {
+            dragHistory[hand].shift(); // Remove oldest entry
       }
-      else{
-         let handPosition = cg.roundVec(4, inputEvents.pos(hand));
-         dragDistance[hand] +=   Math.abs(handPosition[0] - prevHandPos[hand][0])+
-                           Math.abs(handPosition[1] - prevHandPos[hand][1])+
-                           Math.abs(handPosition[2] - prevHandPos[hand][2]);
-         if(dragDistance[hand] >= spawnDistance){
-            let id = findBall(hand);
-            for (id = 0; balls[id] !== undefined; id++); // FIND AN UNUSED ID.
-            server.send('balls', msg('create', id, hand));
-            dragDistance[hand] = 0;
-         }
-         prevHandPos[hand] = handPosition;
+
+      if(dragDistance[hand] >= spawnDistance){
+         let id = findBall(hand);
+         for (id = 0; balls[id] !== undefined; id++); // FIND AN UNUSED ID.
+         server.send('balls', msg('create', id, hand));
+         dragDistance[hand] = 0;
+      }
+
+      let avgDragDistance = calculateAverageDrag(hand);
+
+      model.setUniform('1f', `uAvgDragDistance${hand.charAt(0).toUpperCase()}`, avgDragDistance);
+
+      prevHandPos[hand] = handPosition;
+   };
+
+   inputEvents.onMove = hand =>{
+      if(inputEvents.isPressed(hand)) return;
+      if (!dragHistory[hand]) dragHistory[hand] = []; 
+      dragHistory[hand].push(0);
+      
+      if (dragHistory[hand].length > dragHistorySize) {
+            dragHistory[hand].shift(); // Remove oldest entry
       }
    }
 
@@ -151,15 +170,18 @@ export const init = async model => {
       return r - Math.floor(r);
    }
 
+   let frameCount = 0;
    model.animate(() => {
       model.customShader(`
           uniform int uFractalBall, uFractalBackground;
-          uniform float uParticleCount;
+          uniform float uParticleCount, uAvgDragDistanceR, uAvgDragDistanceL;
           --------------------------
-          if (uFractalBall == 1){
-            //apos.xyz += noise(apos.xyz + uTime * .5) * aNor * .5;
+        if (uFractalBall == 1) {
+            //float angle = radians(45.0); // Rotate by 45 degrees (adjust as needed)
+            //apos.xyz = rotateY(angle) * apos.xyz; // Apply rotation
             //pos.xyz = obj2Clip(apos.xyz);
-          }
+        }
+        
 
           *********************
 
@@ -167,7 +189,7 @@ export const init = async model => {
           // highp as default and we have to match precision.
 
           uniform highp int uFractalBall, uFractalBackground;
-          uniform highp float uParticleCount;
+          uniform highp float uParticleCount, uAvgDragDistanceR, uAvgDragDistanceL;
 
           float frac(float p){
             return p-floor(p);
@@ -201,6 +223,7 @@ export const init = async model => {
             vec3 colorDown = vec3(0.);
             color = mix(colorUp, colorDown, 1.- (y*t));
           
+            //color = mix(color, vec3(1.,0.,0.), uAvgDragDistanceR * 2.);
           }
        `);
 
@@ -270,6 +293,14 @@ export const init = async model => {
      }
      
 
+     updateAvatars(model);
+
+
+      let a = model.add().move(0,1.6,0).scale(1);
+      for (let n in clients){
+         a._children.push(avatars[clients[n]].getRoot());
+      }
+   
      // RENDER THE 3D SCENE.
       while (model.nChildren() > 0)
          model.remove(0);
@@ -279,9 +310,10 @@ export const init = async model => {
       fractalData1 = [];
       fractalData1.push({s: 0.00001, p: [0,0,0]});
 
-      model.add('tubeY').move(worldCenter).color('white').scale(.001, 100, .001).dull();
+      //model.add('tubeY').move(worldCenter).color('white').scale(.001, 100, .001).dull();
+      let uvs = [[0,0,.5,.5], [.5,.5,1,1], [0,.5, .5, 1], [.5, 0, 1, .5]];
+      function createFractalArm(id, position, scale, depth, uv) {
 
-      function createFractalArm(position, scale, depth, uv) {
          if (!position || depth === 0 || fractalData1.length >= N) return;
      
          let expansionFactor = 1.5 * scale;
@@ -320,8 +352,8 @@ export const init = async model => {
              if(mirroredPos[1]>ceilingHeight){
                mirroredPos[1] = ceilingHeight - mirroredPos[1] + ceilingHeight;
              }
-
-             fractalData1.push({ s: scale * 0.8, p: mirroredPos, t:uv });
+             let randomInt = Math.floor(random1(id * 100 + i) * 4);
+             fractalData1.push({ s: scale * 0.8, p: mirroredPos, t:uvs[randomInt] });
          }
      
          // Recursively generate the next level
@@ -330,13 +362,17 @@ export const init = async model => {
              position[1] + heightFactor + nDirection[1] * expansionFactor, // Increase height
              position[2]+ nDirection[2] * expansionFactor
          ];
-         createFractalArm(newPosUp, scale * scaleGrowth, depth - 1, uv);
+         createFractalArm(id + 10, newPosUp, scale * scaleGrowth, depth - 1, uv);
       }
 
+createFractalArm(0, inputEvents.pos('right'), 0.15, 1, [-1,-1,0,0]);
 
-createFractalArm(inputEvents.pos('right'), 0.15, 1, [-1,-1,0,0]);
+
+
 for (let id in balls) {
-   createFractalArm(balls[id], 0.15, 7, [0,0,1,1]);
+
+   //createFractalArm(balls[id], 0.15, 7, uvs[randomInt]);
+   createFractalArm(id, balls[id], 0.02, 7, [0,0,1,1]);
 
    if (Math.abs(balls[id][0]) > 50 || Math.abs(balls[id][1]) > 50 || Math.abs(balls[id][2]) > 50) {
        server.send('balls', msg('delete', id, 'left')); // Send delete message
@@ -349,10 +385,12 @@ for (let id in balls) {
    }
 }
 
-   let particles = model.add('particles').info(N).texture('../media/textures/magic_orb.png').flag('uFractalBall');
+   let particles = model.add('particles').info(N).texture('../media/textures/particles-glow.png').flag('uFractalBall');
    particles.setParticles(fractalData1);
    
    model.setUniform('1f', 'uParticleCount'    , fractalData1.length);
+   model.setUniform('1f', 'uAvgDragDistanceL', calculateAverageDrag('left'));
+   model.setUniform('1f', 'uAvgDragDistanceR', calculateAverageDrag('right'));
 
    if(!balls){
       server.init('balls', {});  
