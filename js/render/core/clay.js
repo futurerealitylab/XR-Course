@@ -1874,13 +1874,10 @@ let fl = 5;                                                          // CAMERA F
    this.controllerBallSize = 0.02;
 
    this.animate = view => {
-      if (window.gltfLoadCount !== undefined)
-      {
-         if (window.gltfLoadCount > 0 && window.txtrMap !== undefined)
-            for (let [key, val] of window.txtrMap)
-               this.txtrCallback(key, val[0], val[1]);
-         window.gltfLoadCount--;
-      }
+      if (window.txtrMap)
+         for (let [key, val] of window.txtrMap)
+            this.txtrCallback(key, val[0], val[1]);
+
       window.timestamp++;
       window.needUpdateInput = true;
       window.mySharedObj = [];
@@ -2834,24 +2831,38 @@ function Node(_form) {
       this._bumptxtr = n;
       return this;
    }
+
+   let txtrImage = [];
+
    this.txtrSrc = (txtr, src, do_not_animate) => {
       window.txtrMap.set(txtr, [src, do_not_animate]);
 
+      if (txtr < 15 && txtrImage[txtr] && txtrImage[txtr].src == src && txtrImage[txtr].count > 20)
+         return;
+
       if (typeof src == 'string') {               // IF THE TEXTURE SOURCE IS AN IMAGE FILE,
-         let image = new Image();                 // IT ONLY NEEDS TO BE SENT TO THE GPU ONCE.
-         image.onload = () => {
-            gl.activeTexture (gl.TEXTURE0 + txtr);
-            gl.bindTexture   (gl.TEXTURE_2D, gl.createTexture());
-            gl.texImage2D    (gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-            gl.texParameteri (gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-            gl.texParameteri (gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+         if (! txtrImage[txtr] || txtrImage[txtr].src != src) {
+            let image = new Image();                 // IT ONLY NEEDS TO BE SENT TO THE GPU ONCE.
+            image.onload = () => {
+               gl.activeTexture (gl.TEXTURE0 + txtr);
+               gl.bindTexture   (gl.TEXTURE_2D, gl.createTexture());
+               gl.texImage2D    (gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+               gl.texParameteri (gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+               gl.texParameteri (gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            }
+            image.src = src;
+            txtrImage[txtr] = { src: src, image: image, count: 0 };
          }
-         image.src = src;
-	 delete _canvas_txtr[txtr];
+         else {
+            gl.activeTexture (gl.TEXTURE0 + txtr);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, txtrImage[txtr].image);
+            txtrImage[txtr].count++;
+         }
+         delete _canvas_txtr[txtr];
       }
       else {                                      // FOR ANY OTHER TEXTURE SOURCE,
          if (! src._animate)
-	    do_not_animate = true;
+            do_not_animate = true;
          gl.activeTexture (gl.TEXTURE0 + txtr);   // ASSUME THAT ITS CONTENT CAN BE ANIMATED.
          gl.bindTexture   (gl.TEXTURE_2D, gl.createTexture());
          gl.texParameteri (gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);

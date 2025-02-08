@@ -23,6 +23,7 @@ export default () => {
             { name: "fractal"             , path: "./fractal.js"             , public: true  },
             // { name: "nestedA"            , path: "./nestedA.js"            , public: true  },
             // { name: "nestedB"            , path: "./nestedB.js"            , public: true  },
+            { name: "textured"           , path: "./textured.js"            , public: true  },
 
             { name: "particleNoise"       , path: "./particleNoise.js"       , public: true  },
 

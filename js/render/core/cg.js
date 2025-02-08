@@ -320,6 +320,21 @@ export let isLineIntersectPoly = (A, B, P) => {
    return t0 > t1 || t1 < 0 || t0 > distance(A, B) ? null : [t0, t1];
 }
 
+export let isSphereIntersectBox = (S,B) => {
+   let C = [ S[0] - B[12], S[1] - B[13], S[2] - B[14] ], r = S[3];
+   let X = B.slice(0, 3), sx = norm(X), x = Math.abs(dot(C, X) / sx) - sx,
+       Y = B.slice(4, 7), sy = norm(Y), y = Math.abs(dot(C, Y) / sy) - sy,
+       Z = B.slice(8,11), sz = norm(Z), z = Math.abs(dot(C, Z) / sz) - sz;
+   return ( x < 0 && y < 0 && z < 0 ? 0 :
+            y < 0 && z < 0 ? x * x :
+            z < 0 && x < 0 ? y * y :
+            x < 0 && y < 0 ? z * z :
+            x < 0 ? y * y + z * z :
+            y < 0 ? z * z + x * x :
+            z < 0 ? x * x + y * y :
+            x * x + y * y + z * z ) <= r * r;
+}
+
 export let isBoxIntersectBox = (A,B) => {
    let P = [[1,0,0,1],[-1,0,0,1],[0,1,0,1],[0,-1,0,1],[0,0,1,1],[0,0,-1,1]];
    let isIntersect = (A,B) => {
