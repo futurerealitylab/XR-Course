@@ -44,7 +44,6 @@ let ball;
 
 let ballID = { left: -1, right: -1 }; // WHICH BALL IS IN EACH HAND?
 
-// Update findBall to use ball.pos (since each ball is now { pos, type }).
 let findBall = hand => {
    if (!balls) return 0;
    let dMin = 10000, idMin = -1;
@@ -58,7 +57,6 @@ let findBall = hand => {
    return dMin < 2 * radius ? idMin : -1;
 }
 
-// Create a message object that now includes a ball type (defaulting to 1).
 let msg = (op, id, hand, type = 1) => {
    return { op: op, id: id, pos: cg.roundVec(4, inputEvents.pos(hand)), type: type };
 }
@@ -224,7 +222,6 @@ export const init = async model => {
                   if (deleteSoundBuffer) {
                      let emptyObj = model.add().move(msg.pos);
                      let objPos = emptyObj.getGlobalMatrix();
-                     // Optionally play a delete sound:
                      // playSoundAtPosition(deleteSoundBuffer, [objPos[12], objPos[13], objPos[14]]);
                      model.remove(emptyObj);
                   }
@@ -240,7 +237,6 @@ export const init = async model => {
                      model.remove(emptyObj);
                   }
                }
-               // Store the ball with both position and type.
                balls[msg.id] = { pos: msg.pos, type: msg.type };
             }
          }
@@ -293,7 +289,7 @@ export const init = async model => {
       // model.add('tubeY').move(worldCenter).color('white').scale(.001, 100, .001).dull();
 
       let uvs = [[0, 0, .5, .5], [.5, .5, 1, 1], [0, .5, .5, 1], [.5, 0, 1, .5]];
-      function createFractalArm(id, position, scale, depth, uv) {
+      function createFractalArm(id, position, scale, depth, uv, type) {
          if (!position || depth === 0 || fractalData1.length >= N) return;
      
          let expansionFactor = 1.5 * scale;
@@ -331,25 +327,22 @@ export const init = async model => {
                mirroredPos[1] = ceilingHeight - mirroredPos[1] + ceilingHeight;
              }
              let randomInt = Math.floor(random1(id * 100 + i) * 4);
-             fractalData1.push({ s: scale * 0.8, p: mirroredPos, t: uvs[randomInt] });
+             fractalData1.push({ s: scale * 0.8, p: mirroredPos, t: uvs[type] });
          }
      
-         // Recursively generate the next level.
          let newPosUp = [
              position[0] + nDirection[0] * expansionFactor,
              position[1] + heightFactor + nDirection[1] * expansionFactor,
              position[2] + nDirection[2] * expansionFactor
          ];
-         createFractalArm(id + 10, newPosUp, scale * scaleGrowth, depth - 1, uv);
+         createFractalArm(id + 10, newPosUp, scale * scaleGrowth, depth - 1, uv, type);
       }
 
-      // Example fractal arm for the right hand.
-      createFractalArm(0, inputEvents.pos('right'), 0.15, 1, [-1, -1, 0, 0]);
 
-      // Generate fractal arms for each ball.
+      createFractalArm(0, inputEvents.pos('right'), 0.15, 1, [-1, -1, 0, 0], 0);
+
       for (let id in balls) {
-         // Pass the ball's position (balls[id].pos) instead of the whole object.
-         createFractalArm(id, balls[id].pos, 0.02, 7, [0, 0, 1, 1]);
+         createFractalArm(id, balls[id].pos, 0.02, 7, [0, 0, 1, 1], balls[id].type);
 
          if (Math.abs(balls[id].pos[0]) > 50 ||
              Math.abs(balls[id].pos[1]) > 50 ||
