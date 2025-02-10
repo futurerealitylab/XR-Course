@@ -105,16 +105,14 @@ export function ControllerBeam(model, hand) {
                                       .move(cg.add([0,0,-10], beamOffset(hand)))
                                       .scale(.0005,.0005,10);
 
-      //if (hand == 'left' ) update(matrix ? [ .005,.01,-.03] : [ .0060,.014,0], [-.2,0,0]);
-      //if (hand == 'right') update(matrix ? [-.005,.01,-.03] : [-.0015,.014,0], [ .2,0,0]);
       if (hand == 'left' ) update(matrix ? [0,0,0] : [ .0060,.014,0], [-.2,0,0]);
       if (hand == 'right') update(matrix ? [0,0,0] : [-.0015,.014,0], [ .2,0,0]);
    }
    this.beamMatrix = () =>
-      window.handtracking ? this.m :
-                            cg.mMultiply(this.m, cg.mMultiply(cg.mRotateX(-bend),
-			                                      cg.mTranslate([0,.02,0])));
-
+      cg.mMultiply(worldCoords,
+                   window.handtracking ? this.m :
+                                         cg.mMultiply(this.m, cg.mMultiply(cg.mRotateX(-bend),
+			                                                   cg.mTranslate([0,.02,0]))));
    this.hitRect = m => this.isEnabled ? cg.mHitRect(this.beamMatrix(), m) : null;
    this.projectOntoBeam = P => {
       let bm = this.beamMatrix();	// get controller beam matrix

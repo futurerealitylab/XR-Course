@@ -7,6 +7,8 @@ import { lcb, rcb } from "../handle_scenes.js";
 
 export function G2(do_not_animate_flag=false, canvasWidth=512, canvasHeight) {
 
+   let g2 = this;
+
    let txtrCanvas = document.createElement('canvas');
    txtrCanvas.width = canvasWidth;
    txtrCanvas.height = canvasHeight===undefined ? canvasWidth : canvasHeight;
@@ -86,6 +88,11 @@ export function G2(do_not_animate_flag=false, canvasWidth=512, canvasHeight) {
          activeWidget.handleEvent();
       if (activeWidget && activeWidget.handleKeyEvent)
          activeWidget.handleKeyEvent();
+
+      if (this.render) {
+         this.clear();
+	 this.render();
+      }
    }
 
    this.drawWidgets = obj => {
@@ -126,11 +133,11 @@ export function G2(do_not_animate_flag=false, canvasWidth=512, canvasHeight) {
       }
       this.draw = () => {
          let isPressed = this == activeWidget && (mouseState == 'press' || mouseState == 'drag');
-         g2.textHeight(.09 * size);
+         g2.textHeight(.045 * size);
          g2.setColor(color, isPressed ? .5 : this.isWithin() ? .7 : 1);
          g2.fillRect(x-w/2, y-h/2, w, h);
          g2.setColor('black');
-         g2.fillText(Array.isArray(label) ? label[this.state] : label, x, y, 'center');
+         g2.text(Array.isArray(label) ? label[this.state] : label, x, y, 'center');
          drawWidgetOutline(x,y,w,h, isPressed);
       }
    }
@@ -162,7 +169,8 @@ export function G2(do_not_animate_flag=false, canvasWidth=512, canvasHeight) {
          g2.setColor(color, isPressed ? .375 : this.isWithin() ? .475 : .5);
          g2.fillRect(x-w/2, y-h/2, w * value, h);
          g2.setColor('black');
-         g2.fillText(label, x, y, 'center');
+         g2.textHeight(.045 * size);
+         g2.text(label, x, y, 'center');
          drawWidgetOutline(x,y,w,h, isPressed);
       }
    }
@@ -213,11 +221,11 @@ export function G2(do_not_animate_flag=false, canvasWidth=512, canvasHeight) {
       }
       this.draw = () => {
          context.save();
-         context.font = (height * .09 * size) + 'px ' + font;
+         context.font = (height * .07 * size) + 'px ' + font;
          g2.setColor(color, this.isWithin() ? .7 : 1);
          g2.fillRect(x-w/2, y-h/2, w, h);
          g2.setColor('black');
-         g2.fillText(text, x, y, 'center');
+         g2.text(text, x, y, 'center');
          if (this == activeWidget) { // IF THIS IS THE ACTIVE WIDGET, THEN DRAW THE CURSOR.
             let cx = x + .053 * size * (cursor - text.length/2);
             g2.fillRect(cx - .005 * size, y - h/2, .01 * size, h);
@@ -255,7 +263,7 @@ export function G2(do_not_animate_flag=false, canvasWidth=512, canvasHeight) {
          g2.fillRect(x-w/2 + w*value[0] - .005 * size, y-h/2, .01 * size, h);
          g2.fillRect(x-w/2, y-h/2 + h*value[1] - .005 * size, w, .01 * size);
          g2.setColor('black');
-         g2.fillText(label, x, y, 'center');
+         g2.text(label, x, y + .7 * w, 'center');
          drawWidgetOutline(x,y,w,h, isPressed);
       }
    }
@@ -435,6 +443,7 @@ export function G2(do_not_animate_flag=false, canvasWidth=512, canvasHeight) {
       if (alignment)
          context.textAlign = alignment;
       for (let n = 0 ; n < lines.length ; n++, y -= dy) {
+         context.lineWidth = _h / 6;
          context.fillText(lines[n],0,h2c(n*dy));
          context.strokeText(lines[n],0,h2c(n*dy));
       }
@@ -470,17 +479,18 @@ export function G2(do_not_animate_flag=false, canvasWidth=512, canvasHeight) {
 
    this.clock = (x,y,w,h) => {
       context.save();
-      context.translate(x2c(x),y2c(1-y));
+      context.translate(x2c(x),y2c(y+1));
       context.scale(w,h);
          this.setColor('black');
-         this.fillOval(0,0,1,1);
+         this.fillOval(-1,-1,2,2);
          this.setColor('white');
-         this.fillOval(.01,.01,.98,.98);
+         this.fillOval(-.99,-.99,1.98,1.98);
          this.setColor('black');
          let c = t => Math.cos(2 * Math.PI * t);
          let s = t => Math.sin(2 * Math.PI * t);
+         this.textHeight(.1);
          for (let n = 1 ; n <= 12 ; n++)
-            this.fillText('' + n, .5 + .43 * s(n/12), .5 + .42 * c(n/12), 'center');
+            this.text('' + n, .86 * s(n/12), .84 * c(n/12), 'center');
 
          let now = new Date();
          let hour = now.getHours();
@@ -488,11 +498,11 @@ export function G2(do_not_animate_flag=false, canvasWidth=512, canvasHeight) {
          let second = now.getSeconds();
          let clockHand = (w,t,r) => {
             this.lineWidth(w);
-            this.arrow([.5,.5], [.5 + r * s(t), .5 + r * c(t) ]);
+            this.arrow([0,0], [ r * s(t), r * c(t) ]);
          }
-         clockHand(.023, (hour   + minute / 60) / 12, .23);
-         clockHand(.015, (minute + second / 60) / 60, .32);
-         clockHand(.010,           second / 60      , .42);
+         clockHand(.042, (hour   + minute / 60) / 12, .49);
+         clockHand(.027, (minute + second / 60) / 60, .64);
+         clockHand(.018,           second / 60      , .84);
       context.restore();
    }
 

@@ -61,8 +61,10 @@ export function Diagram(model, txtrUnitL, txtrUnitR, center, size, callback) {
    let projectPoint = point => {
       let beamMatrix = cg.mMultiply(worldCoords, createBeamMatrix(eye, point));
       let p = cg.mHitRect(beamMatrix, objMatrix);
+/*
       if (p)
          p = [ 2*p[0]-1, 2*p[1]-1, p[2] ];
+*/
       return p;
    }
 
