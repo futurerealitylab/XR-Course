@@ -68,6 +68,10 @@ let msg = (op, id, hand, type = 1) => {
    return { op: op, id: id, pos: cg.roundVec(4, inputEvents.pos(hand)), type: type };
 }
 
+let msgPos = (op, id, position, type = 1) => {
+   return { op: op, id: id, pos: position, type: type };
+}
+
 export const init = async model => {
 
 
@@ -359,7 +363,6 @@ let g2 = new G2(true);
 
    inputEvents.onDrag = hand => {
       if (hand == 'right'){
-   
          for(let i=0;i<1000;i++)
          strokes[strokes.length-1].push(inputEvents.pos(hand));
 
@@ -430,6 +433,7 @@ let g2 = new G2(true);
          ST = null;
          mode = null;
          strokes = [];
+         timer = 0;
          buildWires(strokes);
       }
       //----------------------DRAW ABOVE, FRACTAL BELOW------------------------
@@ -473,6 +477,7 @@ let g2 = new G2(true);
    }
 
    let currentGlyphName = "";
+   timer = 0;
    //--------------------------------ANIMATE---------------------------------------
    let frameCount = 0;
    model.animate(() => {
@@ -503,7 +508,26 @@ let g2 = new G2(true);
    let curves = [];
    for (let n = 0 ; n < strokes.length ; n++)
       curves.push(matchCurves.resample(strokes[n], 100));
+
    buildWires(curves);
+
+   //calculate center of the first stroke
+   let curvePos = inputEvents.pos('right');
+   let totalPos = [0,0,0];
+   if(curves[0]){
+      let len = curves[0].length;
+      for (let i = 0 ; i < len ; i++){
+         totalPos[0] += curves[0][i][0];
+         totalPos[1] += curves[0][i][1];
+         totalPos[2] += curves[0][i][2];
+      }
+      curvePos[0] = totalPos[0] / len;
+      curvePos[1] = totalPos[1] / len;
+      curvePos[2] = totalPos[2] / len;
+   }
+   if(!curvePos || !curvePos[0] || curvePos[0] == NaN){
+      curvePos = inputEvents.pos('right');
+   }
 
    if (ST && mode == 'morph') {
       timer += 1.8 * model.deltaTime;
@@ -524,12 +548,12 @@ let g2 = new G2(true);
             if(glyphID >= 0){  
                let id = findBall('right');
                for (id = 0; balls[id] !== undefined; id++);
-               server.send('balls', msg('create', id, 'right', glyphID));
+               server.send('balls', msgPos('create', id, curvePos, glyphID));
             }
          }
       }
    }
-   
+   model.setUniform('1f', 'uDrawingOpacity', Math.min(1.0, Math.max(0.0, 2.0 - timer)));
 
 
    //----------------------DRAW ABOVE, FRACTAL BELOW-------------------------
@@ -539,6 +563,7 @@ let g2 = new G2(true);
       model.customShader(`
           uniform int uFractalBall, uFractalBackground;
           uniform float uParticleCount, uAvgDragDistanceR, uAvgDragDistanceL;
+          uniform float uDrawingOpacity;
           --------------------------
         if (uFractalBall == 1) {
             // Example: apply a rotation if needed.
@@ -550,6 +575,7 @@ let g2 = new G2(true);
           // Specify precision for the vertex shader.
           uniform highp int uFractalBall, uFractalBackground, uWireTexture;
           uniform highp float uParticleCount, uAvgDragDistanceR, uAvgDragDistanceL;
+          uniform highp float uDrawingOpacity;
 
           float frac(float p){
             return p - floor(p);
@@ -586,6 +612,7 @@ let g2 = new G2(true);
             t = t * t * (3. - t - t);
             opacity = 30. * pow(t, 9.) * u * u;
             color.g *= .02 * opacity;
+            opacity *= uDrawingOpacity;
          }
        `);
 
