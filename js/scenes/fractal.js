@@ -478,6 +478,7 @@ let g2 = new G2(true);
 
    let currentGlyphName = "";
    timer = 0;
+   let isMorphing = false;
    //--------------------------------ANIMATE---------------------------------------
    let frameCount = 0;
    model.animate(() => {
@@ -536,6 +537,7 @@ let g2 = new G2(true);
          buildWires(strokes);
       }
       else {                                   // ANIMATE AFTER MORPHING
+         isMorphing = true;
          let glyph = matchCurves.glyph(ST[2]);
          if (glyph.code) {
             strokes = glyph.code(timer - 1, ST[3]);
@@ -552,9 +554,13 @@ let g2 = new G2(true);
             }
          }
       }
+
+      if(timer > 2.5){
+         isMorphing = false;
+      }
    }
    model.setUniform('1f', 'uDrawingOpacity', Math.min(1.0, Math.max(0.0, 2.0 - timer)));
-
+   model.setUniform('1f', 'uParticleOpacity', !isMorphing ? 1.0 : 1.0 - Math.min(1.0, Math.max(0.0, 2.0 - timer)));
 
    //----------------------DRAW ABOVE, FRACTAL BELOW-------------------------
 
@@ -563,7 +569,7 @@ let g2 = new G2(true);
       model.customShader(`
           uniform int uFractalBall, uFractalBackground;
           uniform float uParticleCount, uAvgDragDistanceR, uAvgDragDistanceL;
-          uniform float uDrawingOpacity;
+          uniform float uDrawingOpacity, uParticleOpacity;
           --------------------------
         if (uFractalBall == 1) {
             // Example: apply a rotation if needed.
@@ -575,7 +581,7 @@ let g2 = new G2(true);
           // Specify precision for the vertex shader.
           uniform highp int uFractalBall, uFractalBackground, uWireTexture;
           uniform highp float uParticleCount, uAvgDragDistanceR, uAvgDragDistanceL;
-          uniform highp float uDrawingOpacity;
+          uniform highp float uDrawingOpacity, uParticleOpacity;
 
           float frac(float p){
             return p - floor(p);
@@ -593,6 +599,7 @@ let g2 = new G2(true);
                color = vec3(sin01(worldPosition.x), sin01(worldPosition.y), sin01(worldPosition.z));
                color += .5;
             }
+            opacity *= uParticleOpacity;
           }
 
           if (uFractalBackground == 1) {
