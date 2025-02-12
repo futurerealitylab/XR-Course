@@ -7,7 +7,7 @@ export const init = async model => {
    let txtr_is_canvas = false;
    let txtr_is_video = false;
 
-   let g2_instance = new G2(true, 512);
+   let g2_instance = new G2();
 
    if (txtr_is_canvas) {
       model.txtrSrc(2, g2_instance.getCanvas(), false); // SET 3RD ARG TO TRUE TO RENDER ONLY ONCE

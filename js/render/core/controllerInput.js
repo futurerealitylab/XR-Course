@@ -123,8 +123,9 @@ export function ControllerBeam(model, hand) {
       let q = cg.scale(z, d);		// find point along beam at that distance
       return cg.add(o, q);		// shift back to global space
    }
-   this.hitLabel = label => this.hitRect(cg.mMultiply(label.getMatrixFromRoot(),
-                                                      cg.mScale(label.getInfo().length/2,1,1)));
+   this.hitLabel = label => this.hitRect(cg.mMultiply(worldCoords,
+                                                      cg.mMultiply(label.getMatrixFromRoot(),
+                                                                   cg.mScale(label.getInfo().length/2,1,1))));
 }
 
 let buttonPress = { left: [], right: [] };

@@ -2837,13 +2837,14 @@ function Node(_form) {
    this.txtrSrc = (txtr, src, do_not_animate) => {
       window.txtrMap.set(txtr, [src, do_not_animate]);
 
-      if (txtrImage[txtr] && txtrImage[txtr].src == src && txtrImage[txtr].count == 20) {
+      if (txtrImage[txtr] && txtrImage[txtr].src == src && (txtr == 15 || txtrImage[txtr].count == 20)) {
           gl.activeTexture (gl.TEXTURE0 + txtr);
           gl.bindTexture   (gl.TEXTURE_2D, gl.createTexture());
           gl.texImage2D    (gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, txtrImage[txtr].image);
           gl.texParameteri (gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
           gl.texParameteri (gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-          delete txtrImage[txtr];
+	  if (txtr < 15)
+             delete txtrImage[txtr];
       }
 
       if (typeof src == 'string') {                             // IF THE TEXTURE SOURCE IS AN IMAGE FILE

@@ -30,7 +30,7 @@ function preloadSounds() {
 preloadSounds();
 
 export const init = async model => {
-   let g2 = new G2(true);
+   let g2 = new G2().setAnimate(false);
 
    model.txtrSrc(1, g2.getCanvas());
 
@@ -73,28 +73,28 @@ export const init = async model => {
    ];
 
    let helpMenu = model.add('square').move(.64,1.5,.5).turnY(-.8).scale(.125).txtr(1);
-   //let helpMenu = model.add('square').move(0,1.5,0).scale(.5).txtr(1);
 
-   let drawHelpMenu = () => {
-      g2.setFont('helvetica');
-      g2.setColor('#ff80ff80');
-      g2.fillRect(-1,-1,2,2);
-      g2.setColor('#ff80ff');
-      g2.textHeight(.07);
-      g2.fillText('Things you can draw', 0, .9, 'center');
+   g2.render = function() {
+console.log('------------------');
+      this.setFont('helvetica');
+      this.setColor('#ff80ff80');
+      this.fillRect(-1,-1,2,2);
+      this.setColor('#ff80ff');
+      this.textHeight(.07);
+      this.fillText('Things you can draw', 0, .9, 'center');
 
-      g2.textHeight(.05);
-      g2.fillText('Stroke order:', -.9, .7);
+      this.textHeight(.05);
+      this.fillText('Stroke order:', -.9, .7);
       for (let i = 0 ; i < colors.length ; i++) {
-         g2.setColor(colors[i]);
-         g2.fillRect(-.27 + .1 * i, .655, .08, .08);
+         this.setColor(colors[i]);
+         this.fillRect(-.27 + .1 * i, .655, .08, .08);
       }
 
-      g2.textHeight(.055);
-      g2.setColor('#ff80ff');
+      this.textHeight(.055);
+      this.setColor('#ff80ff');
       let msg = (a,b,y) => {
-         g2.fillText(a+b, -.9  , y, 'left');
-         g2.fillText(a,   -.905, y, 'left');
+         this.fillText(a+b, -.9  , y, 'left');
+         this.fillText(a,   -.905, y, 'left');
       }
       msg('To draw:'   ,' Hold down the right trigger', -.60);
       msg('To erase:'  ,' Click the right trigger'    , -.725);
@@ -105,20 +105,20 @@ export const init = async model => {
          let drawing = drawings[n].drawing;
          let x = -.75 + .5 * (n%4);
          let y =  .5 - .6 * (n/4>>0);
-         g2.setColor('#ff80ff');
-         g2.fillText(name, x, y, 'center');
+         this.setColor('#ff80ff');
+         this.fillText(name, x, y, 'center');
          for (let i = 0 ; i < drawing.length ; i++) {
-            g2.setColor(colors[i]);
+            this.setColor(colors[i]);
             let path = [];
             let nj = drawing[i].length;
             for (let j = 0 ; j < nj ; j++) {
                let p = drawing[i][j];
                path.push([x + .08 * p[0], y - .2 + .08 * p[1]]);
             }
-            g2.lineWidth(.005);
-            g2.drawPath(path.slice(0, nj-1));
-            g2.arrow(path[nj-2], cg.mix(path[nj-2], path[nj-1], .8));
-            g2.lineWidth(.001);
+            this.lineWidth(.005);
+            this.drawPath(path.slice(0, nj-1));
+            this.arrow(path[nj-2], cg.mix(path[nj-2], path[nj-1], .8));
+            this.lineWidth(.001);
          }
       }
    }
@@ -342,7 +342,7 @@ export const init = async model => {
 
    model.animate(() => {
 
-      drawHelpMenu();
+      g2.update();
 
       if (isDrawing) {
          let curves = [];

@@ -11,8 +11,8 @@ import { G2 } from "../util/g2.js";
 
 export const init = async model => {
 
-   let g2L = new G2(true);
-   let g2R = new G2(true);
+   let g2L = new G2().setAnimate(false);
+   let g2R = new G2().setAnimate(false);
 
    model.txtrSrc(1,g2L.getCanvas());
    model.txtrSrc(2,g2R.getCanvas());

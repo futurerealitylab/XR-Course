@@ -63,7 +63,7 @@ export const init = async model => {
       this.textHeight(.1);
       this.text('Drawing Pad', 0, .9, 'center');
 
-      if (! this.drawWidgets(objB))
+      if (! this.isActiveWidget())
          if (this.mouseState() == 'press') {
 	    if (objB.ST) {
 	       objB.paths = [];
@@ -146,7 +146,6 @@ export const init = async model => {
       this.text('' + (100*g2E.value[0]>>0), 0, -.35, 'center');
       this.text('' + (100*g2E.value[1]>>0), -.40, 0, 'center');
       this.text('Widget tester', 0, .9, 'center');
-      this.drawWidgets(objE);
    }
    g2E.value = [.5,.5];
    g2E.addWidget(objE, 'trackpad', 0,   0, '#ff8080', 'trackpad', value => g2E.value = value);

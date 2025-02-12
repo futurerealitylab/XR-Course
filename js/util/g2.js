@@ -47,9 +47,9 @@ export function G2(do_not_animate_flag=false, canvasWidth=512, canvasHeight) {
 
    let widgets = [];
 
-   this.getCanvas = () => {
-      return txtrCanvas;
-   }
+   this.getCanvas = () => txtrCanvas;
+
+   this.setAnimate = true_or_false => { txtrCanvas._animate = true_or_false; return this; }
 
    this.addWidget = (obj, type, x, y, color, label, action, size) => {
       switch (type) {
@@ -89,16 +89,23 @@ export function G2(do_not_animate_flag=false, canvasWidth=512, canvasHeight) {
       if (activeWidget && activeWidget.handleKeyEvent)
          activeWidget.handleKeyEvent();
 
-      if (this.render) {
+      if (txtrCanvas._animate || renderCount++ == 0) {
          this.clear();
-	 this.render();
+         this.render();
       }
+
+      return this.drawWidgets();
    }
 
-   this.drawWidgets = obj => {
+   let renderCount = 0;
+
+   this.isActiveWidget = () => activeWidget != null;
+   
+   this.render = () => {}
+
+   this.drawWidgets = () => {
       for (let n = 0 ; n < widgets.length ; n++)
-         if (widgets[n].obj == obj)
-            widgets[n].draw();
+         widgets[n].draw();
       return activeWidget != null;
    }
 
@@ -366,7 +373,6 @@ export function G2(do_not_animate_flag=false, canvasWidth=512, canvasHeight) {
    }
    this.drawOval = (x,y,w,h) => {
       context.beginPath();
-//    context.arc(x2c(x+w/2), y2c(y+h/2), w2c(w/2), 0, 2 * Math.PI);
       context.ellipse(x2c(x+w/2), y2c(y+h/2), w2c(w/2), h2c(h/2), 0, 0, 2 * Math.PI);
       context.stroke();
    }
@@ -397,7 +403,6 @@ export function G2(do_not_animate_flag=false, canvasWidth=512, canvasHeight) {
    }
    this.fillOval = (x,y,w,h) => {
       context.beginPath();
-//    context.arc(x2c(x+w/2), y2c(y+h/2), w2c(w/2), 0, 2 * Math.PI);
       context.ellipse(x2c(x+w/2), y2c(y+h/2), w2c(w/2), h2c(h/2), 0, 0, 2 * Math.PI);
       context.fill();
    }
