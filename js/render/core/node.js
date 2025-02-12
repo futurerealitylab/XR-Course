@@ -148,7 +148,7 @@ export class Node {
 
   addNode(value) {
     if (value._isGLTF)
-      window.gltfLoadCount = 3;
+      window.gltfLoadCount = 10;
     if (!value || value.parent == this) {
       return this.children[this.children.length - 1];
     }
