@@ -2692,29 +2692,19 @@ function Node(_form) {
       return this;
    }
 
-   let txtrImage = [];
-
    this.txtrSrc = (txtr, src, do_not_animate) => {
       window.txtrMap.set(txtr, [src, do_not_animate]);
 
-      if (txtrImage[txtr] && txtrImage[txtr].src == src && (txtr == 15 || txtrImage[txtr].count == 20)) {
-          gl.activeTexture (gl.TEXTURE0 + txtr);
-          gl.bindTexture   (gl.TEXTURE_2D, gl.createTexture());
-          gl.texImage2D    (gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, txtrImage[txtr].image);
-          gl.texParameteri (gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-          gl.texParameteri (gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-	  if (txtr < 15)
-             delete txtrImage[txtr];
-      }
-
       if (typeof src == 'string') {                             // IF THE TEXTURE SOURCE IS AN IMAGE FILE
-         if (! txtrImage[txtr] || txtrImage[txtr].src != src) { // THEN IT IS SENT TO THE GPU ONLY ONCE.
-            let image = new Image();                           
-            image.onload = () => txtrImage[txtr] = { src: src, image: image, count: 0 };
-            image.src = src;
-         }
-         else
-            txtrImage[txtr].count++;
+         let image = new Image();                           
+         image.onload = () => {
+             gl.activeTexture (gl.TEXTURE0 + txtr);
+	     gl.bindTexture   (gl.TEXTURE_2D, gl.createTexture());
+             gl.texImage2D    (gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+             gl.texParameteri (gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+             gl.texParameteri (gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+	 }
+         image.src = src;
          delete _canvas_txtr[txtr];
       }
       else {                                      // FOR ANY OTHER TEXTURE SOURCE,
