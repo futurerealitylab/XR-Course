@@ -1,5 +1,5 @@
 import * as cg from "../render/core/cg.js";
-import { g2 } from "../util/g2.js";
+import { G2 } from "../util/g2.js";
 
 const inch = .0254, canvasRadius = 350,
       tableRadius = 18.25 * inch, tableHeight = 30.5 * inch,
@@ -35,30 +35,34 @@ export const init = async model => {
    let objs = model.add();
    for (let n = 0 ; n < 100 ; n++)
       objs.add();
+
+   let g2 = new G2();
+   let X = x => .5 - .5 * x / tableRadius;
+   let Y = y => .5 + .5 * y / tableRadius;
+   g2.setColor('#00000050');
+   g2.fillOval(0,0,1,1);
+
+   let L = xformPos(HP.left , true);
+   let lr = isPressed.left ? .015 : .02;
+   g2.setColor(isPressed.left ? '#000000b0' : '#00000080');
+   g2.fillOval(X(L[0]) - lr , Y(L[2]) - lr , 2*lr , 2*lr );
+
+   let R = xformPos(HP.right, true);
+   let rr = isPressed.right ? .015 : .02;
+   g2.setColor(isPressed.right ? '#000000b0' : '#00000080');
+   g2.fillOval(X(R[0]) - rr , Y(R[2]) - rr , 2*rr , 2*rr );
+
+   let A = xformPos(headAim , true);
+   g2.setColor('#00000080');
+   g2.fillRect(X(A[0]) - .002, Y(A[2]) - .02 , .004, .04 );
+   g2.fillRect(X(A[0]) - .02 , Y(A[2]) - .002, .04 , .004);
+
+   model.txtrSrc(3, g2.getCanvas());
+
    let table = model.add('cube').move(0,tableHeight,0)
                                 .scale(tableRadius,.0001,tableRadius)
 				.color(0,0,0).dull()
-				.texture(() => {
-      let X = x => .5 - .5 * x / tableRadius;
-      let Y = y => .5 + .5 * y / tableRadius;
-      g2.setColor('#00000050');
-      g2.fillOval(0,0,1,1);
-
-      let L = xformPos(HP.left , true);
-      let lr = isPressed.left ? .015 : .02;
-      g2.setColor(isPressed.left ? '#000000b0' : '#00000080');
-      g2.fillOval(X(L[0]) - lr , Y(L[2]) - lr , 2*lr , 2*lr );
-
-      let R = xformPos(HP.right, true);
-      let rr = isPressed.right ? .015 : .02;
-      g2.setColor(isPressed.right ? '#000000b0' : '#00000080');
-      g2.fillOval(X(R[0]) - rr , Y(R[2]) - rr , 2*rr , 2*rr );
-
-      let A = xformPos(headAim , true);
-      g2.setColor('#00000080');
-      g2.fillRect(X(A[0]) - .002, Y(A[2]) - .02 , .004, .04 );
-      g2.fillRect(X(A[0]) - .02 , Y(A[2]) - .002, .04 , .004);
-   });
+				.txtr(3);
 
    let isPressed = {left: false, right: false};
    let id = {left: -1, right: -1};

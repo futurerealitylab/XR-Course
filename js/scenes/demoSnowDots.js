@@ -2,7 +2,8 @@ export const init = async model => {
    let N = 50000, data = [];
    for (let n = 0 ; n < N ; n++)
       data.push([ 6*Math.random()-3, 4*Math.random(), 6*Math.random()-3 ]);
-   let snow = model.add('dots'+N).texture('../media/textures/snowflake.png');
+   model.txtrSrc(2, '../media/textures/snowflake.png');
+   let snow = model.add('dots'+N).txtr(2);
    model.animate(() => {
       for (let n = 0 ; n < N ; n++) {
          data[n][0] += model.deltaTime * .27 * Math.sin(.5 * n);

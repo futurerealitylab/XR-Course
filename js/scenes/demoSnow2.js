@@ -2,7 +2,8 @@ export const init = async model => {
    let N = 5000, data = [];
    for (let n = 0 ; n < N ; n++)
       data.push({ s: .013, p: [ 6*Math.random()-3, 4*Math.random(), 6*Math.random()-3 ] });
-   let particles = model.add('particles').info(N).texture('../media/textures/snowflake.png');
+   model.txtrSrc(1, '../media/textures/snowflake.png');
+   let particles = model.add('particles').info(N).txtr(1);
    model.animate(() => {
       for (let n = 0 ; n < N ; n++) {
          data[n].p[0] += .009 * Math.sin(.5 * n);

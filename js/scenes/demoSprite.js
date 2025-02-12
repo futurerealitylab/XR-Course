@@ -22,8 +22,10 @@ export const init = async model => {
       return [u,v];
    }
 
+   model.txtrSrc(1, './media/textures/tree.png');
+
    for (let n = 0 ; n < N ; n++) {
-      model.add('cube').texture('./media/textures/tree.png');
+      model.add('cube').txtr(1);
       let uv = randomPointOnDisk();
       P.push([6 * uv[0], 0, 6 * uv[1]]);
    }

@@ -28,8 +28,9 @@ preloadSounds();
 
 export const init = async model => {
    let obj = model.add().move(0,1.6,0).scale(2).color(.1,.1,.1).dull();
+   model.txtrSrc(1, '../media/textures/moon_diffuse.jpg');
    obj.add('sphere').move(0,0,-.5).turnX(-Math.PI/2).scale(.3).color('white')
-                    .texture('../media/textures/moon_diffuse.jpg');
+                    .txtr(1);
    obj.add('cube').move(-.4,0,-1).scale(.001,.4,1);
    obj.add('cube').move( .4,0,-1).scale(.001,.4,1);
    obj.add('cube').move(0,-.4,-1).scale(.4,.001,1);

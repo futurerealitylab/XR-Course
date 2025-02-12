@@ -35,7 +35,6 @@ export const init = async model => {
    for (let i = ilo ; i <= ihi ; i++) {
       let room = rooms.add();
          let table = room.add();
-         // table.add('cube').scale(1.5).move(0,-.11,0).scale(.3,.01,.3).texture("../media/textures/concrete.png");
             table.add('cube').scale(1.5).move(0,-.11,0).scale(.3,.01,.3).txtr(2); // NEW MULTI-UNIT TEXTURE API
             table.add('cube').scale(1.5).move(0,-.45,0).scale(.05,.345,.05).color(0,0,0);
          let chair = room.add();

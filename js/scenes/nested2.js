@@ -125,16 +125,16 @@ export const init = async model => {
    for (let i = ilo ; i <= ihi ; i++) {
       let room = rooms.add();
          let table = room.add();
-            table.add('cube').scale(1.5).move(0,-.11,0).scale(.3,.01,.3)
-	                     .texture("../media/textures/concrete.png");
-            table.add('cube').scale(1.5).move(0,-.45,0).scale(.05,.345,.05).color(0,0,0);
+         model.txtrSrc(1, "../media/textures/concrete.png");
+         table.add('cube').scale(1.5).move(0,-.11,0).scale(.3,.01,.3).txtr(1);
+         table.add('cube').scale(1.5).move(0,-.45,0).scale(.05,.345,.05).color(0,0,0);
          let chair = room.add();
-            chair.add('cube').move(0,2.9,-.9).scale(1,.9,.1);
-            chair.add('cube').move(0,1.9,0).scale(1,.1,1);
-            chair.add('cube').move(-.9,.9,-.9).scale(.1,.9,.1);
-            chair.add('cube').move( .9,.9,-.9).scale(.1,.9,.1);
-            chair.add('cube').move(-.9,.9, .9).scale(.1,.9,.1);
-            chair.add('cube').move( .9,.9, .9).scale(.1,.9,.1);
+         chair.add('cube').move(0,2.9,-.9).scale(1,.9,.1);
+         chair.add('cube').move(0,1.9,0).scale(1,.1,1);
+         chair.add('cube').move(-.9,.9,-.9).scale(.1,.9,.1);
+         chair.add('cube').move( .9,.9,-.9).scale(.1,.9,.1);
+         chair.add('cube').move(-.9,.9, .9).scale(.1,.9,.1);
+         chair.add('cube').move( .9,.9, .9).scale(.1,.9,.1);
 	    //if (i == 1)
                //chair.add('cube').scale(.99).opacity(.1);
          room.add('tubeY');

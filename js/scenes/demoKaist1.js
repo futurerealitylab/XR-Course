@@ -3,6 +3,7 @@ export const init = async model => {
    let joint2 = joint1.add();
    let obj1 = joint1.add('tubeX');
    let obj2 = joint2.add('cube');
+   model.txtrSrc(1, '../media/textures/sky.jpg');
    model.animate(() => {
       joint1.identity()
             .move(.3 * Math.cos(model.time),1.5,0)
@@ -12,7 +13,7 @@ export const init = async model => {
             .move(0,.3 * Math.sin(model.time),0)
 	    ;
       obj1.identity().scale(.2);
-      obj1.texture('../media/textures/sky.jpg');
+      obj1.txtr(1);
 
       obj2.identity().scale(.1).color(0,1,1);
    });

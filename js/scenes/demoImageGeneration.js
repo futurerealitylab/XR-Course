@@ -38,7 +38,8 @@ export const init = async model => {
 
       if (window.imageResult != emptyResult) {
          let imagePath = "../"+window.imageResult;
-         table.texture(imagePath);
+         model.txtrSrc(1, imagePath);
+         table.txtr(1);
          window.imageResult = emptyResult;
          aiRunning = false;
       }

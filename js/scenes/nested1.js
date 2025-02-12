@@ -7,7 +7,8 @@ export const init = async model => {
    for (let i = ilo ; i <= ihi ; i++) {
       let room = rooms.add();
          let table = room.add();
-            table.add('cube').move(0,-.11,0).scale(.3,.01,.3).texture("../media/textures/concrete.png");
+         model.txtrSrc(1, "../media/textures/concrete.png");
+            table.add('cube').move(0,-.11,0).scale(.3,.01,.3).txtr(1);
             table.add('cube').move(0,-.45,0).scale(.05,.345,.05).color(0,0,0);
          let chair = room.add();
             chair.add('cube').move(0,.95,0).scale(1,.05,1);

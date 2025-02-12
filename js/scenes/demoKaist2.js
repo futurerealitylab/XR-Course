@@ -2,8 +2,8 @@ import * as cg from "../render/core/cg.js";
 
 export const init = async model => {
    clay.defineMesh('myTerrain', clay.createGrid(60, 60));
-   let terrain = model.add('myTerrain')
-                      .texture('../media/textures/chessboard.png');
+   model.txtrSrc(1, '../media/textures/chessboard.png');
+   let terrain = model.add('myTerrain').txtr(1);
    model.animate(() => {
       terrain.identity()
              .move(0,1.5,0)

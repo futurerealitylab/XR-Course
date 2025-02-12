@@ -1,5 +1,5 @@
 import * as cg from "./cg.js";
-import { g2 } from "../../util/g2.js";
+import { G2 } from "../../util/g2.js";
 
 export function CodeEditor(obj) {
    window.codeState = { key: '', col: 0, row: 0, text: '' };
@@ -23,43 +23,46 @@ export function CodeEditor(obj) {
 
    // EDITABLE CODE
 
-   let screen = obj.add('cube').texture(() => {
-      g2.setColor('#00000080');
-      g2.fillRect(0,0,1,1);
-      g2.textHeight(.02);
-      if (isHelp) {
-         g2.setColor('#4080ff');
+   let g2 = new G2();
+
+   g2.setColor('#00000080');
+   g2.fillRect(0,0,1,1);
+   g2.textHeight(.02);
+   if (isHelp) {
+      g2.setColor('#4080ff');
+      g2.setFont('helvetica');
+      g2.fillText(`\
+                  CMD-a:  reparse code
+                  CMD-b:  black/white text
+                  CMD-i:   toggle this help message
+                  CMD-z:  undo
+                  CMD-Z:  redo
+                  `, .004, .98, 'left');
+   }
+   else {
+      if (error.length > 0) {
+         g2.setColor('#ff8080');
          g2.setFont('helvetica');
-         g2.fillText(`\
- CMD-a:  reparse code
- CMD-b:  black/white text
- CMD-i:   toggle this help message
- CMD-z:  undo
- CMD-Z:  redo
-`, .004, .98, 'left');
+         //g2.fillText('ERROR: ' + error, .004, .984, 'left');
       }
       else {
-         if (error.length > 0) {
-            g2.setColor('#ff8080');
-            g2.setFont('helvetica');
-            //g2.fillText('ERROR: ' + error, .004, .984, 'left');
-         }
-         else {
-            g2.setColor('#4080ff');
-            g2.setFont('helvetica');
-            g2.fillText('For help type CMD-i', .004, .984, 'left');
-         }
-         g2.setColor(isBlack ? 'black' : 'white');
-         g2.fillRect(0,.97,1,.001);
-         g2.setFont('courier');
-         g2.fillText('\n' + codeState.text, .0113, .98, 'left');
-
-         g2.setColor('#4080ff80');
-         let c = codeState.col;
-         let r = codeState.row;
-	 g2.fillRect(.5+.5*(-.966+.0242*c-.011),.5+.5*(.957-.04*r-.06),.0121,.02);
+         g2.setColor('#4080ff');
+         g2.setFont('helvetica');
+         g2.fillText('For help type CMD-i', .004, .984, 'left');
       }
-   });
+      g2.setColor(isBlack ? 'black' : 'white');
+      g2.fillRect(0,.97,1,.001);
+      g2.setFont('courier');
+      g2.fillText('\n' + codeState.text, .0113, .98, 'left');
+
+      g2.setColor('#4080ff80');
+      let c = codeState.col;
+      let r = codeState.row;
+      g2.fillRect(.5+.5*(-.966+.0242*c-.011),.5+.5*(.957-.04*r-.06),.0121,.02);
+   }
+
+   obj.txtrSrc(13, g2.getCanvas());
+   let screen = obj.add('cube').txtr(13);
 
    let wasInteractMode = false;
 
