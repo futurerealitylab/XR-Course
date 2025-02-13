@@ -1727,6 +1727,7 @@ export class Renderer {
       this._textureCache[key] = renderTexture;
 
       if (texture instanceof DataTexture) {
+        gl.activeTexture(gl.TEXTURE0 + 15);
         gl.bindTexture(gl.TEXTURE_2D, textureHandle);
         gl.texImage2D(
           gl.TEXTURE_2D,
@@ -1743,6 +1744,7 @@ export class Renderer {
         renderTexture._complete = true;
       } else {
         texture.waitForComplete().then(() => {
+          gl.activeTexture(gl.TEXTURE0 + 15);
           gl.bindTexture(gl.TEXTURE_2D, textureHandle);
           gl.texImage2D(
             gl.TEXTURE_2D,
