@@ -11,6 +11,7 @@ import { Gltf2Node } from "../render/nodes/gltf2.js";
 
 let buddha = new Gltf2Node({ url: './media/gltf/buddha_statue_broken/scene.gltf', txtr: 14 });
 let box = new Gltf2Node({ url: './media/gltf/box-gltf/box.gltf', txtr: 13 });
+let attic = new Gltf2Node({ url: './media/gltf/60_fifth_ave/60_fifth_ave.gltf' , alpha: 1, txtr: 12 });
 
 export const init = async model => {
     buddha.translation = [0, 1.16, 0]; // 1.16 is pedestal height
@@ -19,6 +20,7 @@ export const init = async model => {
     box.scale = [0.2,0.2,0.2];
     global.gltfRoot.addNode(buddha);
     global.gltfRoot.addNode(box);
+    global.gltfRoot.addNode(attic);
     model.txtrSrc(1, '../media/textures/moon_diffuse.jpg');
     let obj = model.add('sphere').txtr(1);
 
