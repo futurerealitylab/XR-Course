@@ -248,8 +248,8 @@ export function initXR() {
     global.setXREntry(xrButton);
     let pending = null;
     if (navigator.xr) {
-        pending = navigator.xr.isSessionSupported("immersive-ar").then((supported) => {
-            console.log("immersive-ar supported:[" + supported + "]");
+        pending = navigator.xr.isSessionSupported("immersive-vr").then((supported) => {
+            console.log("immersive-vr supported:[" + supported + "]");
             xrButton.enabled = supported;
             window.vr = supported;
             window.avatars[window.playerid].vr = window.vr;
@@ -259,7 +259,7 @@ export function initXR() {
             navigator.xr.requestSession("inline").then(onSessionStarted);
         }).catch((err) => {
             navigator.xr.requestSession("inline").then(onSessionStarted);
-            console.warn("immersive-ar not supported on this platform!");
+            console.warn("immersive-vr not supported on this platform!");
         });
 
         // Load multiple audio sources.
@@ -450,7 +450,7 @@ function initGL() {
 
 function onRequestSession() {
     return navigator.xr
-        .requestSession("immersive-ar", {
+        .requestSession("immersive-vr", {
             requiredFeatures: ["local-floor"],
             optionalFeatures: ["hand-tracking", "layers", "mesh-detection", "depth-sensing"],
         })

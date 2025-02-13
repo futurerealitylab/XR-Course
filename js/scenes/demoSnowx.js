@@ -19,7 +19,8 @@ export const init = async model => {
       return a - Math.floor(a);
    }
 
-   let obj = model.add('dots' + N).texture('../media/textures/snowflake.png');
+   model.txtrSrc(3, '../media/textures/snowflake.png');
+   let obj = model.add('dots' + N).txtr(3);
 
    let time = 0;
    model.animate(() => {

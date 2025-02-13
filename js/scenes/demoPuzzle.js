@@ -1,5 +1,5 @@
 import * as cg from "../render/core/cg.js";
-import { g2 } from "../util/g2.js";
+import { G2 } from "../util/g2.js";
 import { loadSound, playSoundAtPosition} from "../util/positional-audio.js";
 
 
@@ -97,17 +97,15 @@ export const init = async model => {
    for (let n = 0 ; n < 27 ; n++)
       model.add('sphere');
 
-   // CREATE THE HELP MENU CARD
+   let g2help = new G2();
+   let g2done = new G2();
 
-   let helpMenu = model.add();
-   helpMenu.add('cube'  ).move(0,1.47,0).scale(.0999,.07,.0999);
-   helpMenu.add('cubeXZ').move(0,1.5 ,0).scale(.1).texture(() => {
-      g2.setColor('#ffffff');
-      g2.fillRect(0,0,1,.7);
-      g2.setFont('helvetica');
-      g2.setColor('#000000');
-      g2.textHeight(.075);
-      g2.fillText(
+   g2help.setColor('#ffffff');
+   g2help.fillRect(0,0,1,.7);
+   g2help.setFont('helvetica');
+   g2help.setColor('#000000');
+   g2help.textHeight(.075);
+   g2help.fillText(
 `Goal: Move the 8 red balls
 into the corners, with the
 empty space in the middle.
@@ -116,18 +114,22 @@ To play: Click on a ball
 to move it into an
 empty space next to it.
 `, .5, .58, 'center');
-   });
+
+   model.txtrSrc(3, g2help.getCanvas());
+
+   // CREATE THE HELP MENU CARD
+
+   let helpMenu = model.add();
+   helpMenu.add('cube'  ).move(0,1.47,0).scale(.0999,.07,.0999);
+   helpMenu.add('cubeXZ').move(0,1.5 ,0).scale(.1).txtr(3);
 
    // CREATE THE "CONGRATS YOU ARE DONE" MENU CARD
 
-   let doneMenu = model.add();
-   doneMenu.add('cube'  ).move(0,1.47,0).scale(.0999,.07,.0999);
-   doneMenu.add('cubeXZ').move(0,1.5 ,0).scale(.1).texture(() => {
-      g2.setColor('#ffffff');
-      g2.fillRect(0,.04,1,.7);
-      g2.setColor('#000000');
-      g2.textHeight(.075);
-      g2.fillText(
+   g2done.setColor('#ffffff');
+   g2done.fillRect(0,.04,1,.7);
+   g2done.setColor('#000000');
+   g2done.textHeight(.075);
+   g2done.fillText(
 `CONGRATULATIONS!!!
 
 YOU SOLVED IT!
@@ -136,7 +138,12 @@ YOU SOLVED IT!
 Click anywhere to
 start a new game.
 `, .5, .625, 'center');
-   });
+
+   model.txtrSrc(4, g2done);
+
+   let doneMenu = model.add();
+   doneMenu.add('cube'  ).move(0,1.47,0).scale(.0999,.07,.0999);
+   doneMenu.add('cubeXZ').move(0,1.5 ,0).scale(.1).txtr(4);
 
    // FIND AT WHICH BOX A PARTICULAR HAND ('left' OR 'right') IS POSITIONED
 

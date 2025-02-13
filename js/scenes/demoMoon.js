@@ -24,10 +24,10 @@ preloadSounds();
 window.moon = { y: 4 };
 
 export const init = async model => {
+   model.txtrSrc(1, '../media/textures/moon_diffuse.jpg');
+   model.txtrSrc(2, '../media/textures/moon_normal.jpg');
    let y = 0,
-       obj = model.add('sphere').texture('../media/textures/moon_diffuse.jpg')
-                                .bumpTexture('../media/textures/moon_normal.jpg')
-                 .dull();
+       obj = model.add('sphere').txtr(1).bumpTxtr(2).dull();
 
    playStereoAudio(moonSoundBuffer);
 

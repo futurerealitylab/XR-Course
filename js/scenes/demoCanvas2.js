@@ -65,24 +65,24 @@ export const init = async model => {
 
       if (! this.isActiveWidget())
          if (this.mouseState() == 'press') {
-       if (objB.ST) {
-          objB.paths = [];
-          objB.ST = null;
-       }
+	    if (objB.ST) {
+	       objB.paths = [];
+	       objB.ST = null;
+	    }
             objB.paths.push([]);
          }
          else {
             let uvz = this.getUVZ(objB);
-       if (uvz)
+	    if (uvz)
                if (this.mouseState() == 'drag') {
-             if (objB.paths.length == 0)
-                objB.paths.push([]);
+	          if (objB.paths.length == 0)
+	             objB.paths.push([]);
                   objB.paths[objB.paths.length-1].push(uvz);
                }
                else if (this.mouseState() == 'release')
                   if (objB.paths.length > 0 && objB.paths[objB.paths.length-1].length < 10) {
                      objB.paths.pop();
-           if (objB.paths.length > 0) {
+		     if (objB.paths.length > 0) {
                         objB.ST = matchCurves.recognize(objB.paths);
                         objB.timer = 0;
                      }
@@ -97,7 +97,7 @@ export const init = async model => {
 
       if (objB.ST) {
          objB.timer = Math.min(1, objB.timer + 1.4 * model.deltaTime);
-    let S = t => t * t * (3 - t - t);
+	 let S = t => t * t * (3 - t - t);
          let curves = matchCurves.mix(objB.ST[0], objB.ST[1], S(objB.timer));
          for (let n = 0 ; n < curves.length ; n++)
             this.drawPath(curves[n]);

@@ -1,5 +1,5 @@
 import * as cg from "../render/core/cg.js";
-import { g2 } from "../util/g2.js";
+import { G2 } from "../util/g2.js";
 import { matchCurves } from "../render/core/matchCurves3D.js";
 
 import { loadSound, playSoundAtPosition, playLoopingSoundAtPosition02, 
@@ -10,7 +10,6 @@ import { loadSound, playSoundAtPosition, playLoopingSoundAtPosition02,
 
 let drawSoundBuffer = null;
 let magicSoundBuffer = null;
-
 
 function preloadSounds() {
     Promise.all([
@@ -31,6 +30,10 @@ function preloadSounds() {
 preloadSounds();
 
 export const init = async model => {
+   let g2 = new G2().setAnimate(false);
+
+   model.txtrSrc(1, g2.getCanvas());
+
    let drawings = [];
 
    model.customShader(`
@@ -69,52 +72,56 @@ export const init = async model => {
       '#400000',
    ];
 
-   let helpMenu = model.add('cube').move(.65,1.5,.5).turnY(-.8).scale(.25,.25,.0001).texture(() => {
-      g2.setColor('#ff80ff80');
-      g2.fillRect(0,0,1,1);
-      g2.setColor('#ff80ff');
-      g2.textHeight(.07);
-      g2.fillText('Things you can draw', .02, .95, 'left');
+   let helpMenu = model.add('square').move(.64,1.5,.5).turnY(-.8).scale(.125).txtr(1);
 
-      g2.setFont('helvetica');
-      g2.textHeight(.05);
-      g2.fillText('Stroke order:', .02, .86, 'left');
+   g2.render = function() {
+console.log('------------------');
+      this.setFont('helvetica');
+      this.setColor('#ff80ff80');
+      this.fillRect(-1,-1,2,2);
+      this.setColor('#ff80ff');
+      this.textHeight(.07);
+      this.fillText('Things you can draw', 0, .9, 'center');
+
+      this.textHeight(.05);
+      this.fillText('Stroke order:', -.9, .7);
       for (let i = 0 ; i < colors.length ; i++) {
-         g2.setColor(colors[i]);
-         g2.fillRect(.33 + i * .05, .84, .04, .04);
+         this.setColor(colors[i]);
+         this.fillRect(-.27 + .1 * i, .655, .08, .08);
       }
 
-      g2.setColor('#ff80ff');
+      this.textHeight(.055);
+      this.setColor('#ff80ff');
       let msg = (a,b,y) => {
-         g2.fillText(a+b, .01, y, 'left');
-         g2.fillText(a,  .012, y, 'left');
+         this.fillText(a+b, -.9  , y, 'left');
+         this.fillText(a,   -.905, y, 'left');
       }
-      msg('To draw:'   ,' Hold down the right trigger', .155);
-      msg('To erase:'  ,' Click the right trigger'    , .095);
-      msg('To animate:',' Click the left trigger'     , .035);
+      msg('To draw:'   ,' Hold down the right trigger', -.60);
+      msg('To erase:'  ,' Click the right trigger'    , -.725);
+      msg('To animate:',' Click the left trigger'     , -.85);
 
       for (let n = 0 ; n < drawings.length ; n++) {
          let name    = drawings[n].name;
          let drawing = drawings[n].drawing;
-         let x = .128 + .24 * (n%4);
-         let y = .760 - .31 * (n/4>>0);
-         g2.setColor('#ff80ff');
-         g2.fillText(name, x, y, 'center');
+         let x = -.75 + .5 * (n%4);
+         let y =  .5 - .6 * (n/4>>0);
+         this.setColor('#ff80ff');
+         this.fillText(name, x, y, 'center');
          for (let i = 0 ; i < drawing.length ; i++) {
-            g2.setColor(colors[i]);
+            this.setColor(colors[i]);
             let path = [];
             let nj = drawing[i].length;
             for (let j = 0 ; j < nj ; j++) {
                let p = drawing[i][j];
-               path.push([x + .08 * p[0], y - .13 + .08 * p[1]]);
+               path.push([x + .08 * p[0], y - .2 + .08 * p[1]]);
             }
-            g2.lineWidth(.01);
-            g2.drawPath(path.slice(0, nj-1));
-            g2.arrow(path[nj-2], cg.mix(path[nj-2], path[nj-1], .8));
-            g2.lineWidth(.001);
+            this.lineWidth(.005);
+            this.drawPath(path.slice(0, nj-1));
+            this.arrow(path[nj-2], cg.mix(path[nj-2], path[nj-1], .8));
+            this.lineWidth(.001);
          }
       }
-   });
+   }
 
    let strokes = [], ST = null, mode = null, timer;
    let isDrawing = false;
@@ -144,7 +151,39 @@ export const init = async model => {
       return dst;
    }
 
+   let triangle = [ [ [0,1,0],[-.866,-.5,0],[.866,-.5,0],[0,1,0] ] ];
+
    let square = [ [ [-1,1,0],[-1,-1,0],[1,-1,0],[1,1,0],[-1,1,0] ] ];
+
+   let pentagon = [ [
+      [    0,    1,0],
+      [-.951, .309,0],
+      [-.588,-.809,0],
+      [ .588,-.809,0],
+      [ .951, .309,0],
+      [    0,    1,0],
+   ] ];
+
+   let star = [ [
+      [    0,    1,0],
+      [-.588,-.809,0],
+      [ .951, .309,0],
+      [-.951, .309,0],
+      [ .588,-.809,0],
+      [    0,    1,0],
+   ] ];
+
+   let crescent = [[]];
+   for (let n = 0 ; n <= 32 ; n++) {
+      let x = -Math.sin(2*Math.PI * n / 32);
+      let y =  Math.cos(2*Math.PI * n / 32);
+      if (n >= 24) {
+         let u = x, v = y;
+         x = 1 - v;
+         y = 1 - u;
+      }
+      crescent[0].push([x,y,0]);
+   }
 
    let cube = [];
    for (let u = -1 ; u <= 1 ; u += 2)
@@ -213,8 +252,17 @@ export const init = async model => {
       return dst;
    }
 
-   addGlyphFromCurves('cube', square, (time, T) =>
-      matchCurves.animate(() => cube, cg.mRotateY(time/2), time, T));
+   addGlyphFromCurves('triangle', triangle, (time, T) =>
+      matchCurves.animate(() => triangle, cg.mIdentity(), time, T));
+
+   addGlyphFromCurves('square', square, (time, T) =>
+      matchCurves.animate(() => square, cg.mIdentity(), time, T));
+
+   addGlyphFromCurves('star', star, (time, T) =>
+      matchCurves.animate(() => star, cg.mIdentity(), time, T));
+
+   addGlyphFromCurves('crescent', crescent, (time, T) =>
+      matchCurves.animate(() => crescent, cg.mIdentity(), time, T));
 
    addGlyphFromCurves('bird', bird(0), (time,T) =>
       matchCurves.animate(time => bird(time), cg.mIdentity(), time, T));
@@ -232,8 +280,6 @@ export const init = async model => {
          if (curves[n].length > 1) {
             let outer = wires.add(clay.wire(curves[n].length, 6, n));
             let inner = wires.add(clay.wire(curves[n].length, 6, n + 100));
-            //clay.animateWire(outer, .014, t => cg.sample(curves[n], t));
-            //clay.animateWire(inner, .007, t => cg.sample(curves[n], t));
             clay.animateWire(outer, .006, t => cg.sample(curves[n], t));
             clay.animateWire(inner, .003, t => cg.sample(curves[n], t));
          }
@@ -295,7 +341,9 @@ export const init = async model => {
    }
 
    model.animate(() => {
-      //console.log(strokes.length);
+
+      g2.update();
+
       if (isDrawing) {
          let curves = [];
 	 for (let n = 0 ; n < strokes.length ; n++)

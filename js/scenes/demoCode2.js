@@ -1,7 +1,7 @@
 //code editor for fragment shader
 
 import * as cg from '../render/core/cg.js';
-import { g2 } from "../util/g2.js";
+import { G2 } from "../util/g2.js";
 //delete window.clientID;
 
 window.etext = { col: 0, row: 0, text: '' };
@@ -9,19 +9,20 @@ window.update = () => {};
 
 export const init = async model => {
 
+   let g2 = new G2();
+   g2.setFont('courier');
+   g2.setColor('#00000080');
+   g2.fillRect(0,0,1,1);
+   g2.setColor('white');
+   g2.textHeight(.02);
+   g2.fillText(etext.text, .0113, .98, 'left');
+   model.txtrSrc(3, g2.getCanvas());
 
    let obj = model.add();
    let ball = model.add('sphere');
    ball.flag('uShaderEditor');
    let cursor = obj.add('cube').color('blue');
-   let screen = obj.add('cube').texture(() => {
-      g2.setFont('courier');
-      g2.setColor('#00000080');
-      g2.fillRect(0,0,1,1);
-      g2.setColor('white');
-      g2.textHeight(.02);
-      g2.fillText(etext.text, .0113, .98, 'left');
-   });
+   let screen = obj.add('cube').txtr(3);
 
 
    let wasInteractMode = false;

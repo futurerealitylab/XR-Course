@@ -1,5 +1,5 @@
 import * as cg from "../render/core/cg.js";
-import { g2 } from "../util/g2.js";
+import { G2 } from "../util/g2.js";
 import { matchCurves } from "../render/core/matchCurves3D.js";
 
 const peer = new Peer();
@@ -49,52 +49,54 @@ export const init = async model => {
       '#400000',
    ];
 
-   let helpMenu = model.add('cube').move(.65,1.5,.5).turnY(-.8).scale(.25,.25,.0001).texture(() => {
-      g2.setColor('#ff80ff80');
-      // g2.fillRect(0,0,1,1);
-      g2.setColor('#ff80ff');
-      g2.textHeight(.07);
-      // g2.fillText('Things you can draw', .02, .95, 'left');
+   let g2 = new G2();
+   g2.setColor('#ff80ff80');
+   // g2.fillRect(0,0,1,1);
+   g2.setColor('#ff80ff');
+   g2.textHeight(.07);
+   // g2.fillText('Things you can draw', .02, .95, 'left');
 
-      g2.setFont('helvetica');
-      g2.textHeight(.05);
-      // g2.fillText('Stroke order:', .02, .86, 'left');
-      // for (let i = 0 ; i < colors.length ; i++) {
-      //    g2.setColor(colors[i]);
-      //    g2.fillRect(.33 + i * .05, .84, .04, .04);
-      // }
+   g2.setFont('helvetica');
+   g2.textHeight(.05);
+   // g2.fillText('Stroke order:', .02, .86, 'left');
+   // for (let i = 0 ; i < colors.length ; i++) {
+   //    g2.setColor(colors[i]);
+   //    g2.fillRect(.33 + i * .05, .84, .04, .04);
+   // }
 
-      g2.setColor('#ff80ff');
-      let msg = (a,b,y) => {
-         g2.fillText(a+b, .01, y, 'left');
-         g2.fillText(a,  .012, y, 'left');
-      }
-      msg('Tips:'   ,newtips, .155);
-      // msg('To erase:'  ,' Click the right trigger'    , .095);
-      // msg('To animate:',' Click the left trigger'     , .035);
+   g2.setColor('#ff80ff');
+   let msg = (a,b,y) => {
+      g2.fillText(a+b, .01, y, 'left');
+      g2.fillText(a,  .012, y, 'left');
+   }
+   msg('Tips:'   ,newtips, .155);
+   // msg('To erase:'  ,' Click the right trigger'    , .095);
+   // msg('To animate:',' Click the left trigger'     , .035);
 
-      // for (let n = 0 ; n < drawings.length ; n++) {
-      //    let name    = drawings[n].name;
-      //    let drawing = drawings[n].drawing;
-      //    let x = .128 + .24 * (n%4);
-      //    let y = .760 - .31 * (n/4>>0);
-      //    g2.setColor('#ff80ff');
-      //    g2.fillText(name, x, y, 'center');
-      //    for (let i = 0 ; i < drawing.length ; i++) {
-      //       g2.setColor(colors[i]);
-      //       let path = [];
-      //       let nj = drawing[i].length;
-      //       for (let j = 0 ; j < nj ; j++) {
-      //          let p = drawing[i][j];
-      //          path.push([x + .08 * p[0], y - .13 + .08 * p[1]]);
-      //       }
-      //       g2.lineWidth(.01);
-      //       g2.drawPath(path.slice(0, nj-1));
-      //       g2.arrow(path[nj-2], cg.mix(path[nj-2], path[nj-1], .8));
-      //       g2.lineWidth(.001);
-      //    }
-      // }
-   });
+   // for (let n = 0 ; n < drawings.length ; n++) {
+   //    let name    = drawings[n].name;
+   //    let drawing = drawings[n].drawing;
+   //    let x = .128 + .24 * (n%4);
+   //    let y = .760 - .31 * (n/4>>0);
+   //    g2.setColor('#ff80ff');
+   //    g2.fillText(name, x, y, 'center');
+   //    for (let i = 0 ; i < drawing.length ; i++) {
+   //       g2.setColor(colors[i]);
+   //       let path = [];
+   //       let nj = drawing[i].length;
+   //       for (let j = 0 ; j < nj ; j++) {
+   //          let p = drawing[i][j];
+   //          path.push([x + .08 * p[0], y - .13 + .08 * p[1]]);
+   //       }
+   //       g2.lineWidth(.01);
+   //       g2.drawPath(path.slice(0, nj-1));
+   //       g2.arrow(path[nj-2], cg.mix(path[nj-2], path[nj-1], .8));
+   //       g2.lineWidth(.001);
+   //    }
+   // }
+
+   model.txtrSrc(3, g2.getCanvas());
+   let helpMenu = model.add('cube').move(.65,1.5,.5).turnY(-.8).scale(.25,.25,.0001).txtr(3);
 
    let strokes = [], ST = null, mode = null, timer;
    let isDrawing = false;

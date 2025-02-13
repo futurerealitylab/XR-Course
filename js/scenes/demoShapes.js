@@ -8,11 +8,12 @@ import { controllerMatrix, buttonState, joyStickState } from "../render/core/con
 ******************************************************************/
 
 export const init = async model => {
-   let cube = model.add('cube').texture('../media/textures/brick.png');
+   model.txtrSrc(1, '../media/textures/brick.png');
+   let cube = model.add('cube').txtr(1);
    let tube1 = model.add('tubeX').color(1,0,0);
    let tube2 = model.add('tubeY').color(0,1,0);
    let tube3 = model.add('tubeZ').color(0,0,1);
-   let donut = model.add('donut').texture('../media/textures/brick.png');
+   let donut = model.add('donut').txtr(1);
    let ball = model.add('sphere').color(1,1,0);
 
    let eye = model.add();

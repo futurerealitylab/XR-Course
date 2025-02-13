@@ -454,6 +454,8 @@ class Gltf2Resource {
         });
       }
     }
+    // Temporary solution to the texture overwriting problem, comment line 458 out to get original texture of the gltf model
+    //return null;
     return this._texture;
   }
 }

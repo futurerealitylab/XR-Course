@@ -9,7 +9,7 @@ import { createInput, Input } from "./inputAPI.js";
 import { EditText } from "./editText.js";
 import { CodeEditor } from "./codeEditor.js";
 import * as keyboardInput from "../../util/input_keyboard.js";
-import { g2 } from "../../util/g2.js";
+import { G2 } from "../../util/g2.js";
 import { videoHandTracker } from "./videoHandTracker.js";
 import * as glUtil from "./gl_util.js"
 import * as clayExtensions from "./clay_extensions.js";
@@ -48,6 +48,9 @@ export function MeshInfo() {
 }
 
 let debug = false;
+
+// A hashmap to keep track of the texture that needs to be bind
+window.txtrMap = new Map();
 
 export function Clay(gl, canvas) {
    this.debug = state => debug = state;
@@ -251,150 +254,6 @@ let drawMesh = (mesh, materialId, textureSrc, txtr, bumpTextureSrc, bumptxtr, du
    let a = material.ambient, d = material.diffuse, s = material.specular, t = material.texture;
    if (t === undefined) t = [0,0,0,0];
    setUniform('Matrix4fv', 'uPhong', false, [a[0],a[1],a[2],0, d[0],d[1],d[2],0, s[0],s[1],s[2],s[3], t[0],t[1],t[2],t[3]]);
-
-   if (textureSrc) {
-     // LOAD THE TEXTURE IF IT HAS NOT BEEN LOADED.
-     if (!textures.hasOwnProperty(textureSrc)) {
-       if (typeof textureSrc === 'function') {
-         textures[textureSrc] = {
-            resource : [], 
-            resourceIdx : 0, width: textureCanvas.width, height: textureCanvas.height
-         };
-
-         const textureRecord = textures[textureSrc];
-         for (let i = 0; i < 3; i += 1) {
-            textureRecord.resource.push(gl.createTexture());   
-         }
-
-         for (let i = 0; i < textureRecord.resource.length; i += 1) {
-            gl.bindTexture   (gl.TEXTURE_2D, textureRecord.resource[i]);
-            gl.texImage2D    (gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, textureCanvas);
-            //gl.texParameteri (gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-            //gl.texParameteri (gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-            gl.texParameteri (gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-            gl.texParameteri (gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-         }
-       }
-       else if (textureSrc == 'camera') {
-
-         // VIDEO TEXTURE FROM THE CAMERA CAN START IMMEDIATELY
-
-         textures[textureSrc] = {resource : [gl.createTexture(), gl.createTexture(), gl.createTexture()], resourceIdx : 0,
-            width: videoFromCamera.width, height: videoFromCamera.height};
-         const textureRecord = textures[textureSrc];
-         for (let i = 0; i < textureRecord.resource.length; i += 1) {
-            gl.bindTexture   (gl.TEXTURE_2D, textureRecord.resource[i]);
-            gl.texParameteri (gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-            gl.texParameteri (gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
-         }
-       }
-       else if (textureSrc == 'anidraw') {
-
-         // TEXTURE FROM ANIDRAW
-
-         textures.anidraw = {resource : [gl.createTexture()
-            //, gl.createTexture(), gl.createTexture()
-            ], resourceIdx : 0, 
-            width: anidrawCanvas.width, height: anidrawCanvas.height};
-         const textureRecord = textures[textureSrc];
-         for (let i = 0; i < textureRecord.resource.length; i += 1) {
-            gl.bindTexture   (gl.TEXTURE_2D, textureRecord.resource[i]);
-            gl.texParameteri (gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-            gl.texParameteri (gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-         }
-       }
-       else {
-         // MARK AS LOADING IN-PROGRESS TO AVOID LOADING REPEATEDLY
-         textures[textureSrc] = TEXTURE_LOAD_STATE_UNFINISHED; 
-         let image = new Image();
-         this.imageLoad(image, textureSrc).catch((err) => {console.error(err);} );
-       }
-     }
-     else if (textures[textureSrc] != TEXTURE_LOAD_STATE_UNFINISHED) {
-       if (typeof textureSrc === 'function') {
-         if (prevTextureBindPoint != gl.TEXTURE0) {
-            prevTextureBindPoint = gl.TEXTURE0;
-            gl.activeTexture(gl.TEXTURE0);
-         }
-         const textureRecord = textures[textureSrc];
-         const texResource = textureRecord.resource[textureRecord.resourceIdx];
-         if (texResource != prevTextureResource) {
-            prevTextureResource = texResource;
-            gl.bindTexture(gl.TEXTURE_2D, texResource);
-         }
-         //textureRecord.resourceIdx = (textureRecord.resourceIdx + 1) % textureRecord.resource.length;
-         textureCanvasContext2D.putImageData(clearTexture, 0, 0);
-         textureSrc();
-         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, textureCanvas);
-       }
-       // VIDEO TEXTURE FROM THE CAMERA AND ANIDRAW NEED TO BE REFRESHED REPEATEDLY
-       else if (textureSrc == 'camera') {
-         if (window.videoFromCameraIsReady) {
-            if (prevTextureBindPoint != gl.TEXTURE0) {
-               prevTextureBindPoint = gl.TEXTURE0;
-               gl.activeTexture(gl.TEXTURE0);
-            }
-            const textureRecord = textures[textureSrc];
-            const texResource = textureRecord.resource[textureRecord.resourceIdx]
-            if (texResource != prevTextureResource) {
-               prevTextureResource = texResource;
-               gl.bindTexture(gl.TEXTURE_2D, texResource);
-            }
-            if (frameCount % 4 == 0) {
-               textureRecord.resourceIdx = (textureRecord.resourceIdx + 1) % 3;
-               gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, videoFromCamera);
-            }
-         }
-       }
-       else if (textureSrc == 'anidraw') {
-          if (prevTextureBindPoint != gl.TEXTURE2) {
-             prevTextureBindPoint = gl.TEXTURE2;
-             gl.activeTexture(gl.TEXTURE2);
-          }
-          const textureRecord = textures.anidraw;
-          const texResource = textureRecord.resource[textureRecord.resourceIdx];
-          if (prevTextureResource != texResource) {
-             prevTextureResource = texResource;
-             gl.bindTexture(gl.TEXTURE_2D, texResource);
-          }
-          if (anidraw.needsDisplayUpdate) {
-             textureRecord.resourceIdx = (textureRecord.resourceIdx + 1) % textureRecord.resource.length;
-             gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, anidrawCanvas);
-          }
-       } else {
-          if (prevTextureBindPoint != gl.TEXTURE0) {
-             prevTextureBindPoint = gl.TEXTURE0;
-             gl.activeTexture(gl.TEXTURE0);
-          }
-          const texResource = textures[textureSrc].resource;
-          if (prevTextureResource != texResource) {
-             prevTextureResource = texResource;
-             gl.bindTexture(gl.TEXTURE_2D, texResource);
-          }
-       }
-     }
-   }
-
-   if (bumpTextureSrc) {
-     if (!textures.hasOwnProperty(bumpTextureSrc)) {
-        textures[bumpTextureSrc] = TEXTURE_LOAD_STATE_UNFINISHED; 
-        let image = new Image();
-        this.imageLoad(image, bumpTextureSrc).catch((err) => {console.error(err);} );
-     }
-     else {
-        if (prevTextureBindPoint != gl.TEXTURE1) {
-           prevTextureBindPoint = gl.TEXTURE1;
-           gl.activeTexture(gl.TEXTURE1);
-        }
-        const texResource = textures[bumpTextureSrc].resource;
-        if (prevTextureResource != texResource) {
-           prevTextureResource = texResource;
-           gl.bindTexture(gl.TEXTURE_2D, texResource);
-           gl.texParameteri (gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-           gl.texParameteri (gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
-        }
-     }
-   }
 
    // CANCEL DRAWING IF THE MESH DOES NOT EXIST
 
@@ -735,7 +594,7 @@ let renderParticlesMesh = mesh => {
    let order = [];
    for (let i = 0 ; i < N ; i++)
       order.push(i);
-   order.sort((a,b) => cg.dot(Z,data[a].p) - cg.dot(Z,data[b].p));
+   order.sort((a,b) => cg.dot(Z,data[a]?data[a].p: -1) - cg.dot(Z,data[b]?data[b].p: -1));
 
 /*
    Need to add an option for p to be 2 points.
@@ -775,6 +634,7 @@ let renderParticlesMesh = mesh => {
          mesh[16 * j + k] = V[k];
    }
    for (let i = 0 ; i < N ; i++) {
+      if(!data[order[i]]) continue;
       let d = data[order[i]];
       let p = d.p;
       let n = d.n;
@@ -799,7 +659,7 @@ let createSquareMesh = (i,j,k, z) => {
    let N = []; N[i] = z < 0 ? -1 : 1; N[j] = 0; N[k] = 0;
 
    let V = [];
-   let s = i==2 == z>0;
+   let s = i==2 == z>=0;
    V.push(vertexArray( A, N, [1,0,0], [s?0:0, s?0:1] ));
    V.push(vertexArray( B, N, [1,0,0], [s?0:1, s?1:1] ));
    V.push(vertexArray( C, N, [1,0,0], [s?1:0, s?0:0] ));
@@ -1870,6 +1730,14 @@ let fl = 5;                                                          // CAMERA F
    this.controllerBallSize = 0.02;
 
    this.animate = view => {
+      if (window.gltfLoadCount !== undefined)
+      {
+         if (window.gltfLoadCount == 0 && window.txtrMap !== undefined)
+            for (let [key, val] of window.txtrMap)
+               this.txtrCallback(key, val[0], val[1]);
+         window.gltfLoadCount--;
+      }
+
       window.timestamp++;
       window.needUpdateInput = true;
       window.mySharedObj = [];
@@ -1902,7 +1770,7 @@ let fl = 5;                                                          // CAMERA F
       if (window.animate)
          window.animate();
 
-      if (! window.isVideo) {
+      /*if (! window.isVideo) {
          videoScreen1.scale(0);
          videoScreen2.scale(0);
       }
@@ -1912,9 +1780,9 @@ let fl = 5;                                                          // CAMERA F
          videoScreen.setMatrix(cg.mInverse(views[0].viewMatrix))
                     //.move(0,0,-.3*s).turnY(Math.PI).scale(.3197*s,.2284*s,.001).scale(.181);
                     .move(0,0,-.3*s).scale(.3197*s,.2284*s,.001).scale(.181);
-      }
+      }*/
 
-      if (window.interactMode != 2) {
+      /*if (window.interactMode != 2) {
          anidrawScreen.scale(0);
       }
       else {
@@ -1924,7 +1792,7 @@ let fl = 5;                                                          // CAMERA F
                       .move(0,-.08*anidrawSlant,0).turnX(-1.2*anidrawSlant)
                       //.turnY(Math.PI).scale(.3197*s,.2284*s,.001).scale(.181);
                       .scale(.3197*s,.2284*s,.001).scale(.181);
-      }
+      }*/
 
       setUniform('1i', 'uWhitescreen', window.isWhitescreen);       
       clay.peopleBillboards.update();
@@ -2029,7 +1897,7 @@ let fl = 5;                                                          // CAMERA F
       if (videoHandTracker && ! window.vr)
          videoHandTracker.update();
 
-      g2.update();
+      //g2.update();
    }
 
 // PREDEFINED PROCEDURAL TEXTURES
@@ -2309,6 +2177,8 @@ function Node(_form) {
       child._flags  = null;
       child._customShader = null;
       this.dataTree.children.push(child.dataTree);
+      if (form == 'label')
+         child.txtrSrc(15, 'media/textures/fixed-width-font.png');
       return child;
    }
 
@@ -2554,11 +2424,14 @@ function Node(_form) {
       for (let n = 0 ; n < text.length ; n++)
          if (text.charAt(n) == '\n')
             lines++;
-      this.child(0).color(10,10,10).texture(() => {
-         g2.setColor('white');
-         g2.textHeight(textHeight);
-         g2.fillText(text, .5, .5 + .5 * lines * textHeight, 'center');
-      });
+
+      let g2 = new G2();
+      g2.setColor('white');
+      g2.textHeight(textHeight);
+      g2.fillText(text, .5, .5 + .5 * lines * textHeight, 'center');
+      this.txtrSrc(14, g2.getCanvas());
+
+      this.child(0).color(10,10,10).txtr(14);
       return this;
    }
    this.createAxes = (al, r) => {
@@ -2620,13 +2493,14 @@ function Node(_form) {
 
    this.framedPicture = (w,h,t,source) => {
       let picture = this.add();
+      this.txtrSrc(1, source);
       picture.add('cube').move(0,-h/2-2*t,  .6*t).scale(w/2+2*t,t,.6*t).color(.2,.1,.05);
       picture.add('cube').move(0, h/2+2*t,  .6*t).scale(w/2+2*t,t,.6*t).color(.2,.1,.05);
       picture.add('cube').move(-w/2-2*t, 0, .6*t).scale(t,h/2+3*t,.6*t).color(.2,.1,.05);
       picture.add('cube').move( w/2+2*t, 0, .6*t).scale(t,h/2+3*t,.6*t).color(.2,.1,.05);
       picture.add('cube').move(0,0,-t/100).scale(w/2+t*t,h/2+3*t,t/100).color(.2,.1,.05);
       picture.add('cube').scale(w/2+t,h/2+t,t/1000).dull().color(.5,.45,.4);
-      picture.add('cube').move(0,0,t/100).scale(w/2,h/2,t/100).dull().texture(source);
+      picture.add('cube').move(0,0,t/100).scale(w/2,h/2,t/100).dull().txtr(1);
       return picture;
    }
 
@@ -2758,9 +2632,14 @@ function Node(_form) {
             rounded: this.prop('_bevel'),
             sign: 1,
             symmetry: 0,
+/*
             texture: form == 'label' ? DEFAULT_FONT
                                      : this.prop('_texture'),
             txtr: this.prop('_txtr'),
+*/
+            texture: this.prop('_texture'),
+            txtr: form == 'label' ? 15 : this.prop('_txtr'),
+
             bumpTexture: this.prop('_bumpTexture'),
             bumptxtr: this.prop('_bumptxtr'),
             form: form,
@@ -2816,21 +2695,25 @@ function Node(_form) {
       this._bumptxtr = n;
       return this;
    }
+
    this.txtrSrc = (txtr, src, do_not_animate) => {
-      if (typeof src == 'string') {               // IF THE TEXTURE SOURCE IS AN IMAGE FILE,
-         let image = new Image();                 // IT ONLY NEEDS TO BE SENT TO THE GPU ONCE.
+      window.txtrMap.set(txtr, [src, do_not_animate]);
+
+      if (typeof src == 'string') {                             // IF THE TEXTURE SOURCE IS AN IMAGE FILE
+         let image = new Image();                           
          image.onload = () => {
-            gl.activeTexture (gl.TEXTURE0 + txtr);
-            gl.bindTexture   (gl.TEXTURE_2D, gl.createTexture());
-            gl.texImage2D    (gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-            gl.texParameteri (gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-            gl.texParameteri (gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-         }
+             gl.activeTexture (gl.TEXTURE0 + txtr);
+	     gl.bindTexture   (gl.TEXTURE_2D, gl.createTexture());
+             gl.texImage2D    (gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+             gl.texParameteri (gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+             gl.texParameteri (gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+	 }
          image.src = src;
+         delete _canvas_txtr[txtr];
       }
       else {                                      // FOR ANY OTHER TEXTURE SOURCE,
          if (! src._animate)
-	    do_not_animate = true;
+            do_not_animate = true;
          gl.activeTexture (gl.TEXTURE0 + txtr);   // ASSUME THAT ITS CONTENT CAN BE ANIMATED.
          gl.bindTexture   (gl.TEXTURE_2D, gl.createTexture());
          gl.texParameteri (gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
@@ -2845,6 +2728,7 @@ window._canvas_txtr = [];
 // EXPOSE A ROOT NODE FOR EXTERNAL MODELING.
 
    let root = new Node('root');
+
    this.root = () => root;
    this.inverseRootMatrix = cg.mIdentity();
    this.vrWidgets = root.add();
@@ -2854,10 +2738,10 @@ window._canvas_txtr = [];
       left : this.vrWidgets.add('sphere').dull(1).scale(0),
       right: this.vrWidgets.add('sphere').dull(1).scale(0),
    };
-   let videoScreen1 = root.add('cube').texture('camera').scale(0);
+   //let videoScreen1 = root.add('cube').texture('camera').scale(0);
    this.model = root.add();
-   let videoScreen2 = root.add('cube').texture('camera').scale(0);
-   let anidrawScreen = root.add('cube').texture('anidraw');
+   //let videoScreen2 = root.add('cube').texture('camera').scale(0);
+   //let anidrawScreen = root.add('cube').texture('anidraw');
    let anidrawSlant = 0;
    let model = this.model;
    let remoteObjRoot = root.add();
@@ -2881,6 +2765,9 @@ window._canvas_txtr = [];
    window.editText = new EditText();
    window.codeEditorObj = root.add();
    window.codeEditor = new CodeEditor(codeEditorObj);
+
+   // Call the txtr function
+   this.txtrCallback = (txtr, src, do_not_animate) => model.txtrSrc(txtr, src, do_not_animate);
 
    // NOTE(KTR): Extensions
 

@@ -7,7 +7,7 @@ export const init = async model => {
    let txtr_is_canvas = false;
    let txtr_is_video = false;
 
-   let g2_instance = new G2(true, 512);
+   let g2_instance = new G2();
 
    if (txtr_is_canvas) {
       model.txtrSrc(2, g2_instance.getCanvas(), false); // SET 3RD ARG TO TRUE TO RENDER ONLY ONCE
@@ -35,7 +35,6 @@ export const init = async model => {
    for (let i = ilo ; i <= ihi ; i++) {
       let room = rooms.add();
          let table = room.add();
-         // table.add('cube').scale(1.5).move(0,-.11,0).scale(.3,.01,.3).texture("../media/textures/concrete.png");
             table.add('cube').scale(1.5).move(0,-.11,0).scale(.3,.01,.3).txtr(2); // NEW MULTI-UNIT TEXTURE API
             table.add('cube').scale(1.5).move(0,-.45,0).scale(.05,.345,.05).color(0,0,0);
          let chair = room.add();

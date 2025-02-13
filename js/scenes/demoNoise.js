@@ -2,8 +2,8 @@ import * as cg from "../render/core/cg.js";
 export const init = async model => {
    let nn = 21;
    let N = nn*nn*nn;
-   let particles = model.add('particles').info(N)
-                        .texture('media/textures/disk.jpg').flag('uTransparentTexture');
+   model.txtrSrc(1, 'media/textures/disk.jpg');
+   let particles = model.add('particles').info(N).txtr(1);
    model.animate(() => {
       let data = [];
       for (let i = 0 ; i < nn ; i++)

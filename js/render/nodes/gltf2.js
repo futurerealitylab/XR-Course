@@ -35,6 +35,8 @@ export class Gltf2Node extends Node {
     this._promise = null;
     this._resolver = null;
     this._rejecter = null;
+
+    this._isGLTF = true;
   }
 
   onRendererChanged(renderer) {

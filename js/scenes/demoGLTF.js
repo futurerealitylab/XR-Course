@@ -15,6 +15,8 @@ export const init = async model => {
     buddha.translation = [0, 1.16, 0]; // 1.16 is pedestal height
     buddha.scale = [1.3,1.3,1.3];
     global.gltfRoot.addNode(buddha);
+    model.txtrSrc(1, '../media/textures/moon_diffuse.jpg');
+    let obj = model.add('sphere').txtr(1);
 
     model.animate(() => {
     });

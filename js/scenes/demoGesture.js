@@ -1,5 +1,5 @@
 import * as cg from "../render/core/cg.js";
-import { g2 } from "../util/g2.js";
+import { G2 } from "../util/g2.js";
 export const init = async model => {
    let B = [[0,0,0,0, 0,0,0,0],
             [0,0,0,0, 0,0,0,0]];
@@ -7,20 +7,25 @@ export const init = async model => {
    let beam = [ model.add('tubeZ'), model.add('tubeZ') ];
    let state = ['none','none'];
    let hand = ['left','right'];
-   cube.texture(() => {
-      g2.setColor('white');
-      g2.fillRect(0,0,1,1);
-      g2.setColor('black');
-      g2.textHeight(.08);
-      g2.lineWidth(.001);
-      g2.setFont('courier');
-      for (let h = 0 ; h < 2 ; h++) {
-         let x = .2 + .55 * h;
-         g2.fillText(state[h], x, .93, 'center');
-         for (let n = 0 ; n < 8 ; n++)
-            g2.fillText(cg.decimal(B[h][n],2),x,.78-.09*n-.06*(n>3));
-      }
-   });
+
+   let g2 = new G2();
+   g2.setColor('white');
+   g2.fillRect(0,0,1,1);
+   g2.setColor('black');
+   g2.textHeight(.08);
+   g2.lineWidth(.001);
+   g2.setFont('courier');
+   for (let h = 0 ; h < 2 ; h++) {
+      let x = .2 + .55 * h;
+      g2.fillText(state[h], x, .93, 'center');
+      for (let n = 0 ; n < 8 ; n++)
+         g2.fillText(cg.decimal(B[h][n],2),x,.78-.09*n-.06*(n>3));
+   }
+
+   model.txtrSrc(3, g2.getCanvas());
+
+   cube.txtr(3);
+   
    model.animate(() => {
       for (let h = 0 ; h < 2 ; h++) {
          for (let n = 0 ; n < 3 ; n++) {

@@ -96,7 +96,6 @@ export const init = async model => {
 
    let board = chessSet.add();
    board.add('cube').move(0,H/2,0).scale(5*W,H/2,5*W).color(.2,.1,.05);
-// board.add('cube').move(0,H,0).scale(4*W,.01,4*W).texture('../media/textures/chessboard.png');
    board.add('cube').move(0,H,0).scale(4*W,.01,4*W).txtr(2);
 
    // RECIPE FOR CREATING EACH TYPE OF CHESS PIECE

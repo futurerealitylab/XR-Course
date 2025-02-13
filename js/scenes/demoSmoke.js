@@ -9,9 +9,10 @@ export const init = async model => {
    model.add('tubeY').move(0,y-.29,0).scale(.005,.04,.005);
    model.add('tubeY').move(0,y-.25,0).scale(.0045,.0001,.0045).color(.05,0,0);
    let smoke = model.add().flag('uSmoke');
+   model.txtrSrc(2, '../media/textures/shadow.png');
    for (let n = 0 ; n < N ; n++)
       smoke.add('cube')
-           .texture('../media/textures/shadow.png')
+           .txtr(2)
            .move(0,0,s*(2*n/N-1)).scale(s,s,.001);
 
    model.customShader(`

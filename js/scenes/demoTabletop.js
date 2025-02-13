@@ -217,85 +217,88 @@ export const init = async model => {
                                  .color(0,0,0).dull()
                                  .opacity(.5);
 */
+   // TEXTURE FUNCTION
+   let g2 = new G2();
+   let X = x => .5 + .5 * x / tableRadius;
+   let Y = y => .5 - .5 * y / tableRadius;
+
+   g2.setColor('#00000080');
+   g2.fillOval(0,0,1,1);
+
+   if (showText && tabletopStates.speech) {
+      g2.setColor('black');
+      g2.lineWidth(.001);
+      g2.textHeight(.02);
+      g2.fillText(tabletopStates.speech, .5, .5, 'center', compassDirection * .63);
+   }
+
+   // DRAW SHADOWS ON THE TABLE OF THE CONTROLLER POSITIONS
+
+   let lr = isPressed.left ? .015 : .02;
+   let L = HP.left;
+   g2.setColor(isPressed.left ? '#000000b0' : '#00000080');
+   g2.fillOval(X(L[0]) - lr , Y(L[2]) - lr , 2*lr , 2*lr );
+
+   if (handPos.left[1] < tableHeight + .1) {
+      g2.setColor(isPressed.left ? '#000000' : '#000000a0');
+      g2.fillOval(X(L[0]) - .2*lr , Y(L[2]) - .2*lr , .4*lr , .4*lr );
+   }
+
+   let R = HP.right;
+   let rr = isPressed.right ? .015 : .02;
+   g2.setColor(isPressed.right ? '#000000b0' : '#00000040');
+   g2.fillOval(X(R[0]) - rr , Y(R[2]) - rr , 2*rr , 2*rr );
+
+   if (handPos.right[1] < tableHeight + .1) {
+      g2.setColor(isPressed.right ? '#000000' : '#00000040');
+      g2.fillOval(X(R[0]) - .2*rr , Y(R[2]) - .2*rr , .4*rr , .4*rr );
+   }
+
+   // DRAW CROSSHAIRS ON THE TABLE SHOWING THE HEAD GAZE
+
+   let A = headAim;
+   g2.setColor('#00000080');
+   g2.fillRect(X(A[0]) - .002, Y(A[2]) - .02 , .004, .04 );
+   g2.fillRect(X(A[0]) - .02 , Y(A[2]) - .002, .04 , .004);
+
+   // SHOW ANY DRAWINGS
+
+   if (tabletopStates.drawings) {
+      let context = g2.getContext();
+      g2.lineWidth(.003);
+      context.save();
+         context.setLineDash([3*1.4,9*1.4]);
+         context.lineCap = 'square';
+         for (let id in tabletopStates.drawings) {
+            let drawing = tabletopStates.drawings[id];
+
+            let isFocus = false;
+            for (let id in drawing.ids)
+                  isFocus ||= id == clientID;
+            g2.setColor(isFocus ? '#00000090' : 'black');
+
+            let strokes = drawing.strokes;
+            for (let i = 0 ; i < strokes.length ; i++) {
+               let stroke = strokes[i];
+               let X = k => stroke[k]/canvasWidth,
+                   Y = k => 1 - stroke[k+1]/canvasWidth;
+               let path = [];
+               for (let k = 0 ; k < stroke.length ; k += 2)
+                  path.push([X(k), Y(k)]);
+               g2.drawPath(path);
+               g2.fillOval(X(0) - .0045, Y(0) - .0045, .009, .009);
+            }
+         }
+      context.restore();
+   }
+
+   model.txtrSrc(3, g2.getCanvas());
+
    let table = model.add('cube').move(0,tableHeight,0)
                                 .turnY(Math.PI)
                                 .scale(tableRadius,.0001,tableRadius)
                                 .color(0,0,0).dull()
-                                .texture(() => {
-
-      let X = x => .5 + .5 * x / tableRadius;
-      let Y = y => .5 - .5 * y / tableRadius;
-
-      g2.setColor('#00000050');
-      g2.fillOval(0,0,1,1);
-
-      if (showText && tabletop.speech) {
-         g2.setColor('black');
-         g2.lineWidth(.001);
-         g2.textHeight(.02);
-         g2.fillText(tabletop.speech, .5, .5, 'center', compassDirection * .63);
-      }
-
-      // DRAW SHADOWS ON THE TABLE OF THE CONTROLLER POSITIONS
-
-      let lr = isPressed.left ? .015 : .02;
-      let L = HP.left;
-      g2.setColor(isPressed.left ? '#000000b0' : '#00000080');
-      g2.fillOval(X(L[0]) - lr , Y(L[2]) - lr , 2*lr , 2*lr );
-
-      if (handPos.left[1] < tableHeight + .1) {
-         g2.setColor(isPressed.left ? '#000000' : '#000000a0');
-         g2.fillOval(X(L[0]) - .2*lr , Y(L[2]) - .2*lr , .4*lr , .4*lr );
-      }
-
-      let R = HP.right;
-      let rr = isPressed.right ? .015 : .02;
-      g2.setColor(isPressed.right ? '#000000b0' : '#00000040');
-      g2.fillOval(X(R[0]) - rr , Y(R[2]) - rr , 2*rr , 2*rr );
-
-      if (handPos.right[1] < tableHeight + .1) {
-         g2.setColor(isPressed.right ? '#000000' : '#00000040');
-         g2.fillOval(X(R[0]) - .2*rr , Y(R[2]) - .2*rr , .4*rr , .4*rr );
-      }
-
-      // DRAW CROSSHAIRS ON THE TABLE SHOWING THE HEAD GAZE
-
-      let A = headAim;
-      g2.setColor('#00000080');
-      g2.fillRect(X(A[0]) - .002, Y(A[2]) - .02 , .004, .04 );
-      g2.fillRect(X(A[0]) - .02 , Y(A[2]) - .002, .04 , .004);
-
-      // SHOW ANY DRAWINGS
-
-      if (tabletop.drawings) {
-         let context = g2.getContext();
-         g2.lineWidth(.003);
-         context.save();
-            context.setLineDash([3*1.4,9*1.4]);
-            context.lineCap = 'square';
-            for (let id in tabletop.drawings) {
-               let drawing = tabletop.drawings[id];
-
-               let isFocus = false;
-               for (let id in drawing.ids)
-                  isFocus ||= id == clientID;
-               g2.setColor(isFocus ? '#00000090' : 'black');
-
-               let strokes = drawing.strokes;
-               for (let i = 0 ; i < strokes.length ; i++) {
-                  let stroke = strokes[i];
-                  let X = k => stroke[k]/canvasWidth,
-                      Y = k => 1 - stroke[k+1]/canvasWidth;
-                  let path = [];
-                  for (let k = 0 ; k < stroke.length ; k += 2)
-                     path.push([X(k), Y(k)]);
-                  g2.drawPath(path);
-                  g2.fillOval(X(0) - .0045, Y(0) - .0045, .009, .009);
-               }
-            }
-         context.restore();
-      }
-   });
+                                .txtr(3);
 
    // HANDLE THE HEADS-UP OPTIONS MENU
 
