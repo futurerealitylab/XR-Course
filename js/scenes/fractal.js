@@ -44,6 +44,10 @@ function preloadSounds() {
 preloadSounds();
 
 server.init('balls', {}); // INITIALIZE GLOBAL STATE OBJECT.
+let avatarTimer = 0;
+let avatarTimer2 = 0;
+let blinkTime = 0;
+let blinkTime2 = 0;
 
 const radius = 0.05; // ALL BALLS HAVE THE SAME RADIUS.
 
@@ -437,20 +441,20 @@ let g2 = new G2(true);
          buildWires(strokes);
       }
       //----------------------DRAW ABOVE, FRACTAL BELOW------------------------
-      /*
-      let id = findBall(hand);
-      let handPosition = cg.roundVec(4, inputEvents.pos(hand)); // Use the hand's position
-      if (id >= 0) {
-         server.send('balls', msg('delete', id, hand));
-         // Optionally play a delete sound:
-         // if (deleteSoundBuffer) playSoundAtPosition(deleteSoundBuffer, handPosition);
-      } else {
-         for (id = 0; balls[id] !== undefined; id++); // Find an unused ID.
-         server.send('balls', msg('create', id, hand, 1));
-         // Optionally play a create sound:
-         // if (createSoundBuffer) playSoundAtPosition(createSoundBuffer, handPosition);
-      }
-      */
+      
+      // let id = findBall(hand);
+      // let handPosition = cg.roundVec(4, inputEvents.pos(hand)); // Use the hand's position
+      // if (id >= 0) {
+      //    server.send('balls', msg('delete', id, hand));
+      //    // Optionally play a delete sound:
+      //    // if (deleteSoundBuffer) playSoundAtPosition(deleteSoundBuffer, handPosition);
+      // } else {
+      //    for (id = 0; balls[id] !== undefined; id++); // Find an unused ID.
+      //    server.send('balls', msg('create', id, hand, 1));
+      //    // Optionally play a create sound:
+      //    // if (createSoundBuffer) playSoundAtPosition(createSoundBuffer, handPosition);
+      // }
+      
    };
 
    let N = 50000;
@@ -482,6 +486,8 @@ let g2 = new G2(true);
    //--------------------------------ANIMATE---------------------------------------
    let frameCount = 0;
    model.animate(() => {
+      avatarTimer += 0.005 * (cg.noise(model.time,model.time,model.time)/2+0.5);
+      avatarTimer2 += 0.002 * (cg.noise(model.time,model.time,model.time));
       while (model.nChildren() > 0)
          model.remove(0);
 
@@ -567,19 +573,24 @@ let g2 = new G2(true);
 
 
       model.customShader(`
-          uniform int uFractalBall, uFractalBackground;
+          uniform int uFractalBall, uFractalBackground,uController,uHead,uBody,uEyee;
           uniform float uParticleCount, uAvgDragDistanceR, uAvgDragDistanceL;
           uniform float uDrawingOpacity, uParticleOpacity;
           --------------------------
-        if (uFractalBall == 1) {
-            // Example: apply a rotation if needed.
-        }
+         if (uHead == 1) {
+            apos.xyz += noise(apos.xyz + uTime * .5) * aNor * .2;
+            pos.xyz = obj2Clip(apos.xyz);
+         }
+         if (uBody == 1) {
+            apos.xyz += noise(apos.xyz + uTime * .5) * aNor * .5;
+            pos.xyz = obj2Clip(apos.xyz);
+         }
         
 
           *********************
 
           // Specify precision for the vertex shader.
-          uniform highp int uFractalBall, uFractalBackground, uWireTexture;
+          uniform highp int uFractalBall, uFractalBackground, uWireTexture,uController,uHead,uBody,uEyee;
           uniform highp float uParticleCount, uAvgDragDistanceR, uAvgDragDistanceL;
           uniform highp float uDrawingOpacity, uParticleOpacity;
 
@@ -591,6 +602,23 @@ let g2 = new G2(true);
             return .5 + sin(p) * .5;
           }
           --------------------------
+           if (uEyee == 1) {
+         color = vec3(0.02);
+            //opacity = .8;
+         }
+         if (uHead == 1) {
+         color = vec3(1.);
+            opacity = .8;
+         }
+            if (uBody == 1) {
+         color = vec3(1.);
+            opacity = .8;
+         }
+          if(uController == 1){
+            color = vec3(1., .95, 0.56);
+            opacity = .9;
+          }
+            
           if (uFractalBall == 1){
             if(vUV.x < 0. ){
                color = vec3(1., .8, .0);
@@ -680,16 +708,45 @@ let g2 = new G2(true);
          ];
       }
      
-      updateAvatars(model);
+      // updateAvatars(model);
 
-      let a = model.add().move(0, 1.6, 0).scale(1);
-      for (let n in clients) {
-         a._children.push(avatars[clients[n]].getRoot());
-      }
+      // let a = model.add().move(0, 1.6, 0).scale(1);
+      // for (let n in clients) {
+      //    a._children.push(avatars[clients[n]].getRoot());
+      // }
    
       // RENDER THE 3D SCENE.
 
       let background = model.add('sphere').scale(1000, 1000, -1000).flag('uFractalBackground');
+
+      let avatarFake = model.add().move(0,1,0).scale(.8);
+      let avatarFakeHead = avatarFake.add('sphere').scale(0.1).color(1,1,1)
+      .turnX(Math.sin(5 * avatarTimer))
+      .turnZ(Math.sin(avatarTimer2))
+      .turnY(0.6)
+      .flag('uHead');
+      let eyeDist = 0.4;
+      let eyeHeight = 0.1;
+      let t = model.time;
+      if (t > blinkTime)
+         blinkTime = t + 1.5 + 2 * Math.random();
+      let eyeScale = blinkTime - t > .1 ? .16 : 0.0;
+      let avatarFakeBody = avatarFake.add('sphere').scale(0.12, 0.4, 0.12).move(0,-1.1,0).color(1,1,1).flag('uBody');
+      let avatarFakeEyeR = avatarFakeHead.add('sphere').move(eyeDist, eyeHeight, 1.1).scale(eyeScale, eyeScale, .01).color(0, 0, 0).flag('uEyee');
+      let avatarFakeEyeL = avatarFakeHead.add('sphere').move(-eyeDist, eyeHeight, 1.1).scale(eyeScale,eyeScale, .01).color(0, 0, 0).flag('uEyee');
+
+      let avatarFake2 = model.add().move(1,1.1,0).scale(.8);
+      let avatarFakeHead2 = avatarFake2.add('sphere').scale(0.1).color(1,1,1)
+      //.turnX(Math.sin(avatarTimer + 0.145))
+      .turnZ(Math.sin(5 * avatarTimer + 0.1))
+      .turnY(-1.57).flag('uHead');
+      let t2 = model.time + 374.4891;
+      if (t2 > blinkTime2)
+         blinkTime2 = t2 + 1.5 + 2 * Math.random();
+      let eyeScale2 = blinkTime2 - t2 > .1 ? .3 : 0.01;
+      let avatarFakeBody2 = avatarFake2.add('sphere').scale(0.12, 0.4, 0.12).move(0,-1.1,0).color(1,1,1).flag('uBody');
+      let avatarFakeEyeR2 = avatarFakeHead2.add('sphere').move(eyeDist, eyeHeight, 1.1).scale(eyeScale, eyeScale, .01).color(0, 0, 0).flag('uEyee');
+      let avatarFakeEyeL2 = avatarFakeHead2.add('sphere').move(-eyeDist, eyeHeight, 1.1).scale(eyeScale, eyeScale, .01).color(0, 0, 0).flag('uEyee');
 
       fractalData1 = [];
       fractalData1.push({ s: 0.00001, p: [0, 0, 0] });
@@ -698,9 +755,9 @@ let g2 = new G2(true);
       // model.add('tubeY').move(worldCenter).color('white').scale(.001, 100, .001).dull();
 
       let uvs = [[0, 0, .5, .5], [.5, .5, 1, 1], [0, .5, .5, 1], [.5, 0, 1, .5]];
-      function createFractalArm(id, position, scale, depth, uv, type) {
+      function createFractalArm(id, position, scale, depth, uv, type, isFirst = false) {
          if (!position || depth === 0 || fractalData1.length >= N) return;
-     
+         
          let expansionFactor = 1.5 * scale;
          let heightFactor = 0.75 * scale;
          let scaleGrowth = 1.8;
@@ -736,7 +793,7 @@ let g2 = new G2(true);
                mirroredPos[1] = ceilingHeight - mirroredPos[1] + ceilingHeight;
              }
              let randomInt = Math.floor(random1(id * 100 + i) * 4);
-             fractalData1.push({ s: scale * 0.8, p: mirroredPos, t: uvs[type] });
+             fractalData1.push({ s: scale * 0.8 * (isFirst ? 10.0 : 1.0), p: mirroredPos, t: uvs[type] });
          }
      
          let newPosUp = [
@@ -751,7 +808,7 @@ let g2 = new G2(true);
       //createFractalArm(0, inputEvents.pos('right'), 0.15, 1, [-1, -1, 0, 0], 0);
 
       for (let id in balls) {
-         createFractalArm(id, balls[id].pos, 0.02, 7, [0, 0, 1, 1], balls[id].type);
+         createFractalArm(id, balls[id].pos, 0.02, 7, [0, 0, 1, 1], balls[id].type, true);
 
          if (Math.abs(balls[id].pos[0]) > 50 ||
              Math.abs(balls[id].pos[1]) > 50 ||
