@@ -35,19 +35,25 @@ export class Gltf2Node extends Node {
     this._promise = null;
     this._resolver = null;
     this._rejecter = null;
+
+    //YUSHEN: TEXTURE CHANNEL OF THIS GLTF NODE
+    this._txtr = options.txtr === undefined ? 10 : options.txtr;
   }
 
   onRendererChanged(renderer) {
-    let loader = gltfLoaderMap.get(renderer);
+    /*let loader = gltfLoaderMap.get(renderer);
     if(this._usesAlpha){
-      loader = new Gltf2Loader(renderer);
+      loader = new Gltf2Loader(renderer, this._txtr);
     }
     else{
       if (!loader) {
-        loader = new Gltf2Loader(renderer);
+        loader = new Gltf2Loader(renderer, this._txtr);
         gltfLoaderMap.set(renderer, loader);
       }
-    }
+    }*/
+
+    // YUSHEN: LOADER PRE-GLTF
+    let loader = new Gltf2Loader(renderer, this._txtr);
 
     loader.alpha = this._alpha;
     // Do we have a previously resolved promise? If so clear it.

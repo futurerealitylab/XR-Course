@@ -63,6 +63,9 @@ export class ImageTexture extends Texture {
     this._imgBitmap = null;
     this._manualKey = null;
 
+    // YUSHEN: TEXTURE CHANNEL OF THE IMAGE TEXTURE
+    this._txtr = 15;
+
     if (img.src && img.complete) {
       if (img.naturalWidth) {
         this._promise = this._finishImage();
