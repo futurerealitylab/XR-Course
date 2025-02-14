@@ -43,6 +43,7 @@ export let getArbitraryChannel = () => {
   for (let i = 0; i < 15; i++) {
     if (!window.txtrChannel.includes(i)) {
       window.txtrChannel.push(i);
+      window.lastChannel = i;
       return i;
     }
   }
