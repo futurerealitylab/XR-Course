@@ -52,7 +52,7 @@ export class Gltf2Node extends Node {
       }
     }*/
 
-    // YUSHEN: LOADER PRE-GLTF
+    // YUSHEN: LOADER PER-GLTF
     let loader = new Gltf2Loader(renderer, this._txtr);
 
     loader.alpha = this._alpha;

@@ -23,6 +23,8 @@ import * as input from "./inputEvents.js";
 import * as room_mng from "/js/util/room_manager.js";
 import * as audio from "../../util/spatial-audio.js"
 
+import * as txtrManager from "./textureManager.js";
+
 let copiedObj = {};
 let copiedObjID = [];
 let otherObjID = [];
@@ -48,9 +50,6 @@ export function MeshInfo() {
 }
 
 let debug = false;
-
-// A hashmap to keep track of the texture that needs to be bind
-window.txtrMap = new Map();
 
 export function Clay(gl, canvas) {
    this.debug = state => debug = state;
@@ -2689,28 +2688,29 @@ function Node(_form) {
    }
 
    this.txtrSrc = (txtr, src, do_not_animate) => {
-      window.txtrMap.set(txtr, [src, do_not_animate]);
+      // New texture API
+      txtr = txtrManager.setTextureToChannel(txtr);
 
       if (typeof src == 'string') {                             // IF THE TEXTURE SOURCE IS AN IMAGE FILE
          let image = new Image();                           
          image.onload = () => {
              gl.activeTexture (gl.TEXTURE0 + txtr);
-	     gl.bindTexture   (gl.TEXTURE_2D, gl.createTexture());
+	          gl.bindTexture   (gl.TEXTURE_2D, gl.createTexture());
              gl.texImage2D    (gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
              gl.texParameteri (gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
              gl.texParameteri (gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-	 }
+	   }
          image.src = src;
          delete _canvas_txtr[txtr];
       }
       else {                                      // FOR ANY OTHER TEXTURE SOURCE,
          if (! src._animate)
             do_not_animate = true;
-         gl.activeTexture (gl.TEXTURE0 + txtr);   // ASSUME THAT ITS CONTENT CAN BE ANIMATED.
-         gl.bindTexture   (gl.TEXTURE_2D, gl.createTexture());
-         gl.texParameteri (gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-         gl.texParameteri (gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-         _canvas_txtr[txtr] = { src: src, counter: do_not_animate ? 1 : Number.MAX_SAFE_INTEGER };
+            gl.activeTexture (gl.TEXTURE0 + txtr);   // ASSUME THAT ITS CONTENT CAN BE ANIMATED.
+            gl.bindTexture   (gl.TEXTURE_2D, gl.createTexture());
+            gl.texParameteri (gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+            gl.texParameteri (gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            _canvas_txtr[txtr] = { src: src, counter: do_not_animate ? 1 : Number.MAX_SAFE_INTEGER };
       }
    }
 }
