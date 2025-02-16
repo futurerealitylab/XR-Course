@@ -50,27 +50,14 @@ export const init = async model => {
    inputEvents.onMove = hand => movePos[hand] = inputEvents.pos(hand);
 
 
+   let avatarAnchor = model.add();
+   avatarAnchor.add('tubeY').move(0,0,.5).scale(.2,.001,.2);
+   updateAvatars(model);
+   for (let n in clients){
+      avatarAnchor._children.push(avatars[clients[n]].getRoot());
+      avatars[clients[n]].showIK(true);
+   }
 
-   let testBody2 = model.add();
-   let test2Head   = testBody2.add('cube').color(1,0,0);
-   let test2HeadReal = testBody2.add('sphere').color(1,0,0); let posHeadReal = new Vector3();
-   let test2WristL = testBody2.add('cube').color(1,0,0);
-   let test2WristR = testBody2.add('cube').color(1,0,0);
-   let test2Chest     = testBody2.add('sphere').color(1,1,1); let posChest     = new Vector3();
-   let test2ShoulderL = testBody2.add('sphere').color(1,1,1); let posShoulderL = new Vector3();
-   let test2ShoulderR = testBody2.add('sphere').color(1,1,1); let posShoulderR = new Vector3();
-   let test2ElbowL    = testBody2.add('sphere').color(1,1,1);
-   let test2ElbowR    = testBody2.add('sphere').color(1,1,1);
-   let test2linkHC  = testBody2.add('tubeZ').color(1,1,1); let lengthHC  = 0.20;
-   let test2linkCSL = testBody2.add('tubeZ').color(1,1,1); let lengthCSL = 0.16;
-   let test2linkCSR = testBody2.add('tubeZ').color(1,1,1); let lengthCSR = 0.16;
-   let test2linkSEL = testBody2.add('tubeZ').color(1,1,1); let lengthSEL = 0.30;
-   let test2linkSER = testBody2.add('tubeZ').color(1,1,1); let lengthSER = 0.30;
-   let test2linkEWL = testBody2.add('tubeZ').color(1,1,1); let lengthEWL = 0.30;
-   let test2linkEWR = testBody2.add('tubeZ').color(1,1,1); let lengthEWR = 0.30;
-   test2Head  .add('tubeZ').move(0,0,-2.5).scale(.1,.1,3).color(1,1,1);
-   test2WristL.add('tubeZ').move(0,0,-2.5).scale(.1,.1,3).color(1,1,0);
-   test2WristR.add('tubeZ').move(0,0,-2.5).scale(.1,.1,3).color(0,1,1);
 
    ///////////////////////////////////////////
    /*            Model Animation            */
@@ -79,18 +66,8 @@ export const init = async model => {
    model.animate(() => {
       // floor.identity().scale(5, 5, 5).turnX(-TAU/4).color(.1, .1, .1);
 
-      // /* Update Avatars */
-      // updateAvatars(model);
-      // if (frameCount++ == 0){
-      //    for (let i = ilo ; i <= ihi ; i++){
-      //       // if (i != 0) {
-      //          let a = model.add().move(0,ry + .3 * i,0).scale(Math.pow(scalePower, i)).move(0,-ry, 0);
-      //          for (let n in clients){
-      //             a._children.push(avatars[clients[n]].getRoot());
-      //          }
-      //       // }
-      //    }
-      // }
+      /* Update Avatars */
+      updateAvatars(model);
 
 
       /* Update IK Body */
@@ -161,37 +138,7 @@ export const init = async model => {
 
 
       /////* Test Body 2 */////
-      posHeadReal.set(matrixHead[12], matrixHead[13], matrixHead[14]).offset(0,0,.10, quaternionHead);
-      posChest.copy(posHeadReal).offset(0,-lengthHC,0,quaternionHead);
-      posShoulderL.copy(posChest).offset(-lengthCSL,0,0,quaternionHead);
-      posShoulderR.copy(posChest).offset( lengthCSR,0,0,quaternionHead);
-      let arrPosHead = matrixHead.slice(12,15);
-      let arrPosWristL = matrixHandL.slice(12,15);
-      let arrPosWristR = matrixHandR.slice(12,15);
-      let arrPosHeadReal = [posHeadReal.x, posHeadReal.y, posHeadReal.z];
-      let arrPosChest     = [posChest.x, posChest.y, posChest.z];
-      let arrPosShoulderL = [posShoulderL.x, posShoulderL.y, posShoulderL.z];
-      let arrPosShoulderR = [posShoulderR.x, posShoulderR.y, posShoulderR.z];
-      let arrPosElbowL = cg.add(arrPosShoulderL, cg.ik(lengthSEL, lengthEWL, cg.subtract(arrPosWristL,arrPosShoulderL),[0,-1,0]));
-      let arrPosElbowR = cg.add(arrPosShoulderR, cg.ik(lengthSER, lengthEWR, cg.subtract(arrPosWristR,arrPosShoulderR),[0,-1,0]));
 
-      testBody2.identity().move(-.5,.8,-.7).scale(.5).turnY(yaw);
-      test2Head  .setMatrix(matrixHead ).scale(.05);
-      test2WristL.setMatrix(matrixHandL).scale(.05);
-      test2WristR.setMatrix(matrixHandR).scale(.05);
-      test2HeadReal.setMatrix(matrixHead ).move(0,0,.10).scale(.075, .10, .075);
-      test2Chest.identity().move(arrPosChest).scale(.02);
-      test2ShoulderL.identity().move(arrPosShoulderL).scale(.02);
-      test2ShoulderR.identity().move(arrPosShoulderR).scale(.02);
-      test2ElbowL   .identity().move(arrPosElbowL   ).scale(.02);
-      test2ElbowR   .identity().move(arrPosElbowR   ).scale(.02);
-
-      test2linkHC.identity().move(cg.mix(arrPosHeadReal, arrPosChest, .5)).aimZ(cg.subtract(arrPosChest,arrPosHeadReal)).scale(.01,.01,cg.distance(arrPosHeadReal,arrPosChest)/2);
-      test2linkCSL.identity().move(cg.mix(arrPosChest, arrPosShoulderL, .5)).aimZ(cg.subtract(arrPosShoulderL,arrPosChest)).scale(.01,.01,cg.distance(arrPosChest,arrPosShoulderL)/2);
-      test2linkCSR.identity().move(cg.mix(arrPosChest, arrPosShoulderR, .5)).aimZ(cg.subtract(arrPosShoulderR,arrPosChest)).scale(.01,.01,cg.distance(arrPosChest,arrPosShoulderR)/2);
-      test2linkSEL.identity().move(cg.mix(arrPosShoulderL, arrPosElbowL, .5)).aimZ(cg.subtract(arrPosElbowL,arrPosShoulderL)).scale(.01,.01,cg.distance(arrPosShoulderL,arrPosElbowL)/2);
-      test2linkSER.identity().move(cg.mix(arrPosShoulderR, arrPosElbowR, .5)).aimZ(cg.subtract(arrPosElbowR,arrPosShoulderR)).scale(.01,.01,cg.distance(arrPosShoulderR,arrPosElbowR)/2);
-      test2linkEWL.identity().move(cg.mix(arrPosElbowL, arrPosWristL, .5)).aimZ(cg.subtract(arrPosWristL,arrPosElbowL)).scale(.01,.01,cg.distance(arrPosElbowL,arrPosWristL)/2);
-      test2linkEWR.identity().move(cg.mix(arrPosElbowR, arrPosWristR, .5)).aimZ(cg.subtract(arrPosWristR,arrPosElbowR)).scale(.01,.01,cg.distance(arrPosElbowR,arrPosWristR)/2);
+      avatarAnchor.setMatrix(matrixHead).move(0,-.8,-1).scale(.5).turnY(yaw).move(0,0,-.5);
    });
 }
