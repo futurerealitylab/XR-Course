@@ -69,9 +69,11 @@ function getComponentCount(type) {
  */
 
 export class Gltf2Loader {
-  constructor(renderer) {
+  //YUSHEN: PUT TEXTURE CHANNEL INTO CONSTRUCTOR
+  constructor(renderer, txtr) {
     this.renderer = renderer;
     this._gl = renderer._gl;
+    this._txtr = txtr;
   }
   loadFromUrl(url) {
     return fetch(url).then((response) => {
@@ -143,10 +145,10 @@ export class Gltf2Loader {
 
     let buffers = [];
     if (binaryChunk) {
-      buffers[0] = new Gltf2Resource({}, baseUrl, binaryChunk);
+      buffers[0] = new Gltf2Resource({}, this._txtr, baseUrl, binaryChunk);
     } else {
       for (let buffer of json.buffers) {
-        buffers.push(new Gltf2Resource(buffer, baseUrl));
+        buffers.push(new Gltf2Resource(buffer, this._txtr, baseUrl));
       }
     }
 
@@ -158,7 +160,7 @@ export class Gltf2Loader {
     let images = [];
     if (json.images) {
       for (let image of json.images) {
-        images.push(new Gltf2Resource(image, baseUrl));
+        images.push(new Gltf2Resource(image, this._txtr, baseUrl));
       }
     }
 
@@ -402,12 +404,15 @@ class Gltf2BufferView {
 }
 
 class Gltf2Resource {
-  constructor(json, baseUrl, arrayBuffer) {
+  constructor(json, txtr, baseUrl, arrayBuffer) {
     this.json = json;
     this.baseUrl = baseUrl;
 
     this._dataPromise = null;
     this._texture = null;
+
+    // YUSHEN: TEXTURE CHANNEL OF GLTF2RESOURCE
+    this._txtr = txtr;
     if (arrayBuffer) {
       this._dataPromise = Promise.resolve(arrayBuffer);
     }
@@ -438,6 +443,7 @@ class Gltf2Resource {
     if (!this._texture) {
       let img = new Image();
       this._texture = new ImageTexture(img);
+      this._texture._txtr = this._txtr;
 
       if (this.json.uri) {
         if (isDataUri(this.json.uri)) {

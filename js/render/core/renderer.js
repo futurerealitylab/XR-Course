@@ -1723,10 +1723,13 @@ export class Renderer {
       let gl = this._gl;
       let textureHandle = gl.createTexture();
 
+      console.log(texture._txtr);
+
       let renderTexture = new RenderTexture(textureHandle);
       this._textureCache[key] = renderTexture;
 
       if (texture instanceof DataTexture) {
+        gl.activeTexture(gl.TEXTURE0 + texture._txtr);
         gl.bindTexture(gl.TEXTURE_2D, textureHandle);
         gl.texImage2D(
           gl.TEXTURE_2D,
@@ -1743,6 +1746,7 @@ export class Renderer {
         renderTexture._complete = true;
       } else {
         texture.waitForComplete().then(() => {
+          gl.activeTexture(gl.TEXTURE0 + texture._txtr);
           gl.bindTexture(gl.TEXTURE_2D, textureHandle);
           gl.texImage2D(
             gl.TEXTURE_2D,
