@@ -56,7 +56,7 @@ export const init = async model => {
    inputEvents.onDrag = hand => {
       let p = inputEvents.pos(hand);
       nestedState.chair = cg.roundVec(3, [ Math.max(-tr, Math.min(tr, p[0])),
-					   Math.max(-4*cr, p[1] - ry),
+					                            Math.max(-4*cr, p[1] - ry),
                                            Math.max(-tr, Math.min(tr, p[2])) ]);
       server.broadcastGlobal('nestedState');
    }
@@ -69,9 +69,9 @@ export const init = async model => {
          ctx.fillStyle = '#000000';
          ctx.fillRect(0, 0, 512, 512);
          ctx.fillStyle = '#ff00ff';
-	 let a = 50;
-	 let c = 256 + (256-a) * Math.cos(2 * model.time);
-	 let s = 256 + (256-a) * Math.sin(2 * model.time);
+         let a = 50;
+         let c = 256 + (256-a) * Math.cos(2 * model.time);
+         let s = 256 + (256-a) * Math.sin(2 * model.time);
          ctx.fillRect(s-a/2, c-a/2, a, a);
       }
 
@@ -79,15 +79,15 @@ export const init = async model => {
       let bigChairPos;
       for (let i = ihi ; i >= ilo ; i--) {
          let room = rooms.child(i - ilo);
-	 room.identity().scale(Math.pow(8, i));
+         room.identity().scale(Math.pow(8, i));
 
-	 let chair = room.child(1);
-	 let thing = room.child(2);
+         let chair = room.child(1);
+         let thing = room.child(2);
 
          chair.identity().move(nestedState.chair).color(i==1&&touched?[1,.5,.5]:[0,.25,.5]).scale(cr);
-	 if (i == 1) {
-	    bigChairPos = chair.getGlobalMatrix().slice(12,15);
-	    bigChairPos[1] += cr * 8;
+         if (i == 1) {
+            bigChairPos = chair.getGlobalMatrix().slice(12,15);
+            bigChairPos[1] += cr * 8;
          }
 
          thing.identity().turnY(model.time/2).move(1,1.5,0).scale(.15);

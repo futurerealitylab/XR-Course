@@ -27,6 +27,8 @@ export default () => {
 
             { name: "particleNoise"       , path: "./particleNoise.js"       , public: true  },
 
+            { name: "testAvatar"         , path: "./testAvatar.js"         , public: true  },
+
 //          { name: "pinscreen"          , path: "./pinscreen.js"          , public: true  },
 //          { name: "share_ball"         , path: "./share_ball.js"         , public: false },
 //          { name: "drag_objects"       , path: "./drag_objects.js"       , public: false },
