@@ -22,7 +22,23 @@ export const init = async model => {
     global.gltfRoot.addNode(box);
     global.gltfRoot.addNode(attic);
     //model.txtrSrc(0, '../media/textures/moon_diffuse.jpg');
-    let obj = model.add('sphere').setTxtr('../media/textures/moon_diffuse.jpg').setBumptxtr('../media/textures/moon_normal.jpg');
+
+    /* YUSHEN: THIS IS THE DEMO OF THE NEW TEXTURE METHOD
+       SETTXTR METHOD CAN TAKE 1-3 PARAMETERS
+       THE FIRST ONE MUST BE THE TEXTURE SOURCE
+       THE SECOND ONE CAN EITHER BE THE DESIRED TEXTURE CHANNEL
+       OR THE DO NOT ANIMATE OPTION
+       THE THIRD THEN WILL BE THE REST
+       COMMENT IN/OUT THE CODE TO TEST IT */
+
+    // THIS IS THE BASIC USAGE, ONLY SOURCE, NO DESIRED CHANNEL AND ANIMATE OPTION
+    //let obj = model.add('sphere').setTxtr('../media/textures/moon_diffuse.jpg').setBumptxtr('../media/textures/moon_normal.jpg');
+    // THIS IS WHEN THE CHANNEL IS SET TO DESIRED ONE
+    //let obj = model.add('sphere').setTxtr('../media/textures/moon_diffuse.jpg', 1).setBumptxtr('../media/textures/moon_normal.jpg', 2);
+    // THIS IS WHEN THE DO_NOT_ANIMATE PARAMETER IS SET
+    //let obj = model.add('sphere').setTxtr('../media/textures/moon_diffuse.jpg', true).setBumptxtr('../media/textures/moon_normal.jpg', true);
+    // THIS IS WHEN EVERYTHING IS COMING TOGETHER
+    let obj = model.add('sphere').setTxtr('../media/textures/moon_diffuse.jpg', 1, true).setBumptxtr('../media/textures/moon_normal.jpg', 2, true);
 
     model.animate(() => {
     });
