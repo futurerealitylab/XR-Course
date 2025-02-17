@@ -1723,8 +1723,6 @@ export class Renderer {
       let gl = this._gl;
       let textureHandle = gl.createTexture();
 
-      console.log(texture._txtr);
-
       let renderTexture = new RenderTexture(textureHandle);
       this._textureCache[key] = renderTexture;
 

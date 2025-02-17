@@ -2229,8 +2229,6 @@ function Node(_form) {
    this.info      = value   => { if (this.prop('_blend') && this._info != value) activeSet(true);
                                 this._info = value;    return this; }
    this.getInfo   = ()      => { return this._info; }
-   this.texture   = src     => { this._texture = src;  return this; }
-   this.bumpTexture = src   => { this._bumpTexture = src; return this; }
    this.bevel     = tf      => { this._bevel = tf === undefined ? true : tf; return this; }
    this.blend     = tf      => { if (this._blend != tf) activeSet(true);
                                 this._blend = tf === undefined ? false : tf; return this; }
@@ -2678,18 +2676,59 @@ function Node(_form) {
 
    // NEWER MULTI-TEXTURE-UNIT TEXTURE HANDLING
 
-   this.txtr = n => {
-      this._txtr = n;
+   this.setTxtr = (src, a, b) => {
+      let txtr = undefined;
+      let do_not_animate = undefined;
+
+      if (a !== undefined) {
+         if (typeof a == 'number') txtr = a;
+         else do_not_animate = a;
+      }
+
+      if (b !== undefined) {
+         if (typeof b == 'boolean') do_not_animate = b;
+         else txtr = b;
+      }
+
+      if (txtr === undefined)
+         txtr = txtrManager.getArbitraryChannel();
+      this.txtrSrc(txtr, src, do_not_animate);
+      return this.txtr(txtr);
+   }
+
+   this.setBumptxtr = (src, a, b) => {
+      let txtr = undefined;
+      let do_not_animate = undefined;
+
+      if (a !== undefined) {
+         if (typeof a == 'number') txtr = a;
+         else do_not_animate = a;
+      }
+
+      if (b !== undefined) {
+         if (typeof b == 'boolean') do_not_animate = b;
+         else txtr = b;
+      }
+      
+      if (txtr === undefined)
+         txtr = txtrManager.getArbitraryChannel();
+      this.txtrSrc(txtr, src, do_not_animate);
+      return this.bumptxtr(txtr);
+   }
+
+   this.txtr = (txtr) => {
+      this._txtr = txtr;
       return this;
    }
-   this.bumptxtr = n => {
-      this._bumptxtr = n;
+
+   this.bumptxtr = (txtr) => {
+      this._bumpTxtr = txtr;
       return this;
    }
 
    this.txtrSrc = (txtr, src, do_not_animate) => {
       // New texture API
-      txtr = txtrManager.setTextureToChannel(txtr);
+      txtrManager.setTextureToChannel(txtr);
 
       if (typeof src == 'string') {                             // IF THE TEXTURE SOURCE IS AN IMAGE FILE
          let image = new Image();                           
@@ -2712,6 +2751,8 @@ function Node(_form) {
             gl.texParameteri (gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
             _canvas_txtr[txtr] = { src: src, counter: do_not_animate ? 1 : Number.MAX_SAFE_INTEGER };
       }
+
+      return txtr;
    }
 }
 

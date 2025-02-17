@@ -21,8 +21,8 @@ export const init = async model => {
     global.gltfRoot.addNode(buddha);
     global.gltfRoot.addNode(box);
     global.gltfRoot.addNode(attic);
-    model.txtrSrc(1, '../media/textures/moon_diffuse.jpg');
-    let obj = model.add('sphere').txtr(1);
+    //model.txtrSrc(0, '../media/textures/moon_diffuse.jpg');
+    let obj = model.add('sphere').setTxtr('../media/textures/moon_diffuse.jpg').setBumptxtr('../media/textures/moon_normal.jpg');
 
     model.animate(() => {
     });
