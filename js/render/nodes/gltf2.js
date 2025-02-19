@@ -20,6 +20,7 @@
 
 import { Node } from "../core/node.js";
 import { Gltf2Loader } from "../gltf/gltf2.js";
+import * as txtrManager from "../core/textureManager.js";
 
 // Using a weak map here allows us to cache a loader per-renderer without
 // modifying the renderer object or leaking memory when it's garbage collected.
@@ -37,7 +38,7 @@ export class Gltf2Node extends Node {
     this._rejecter = null;
 
     //YUSHEN: TEXTURE CHANNEL OF THIS GLTF NODE
-    this._txtr = options.txtr === undefined ? 10 : options.txtr;
+    this._txtr = options.txtr === undefined ? txtrManager.getArbitraryChannel() : options.txtr;
   }
 
   onRendererChanged(renderer) {
