@@ -57,6 +57,25 @@ export const init = async model => {
    }
 
 
+   model.customShader(`
+      uniform int uAvatarHead;
+      uniform int uAvatarEye;
+      uniform int uAvatarArm;
+      uniform int uAvatarBody;
+      --------------------------
+      if (uAvatarBody == 1 || uAvatarArm == 1 || uAvatarHead == 1) {
+         float t = .5 + noise(400. * vAPos + 5. * vec3(0.,0.,mod(uTime, 100.)));
+         float u = dot(eye, normal);
+         t = t * t * (3. - t - t);
+         opacity = 30. * pow(t, 9.) * u * u;
+         color = .02 * opacity * vec3(.0,.4,.9);
+      }
+      if (uAvatarEye == 1) {
+         color = vec3(.2,.5,.9);
+      }
+   `)
+
+
    ///////////////////////////////////////////
    /*            Model Animation            */
    ///////////////////////////////////////////
@@ -133,7 +152,7 @@ export const init = async model => {
       }
 
       table.identity().move(0,0,-.7).scale(.8).turnY(yaw).scale(0);
-      rootIkbody.identity().move(+.5,.8,-.7).scale(.5).turnY(yaw);
+      rootIkbody.identity().move(+.5,.8,-.7).scale(.5).turnY(yaw).scale(0);
 
 
 
