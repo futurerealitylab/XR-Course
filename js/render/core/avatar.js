@@ -57,7 +57,7 @@ export function Avatar(model) {
 
    let radLnk = .04;
 
-   head.add('cube').scale(.06).scale(.95,1.2,.8).flag('uAvatarHead');
+   head.add('sphere').scale(.06).scale(1.2).flag('uAvatarHead');
 /*
    head.add('cube').scale(.06).move(-.95,0,0).scale(.01,1.2,.8);
    head.add('cube').scale(.06).move( .95,0,0).scale(.01,1.2,.8);
@@ -151,7 +151,7 @@ export function Avatar(model) {
       ElbowR   .identity().move(arrPosElbowR   ).scale(radLnk).scale(_showIK);
 
       linkHC .identity().move(cg.mix(arrPosHeadReal ,arrPosChest    , .5)).aimZ(cg.subtract(arrPosChest    ,arrPosHeadReal ))
-            .scale(radLnk,radLnk,cg.distance(arrPosHeadReal ,arrPosChest    )/2).scale(_showIK);
+            .scale(radLnk,radLnk,cg.distance(arrPosHeadReal ,arrPosChest    )/2).scale(_showIK).scale(0);
       linkCSL.identity().move(cg.mix(arrPosChest    ,arrPosShoulderL, .5)).aimZ(cg.subtract(arrPosShoulderL,arrPosChest    ))
             .scale(radLnk,radLnk,cg.distance(arrPosChest    ,arrPosShoulderL)/2).scale(_showIK);
       linkCSR.identity().move(cg.mix(arrPosChest    ,arrPosShoulderR, .5)).aimZ(cg.subtract(arrPosShoulderR,arrPosChest    ))
