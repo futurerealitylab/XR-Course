@@ -1,17 +1,15 @@
 import { IKBody } from "../render/core/ikbody/ikbody.js";
 import { ik_data } from "../render/core/ikbody/ik_data.js";
 import { updateAvatars, avatars } from "../render/core/avatar.js";
-import { controllerMatrix } from "../render/core/controllerInput.js";
+import { buttonState, controllerMatrix, joyStickState } from "../render/core/controllerInput.js";
 import * as cg from "../render/core/cg.js";
 import { Quaternion } from "../render/core/ikbody/quaternion.js";
-import { buttonState } from "../render/core/controllerInput.js";
-import { Vector3 } from "../render/core/ikbody/vector3.js";
 
 let TAU = Math.PI * 2;
 
 export const init = async model => {
 
-   let yaw = 0;
+   let pitch = 0, yaw = 0;
    
    let movePos = { left: [0,1,0], right: [0,1,0] };
 
@@ -64,6 +62,10 @@ export const init = async model => {
    ///////////////////////////////////////////
 
    model.animate(() => {
+      pitch += (joyStickState.left.y + joyStickState.right.y) * model.deltaTime * 2;
+      pitch = Math.max(-TAU/4, Math.min(TAU/4, pitch));
+      yaw   += (joyStickState.left.x + joyStickState.right.x) * model.deltaTime * 2;
+      if (buttonState.right[5].pressed || buttonState.left[5].pressed) pitch = yaw = 0;
       // floor.identity().scale(5, 5, 5).turnX(-TAU/4).color(.1, .1, .1);
 
       /* Update Avatars */
@@ -130,8 +132,6 @@ export const init = async model => {
          bodySprings[i].identity().move(cg.mix(a,b,.5)).aimZ(cg.subtract(b,a)).scale(.005,.005,cg.distance(a,b)/2).color(1,w,w);
       }
 
-      if (buttonState.right[0].pressed) yaw -= model.deltaTime*2;
-      if (buttonState.left [0].pressed) yaw += model.deltaTime*2;
       table.identity().move(0,0,-.7).scale(.8).turnY(yaw).scale(0);
       rootIkbody.identity().move(+.5,.8,-.7).scale(.5).turnY(yaw);
 
@@ -139,6 +139,6 @@ export const init = async model => {
 
       /////* Test Body 2 */////
 
-      avatarAnchor.setMatrix(matrixHead).move(0,-.8,-1).scale(.5).turnY(yaw).move(0,0,-.5);
+      avatarAnchor.setMatrix(matrixHead).move(0,0,-1).scale(.5).turnX(pitch).turnY(yaw).move(0,-1,-.5);
    });
 }
