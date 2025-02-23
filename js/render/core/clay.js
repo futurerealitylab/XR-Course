@@ -626,9 +626,9 @@ let renderParticlesMesh = mesh => {
                ny = cg.normalize(cg.cross(nz,nx));
             }
          }
-         pos = [ p[0] + u * sx * nx[0] + v * sx * ny[0],
-                 p[1] + u * sy * nx[1] + v * sy * ny[1],
-                 p[2] + u * sx * nx[2] + v * sx * ny[2] ];
+         pos = [ p[0] + u * sx * nx[0]                 ,
+                 p[1] +                  v * sy * ny[1],
+                 p[2] + u * sx * nx[2] + v * sy * ny[2] ];
       }
       let V = vertexArray(pos, nz, null, [uRaw, vRaw], c);
       for (let k = 0 ; k < 16 ; k++)
