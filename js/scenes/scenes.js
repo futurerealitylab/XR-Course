@@ -20,6 +20,7 @@ export default () => {
             // { name: "example7"           , path: "./example7.js"           , public: false },
             // { name: "example8"           , path: "./example8.js"           , public: false },
 
+            { name: "wordcloud"           , path: "./wordcloud.js"           , public: true  },
             { name: "fractal"             , path: "./fractal.js"             , public: true  },
             // { name: "nestedA"            , path: "./nestedA.js"            , public: true  },
             // { name: "nestedB"            , path: "./nestedB.js"            , public: true  },
