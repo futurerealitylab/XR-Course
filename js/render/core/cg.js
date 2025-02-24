@@ -320,6 +320,16 @@ export let isLineIntersectPoly = (A, B, P) => {
    return t0 > t1 || t1 < 0 || t0 > distance(A, B) ? null : [t0, t1];
 }
 
+export let rayIntersectTriangle = (V,W, A,B,C) => {
+   let AB = subtract(B,A), BC = subtract(C,B), CA = subtract(A,C);
+   let Z = cross(AB, BC);
+   let t = (dot(Z,A) - dot(Z,V)) / dot(Z,W);
+   let P = add(V, scale(W, t));
+   let I = cross(Z, BC), J = cross(Z, CA), K = cross(Z, AB);
+   let d = (B, I, AB) => dot(subtract(P,B), I) / dot(AB, I);
+   return Math.max(d(B,I,AB), d(C,J,BC), d(A,K,CA)) <= 0 ? t : -1;
+}
+
 export let isSphereIntersectBox = (S,B) => {
    let C = [ S[0] - B[12], S[1] - B[13], S[2] - B[14] ], r = S[3];
    let X = B.slice(0, 3), sx = norm(X), x = Math.abs(dot(C, X) / sx) - sx,

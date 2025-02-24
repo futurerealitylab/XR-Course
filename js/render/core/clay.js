@@ -650,6 +650,7 @@ let renderParticlesMesh = mesh => {
       setVertex(6 * i + 4, p, n, s, c,  .5, -.5, t[2], t[3]);
       setVertex(6 * i + 5, p, n, s, c,  .5,  .5, t[2], t[1]);
    }
+   mesh.order = order;
 }
 
 let createSquareMesh = (i,j,k, z) => {
