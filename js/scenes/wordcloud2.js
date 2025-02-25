@@ -2,9 +2,9 @@ import * as cg from "../render/core/cg.js";                                     
 import { lcb, rcb } from '../handle_scenes.js';                                  // Import the two controller beams.
 import { wordatlas } from "../util/wordatlas.js";                                // Import the word atlas.
                                                                                  //
+window.wordcloudState = { pos : '' };                                            // This API is for sharing state.
 server.init('wordcloudInput', {});                                               // This API is for message passing.
-window.wordcloudState = { pos : '' };                                            // This API is for sharing state
-                                                                                 // between clients.
+                                                                                 //
 export const init = async model => {                                             //
    let N = wordatlas.length / 4;                                                 // Maintain a ray object for both
    let L = {}, R = {};                                                           // the left and right controller.
@@ -28,11 +28,6 @@ export const init = async model => {                                            
    inputEvents.onRelease = hand => (hand=='left' ? L : R).isDown = false;        // and also when it is released.
                                                                                  //
    model.animate(() => {                                                         //
-      server.sync('wordcloudInput', msgs => {                                    // Respond to input messages from
-         for (let id in msgs)                                                    // other clients by setting the
-            data[msgs[id].i].p = cg.unpack(msgs[id].p,-1,1);                     // positions of individual tiles.
-      });                                                                        //
-                                                                                 //
       wordcloudState = server.synchronize('wordcloudState');                     // At every animation frame, the
       if (clientID == clients[0]) {                                              // first client sends a packed
          let pos = [];                                                           // string to all other clients
@@ -47,6 +42,11 @@ export const init = async model => {                                            
             for (let i = 0 ; i < 3 ; i++)                                        // Note that only the first client
                data[n].p[i] = pos[3 * n + i];                                    // is allowed to set set the
       }                                                                          // positions of word tiles.
+                                                                                 //
+      server.sync('wordcloudInput', msgs => {                                    // Respond to input messages from
+         for (let id in msgs)                                                    // other clients by setting the
+            data[msgs[id].i].p = cg.unpack(msgs[id].p,-1,1);                     // positions of individual tiles.
+      });                                                                        //
                                                                                  //
       for (let n = 0 ; n < N ; n++) {                                            //
          let select = L.index == n || R.index == n;                              // While a tile is at a controller
