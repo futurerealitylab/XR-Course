@@ -52,7 +52,7 @@
    //        pack(array, hi)     -- lowest and highest array values must be: at least 0  and at most hi.
    //        pack(array, lo, hi) -- lowest and highest array values must be: at least lo and at most hi.
 
-   let pack = (array, lo, hi) => {
+   export let pack = (array, lo, hi) => {
       if (lo === undefined) { lo = 0; hi = 1; } else if (hi === undefined) { hi = lo ; lo = 0; }
       let C = " !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~";
       let pack = t => C[92 * t >> 0] + C[92 * (92 * t % 1) + .5 >> 0];

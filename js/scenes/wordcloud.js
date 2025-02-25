@@ -1,18 +1,18 @@
 import * as cg from "../render/core/cg.js";
 import { lcb, rcb } from '../handle_scenes.js';
-import { wordlist } from "../util/wordlist.js";
+import { wordatlas } from "../util/wordatlas.js";
 
 export const init = async model => {
-   let N = wordlist.length / 4;
+   let N = wordatlas.length / 4;
    let L = {}, R = {};
-   model.txtrSrc(1, 'media/textures/wordlist.jpg');
+   model.txtrSrc(1, 'media/textures/wordatlas.jpg');
    let particles = model.add('particles').info(N).txtr(1).move(0,1.5,0).scale(.6);
    let data = [], V = [];
    for (let n = 0 ; n < N ; n++) {
-      let u  = wordlist[4*n + 1] / 1844;
-      let du = wordlist[4*n + 2] / 1844;
-      let v  = wordlist[4*n + 3] / 1844;
-      let dv =                37 / 1844;
+      let u  = wordatlas[4*n + 1] / 1844;
+      let du = wordatlas[4*n + 2] / 1844;
+      let v  = wordatlas[4*n + 3] / 1844;
+      let dv =                 37 / 1844;
       data.push({
          p: [ Math.random()-.5, Math.random()-.5, Math.random()-.5 ],
          s: [ du, dv ],

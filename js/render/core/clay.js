@@ -595,11 +595,6 @@ let renderParticlesMesh = mesh => {
       order.push(i);
    order.sort((a,b) => cg.dot(Z,data[a]?data[a].p: -1) - cg.dot(Z,data[b]?data[b].p: -1));
 
-/*
-   Need to add an option for p to be 2 points.
-   The particle will go from p[0] to p[1], and its normal will point toward the viewer.
-*/
-
    let setVertex = (j, p, n, s, c, u, v, uRaw, vRaw) => {
       let nx = X, ny = Y, nz = Z;
       let pos, d = [1,0,0];
