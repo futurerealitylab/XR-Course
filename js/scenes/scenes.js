@@ -22,6 +22,8 @@ export default () => {
 
             { name: "wordcloud"          , path: "./wordcloud.js"          , public: true  },
             { name: "wordcloud2"         , path: "./wordcloud2.js"         , public: true  },
+            { name: "wordcloud3"         , path: "./wordcloud3.js"         , public: true  },
+
             { name: "fractal"            , path: "./fractal.js"            , public: true  },
 //          { name: "nestedA"            , path: "./nestedA.js"            , public: true  },
 //          { name: "nestedB"            , path: "./nestedB.js"            , public: true  },

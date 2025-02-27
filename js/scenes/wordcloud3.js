@@ -14,7 +14,8 @@ export const init = async model => {                                            
    model.control('z','sort tiles',()=>server.send('wordcloudInput',{sort: 1}));  //                                 //
                                                                                  //                                 //
    let N = wordatlas.length / 4;                                                 // Maintain a ray object for both  //
-   let L = {}, R = {};                                                           // the left and right controller.  //
+   let L = { isB: [], wasB: [] };                                                // the left and right controller.  //
+   let R = { isB: [], wasB: [] };                                                // the left and right controller.  //
    let yaw = 0, sort = 0;                                                        //                                 //
    let Y = [];                                                                   //                                 //
                                                                                  //                                 //
@@ -31,13 +32,21 @@ export const init = async model => {                                            
       data.push({ p: [x, y, z], t: [u, v, u+du, v+dv], });                       // high by 1 meter in diameter.    //
    }                                                                             //                                 //
                                                                                  //                                 //
-   inputEvents.onPress   = hand => (hand=='left' ? L : R).isDown = true;         // Track when a trigger is pressed //
-   inputEvents.onRelease = hand => (hand=='left' ? L : R).isDown = false;        // and also when it is released.   //
-                                                                                 //                                 //
    model.animate(() => {                                                         //                                 //
-      if (buttonState.left [1].pressed) server.send('wordcloudInput',{yaw:-1});  // Pressing a side trigger turns   //
-      if (buttonState.right[1].pressed) server.send('wordcloudInput',{yaw: 1});  // the cloud about the Y axis.     //
-                                                                                 //                                 //
+      for (let b = 0 ; b < 6 ; b++) {
+         L.isB[b] = buttonState.left [b].pressed;
+         R.isB[b] = buttonState.right[b].pressed;
+      }
+
+      if (L.isB[1]) server.send('wordcloudInput',{yaw:-1});  // Pressing a side trigger turns   //
+      if (R.isB[1]) server.send('wordcloudInput',{yaw: 1});  // the cloud about the Y axis.     //
+
+      if (! L.wasB[3] && L.isB[3]) server.send('wordcloudInput',{sort:-1});
+      if (! R.wasB[3] && R.isB[3]) server.send('wordcloudInput',{sort: 1});
+
+      if (L.wasB[3] && ! L.isB[3] || R.wasB[3] && ! R.isB[3])
+         server.send('wordcloudInput',{sort:0});
+
       yaw = .9 * yaw + .1 * wordcloudState.yaw;                                  // Smooth out the yaw value.       //
       particles.identity().move(0,1.5,0).turnY(yaw).scale(.8);                   //                                 //
       wordcloudState = server.synchronize('wordcloudState');                     // Synchronize state betw clients. //
@@ -108,11 +117,11 @@ export const init = async model => {                                            
             ray.V = cg.mTransform(invMatrix, [m[12], m[13], m[14]]);             //                                 //
             ray.W = cg.mTransform(invMatrix, [-m[8],-m[9],-m[10],0]).slice(0,3); // Initialize the ray's V and W    //
             ray.V = cg.add(ray.V, cg.scale(ray.W, 0.11));                        // and set the ray index to -1,    //
-            if (! ray.isDown || ray.index < 0) {                                 // indicating that it has not yet  //
+            if (! ray.isB[0] || ray.index < 0) {                                   // indicating that it has not yet  //
                ray.index = -1;                                                   // hit any tiles.                  //
                ray.t = 1000;                                                     //                                 //
             }                                                                    //                                 //
-            if (ray.isDragging = ray.index >= 0 && ray.wasDown && ray.isDown) {  // If either controller is already //
+            if (ray.isDragging = ray.index >= 0 && ray.wasB[0] && ray.isB[0]) {      // If either controller is already //
                let p = cg.add(ray.V, cg.scale(ray.W, ray.t));                    // dragging a tile, then just move //
                data[ray.index].p = p;                                            // that tile, and send a message   //
                server.send('wordcloudInput', {i:ray.index, p:cg.pack(p,-1,1)});  // the the first client to tell it //
@@ -139,7 +148,10 @@ export const init = async model => {                                            
                testRay(R);                                                       //                                 //
             }                                                                    //                                 //
       }                                                                          //                                 //
-      L.wasDown = L.isDown;                                                      // Remember the previous trigger   //
-      R.wasDown = R.isDown;                                                      // state for the event logic at    //
-   });                                                                           // the next animation frame.       //
+
+      for (let b = 0 ; b < 6 ; b++) {
+         L.wasB[b] = L.isB[b];                                                          // Remember the previous button    //
+         R.wasB[b] = R.isB[b];                                                          // Remember the previous button    //
+      }
+   });                                                                           //                                 //
 }                                                                                //                                 //

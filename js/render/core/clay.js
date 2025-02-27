@@ -243,9 +243,10 @@ let drawMesh = (mesh, materialId, textureSrc, txtr, bumpTextureSrc, bumptxtr, du
       window.customShader = customShader;
 
    let m = M.getValue();
+   let mInv = cg.mInverse(m);
    setUniform('Matrix4fv', 'uIRM', false, clay.inverseRootMatrix);
    setUniform('Matrix4fv', 'uModel', false, m);
-   setUniform('Matrix4fv', 'uInvModel', false, matrix_inverse_w_buffer16(m, __retBuf16));
+   setUniform('Matrix4fv', 'uInvModel', false, mInv);
 
    setUniform('1f', 'uOpacity', opacity ? opacity : 1);
 
@@ -263,7 +264,7 @@ let drawMesh = (mesh, materialId, textureSrc, txtr, bumpTextureSrc, bumptxtr, du
       if (mesh.particlesInline)
          this.renderParticlesMeshInline(this, mesh, views);
       else
-         renderParticlesMesh(mesh);
+         renderParticlesMesh(mesh, mInv);
 
    setUniform('1iv', 'uSampler', [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]);  // SPECIFY TEXTURE INDICES.
    setUniform('1i', 'uTexture' , isTexture(textureSrc) ? 1 : 0); // ARE WE RENDERING A TEXTURE?
@@ -571,7 +572,7 @@ let createParticlesMesh = n => {
    return mesh;
 }
 
-let renderParticlesMesh = mesh => {
+let renderParticlesMesh = (mesh, mInv) => {
    let data = mesh.particleData;
    let orient = mesh.orient;
 
@@ -579,7 +580,7 @@ let renderParticlesMesh = mesh => {
       return;
 
    let N = mesh.length / (6 * 16);
-   let vm = cg.mMultiply(clay.inverseRootMatrix, this.pose.transform.matrix);
+   let vm = cg.mMultiply(clay.inverseRootMatrix, cg.mMultiply(this.pose.transform.matrix, mInv));
    let X = vm.slice(0,3);
    let Y = vm.slice(4,7);
    let Z = vm.slice(8,11);
@@ -616,14 +617,14 @@ let renderParticlesMesh = mesh => {
                ny = cg.normalize(cg.cross(nz,nx));
             }
             else {
-               nz = cg.normalize(n);
-               nx = cg.normalize(cg.cross([0,1,0],nz));
-               ny = cg.normalize(cg.cross(nz,nx));
+	       ny = [0,1,0];
+               nx = cg.normalize(cg.cross(ny,n));
+               nz = cg.normalize(cg.cross(nx,ny));
             }
          }
-         pos = [ p[0] + u * sx * nx[0]                 ,
-                 p[1] +                  v * sy * ny[1],
-                 p[2] + u * sx * nx[2] + v * sy * ny[2] ];
+         pos = [ p[0] + u * sx * nx[0],
+                 p[1] + v * sy * ny[1],
+                 p[2] + u * sx * nx[2] ];
       }
       let V = vertexArray(pos, nz, null, [uRaw, vRaw], c);
       for (let k = 0 ; k < 16 ; k++)
