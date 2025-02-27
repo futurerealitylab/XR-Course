@@ -54,6 +54,7 @@ export function Avatar(model) {
    let linkSER   = root.add(); let lengthSER = 0.32;
    let linkEWL   = root.add(); let lengthEWL = 0.32;
    let linkEWR   = root.add(); let lengthEWR = 0.32;
+                               let WristMaxDist = 0.85;
 
    let radLnk = .04;
 
@@ -124,6 +125,19 @@ export function Avatar(model) {
       let arrPosWristR    = [posWristR   .x, posWristR   .y, posWristR   .z];
       let arrPosChest     = [posChest    .x, posChest    .y, posChest    .z];
 
+      /* Limit the distance between wrists and chest */
+      if (cg.distance(arrPosWristL, arrPosChest) > WristMaxDist) {
+         let vecWristL = cg.subtract(arrPosWristL, arrPosChest);
+         vecWristL = cg.scale(cg.normalize(vecWristL), WristMaxDist);
+         arrPosWristL = cg.add(arrPosChest, vecWristL);
+      }
+
+      if (cg.distance(arrPosWristR, arrPosChest) > WristMaxDist) {
+         let vecWristR = cg.subtract(arrPosWristR, arrPosChest);
+         vecWristR = cg.scale(cg.normalize(vecWristR), WristMaxDist);
+         arrPosWristR = cg.add(arrPosChest, vecWristR);
+      }
+
       vecRight.set(+1,0,0).applyQuaternion(quaternionHead);
       vecLeft .set(-1,0,0).applyQuaternion(quaternionHead);
       let arrVecRight = [vecRight.x, vecRight.y, vecRight.z];
@@ -144,11 +158,24 @@ export function Avatar(model) {
       let arrPosElbowL = cg.add(arrPosShoulderL, cg.ik(lengthSEL, lengthEWL, cg.subtract(arrPosWristL,arrPosShoulderL),dirElbowL));
       let arrPosElbowR = cg.add(arrPosShoulderR, cg.ik(lengthSER, lengthEWR, cg.subtract(arrPosWristR,arrPosShoulderR),dirElbowR));
 
+      let vecForward = new Vector3();
+      vecForward.set(0,0,-1).applyQuaternion(quaternionHead);
+      let arrForward = [vecForward.x, vecForward.y, vecForward.z];
+      let thetaL = cg.dot(arrForward, dirShoulderL);
+      let thetaR = cg.dot(arrForward, dirShoulderR);
+      let distSWL = cg.distance(arrPosShoulderL, arrPosWristL);
+      let distSWR = cg.distance(arrPosShoulderR, arrPosWristR);
+      let showArmR = thetaR>=-.2 && distSWR>0.15;
+      let showArmL = thetaL>=-.2 && distSWL>0.15;
+      if (thetaR < 0 && distSWR < 0.25) showArmR = false;
+      if (thetaL < 0 && distSWL < 0.25) showArmL = false;
+
+
       Chest    .identity().move(arrPosChest    ).scale(radLnk).scale(_showIK);
       ShoulderL.identity().move(arrPosShoulderL).scale(radLnk).scale(_showIK);
       ShoulderR.identity().move(arrPosShoulderR).scale(radLnk).scale(_showIK);
-      ElbowL   .identity().move(arrPosElbowL   ).scale(radLnk).scale(_showIK);
-      ElbowR   .identity().move(arrPosElbowR   ).scale(radLnk).scale(_showIK);
+      ElbowL   .identity().move(arrPosElbowL   ).scale(radLnk).scale(_showIK).scale(showArmL?1:0);
+      ElbowR   .identity().move(arrPosElbowR   ).scale(radLnk).scale(_showIK).scale(showArmR?1:0);
 
       linkHC .identity().move(cg.mix(arrPosHeadReal ,arrPosChest    , .5)).aimZ(cg.subtract(arrPosChest    ,arrPosHeadReal ))
             .scale(radLnk,radLnk,cg.distance(arrPosHeadReal ,arrPosChest    )/2).scale(_showIK).scale(0);
@@ -157,13 +184,13 @@ export function Avatar(model) {
       linkCSR.identity().move(cg.mix(arrPosChest    ,arrPosShoulderR, .5)).aimZ(cg.subtract(arrPosShoulderR,arrPosChest    ))
             .scale(radLnk,radLnk,cg.distance(arrPosChest    ,arrPosShoulderR)/2).scale(_showIK);
       linkSEL.identity().move(cg.mix(arrPosShoulderL,arrPosElbowL   , .5)).aimZ(cg.subtract(arrPosElbowL   ,arrPosShoulderL))
-            .scale(radLnk,radLnk,cg.distance(arrPosShoulderL,arrPosElbowL   )/2).scale(_showIK);
+            .scale(radLnk,radLnk,cg.distance(arrPosShoulderL,arrPosElbowL   )/2).scale(_showIK).scale(showArmL?1:0);
       linkSER.identity().move(cg.mix(arrPosShoulderR,arrPosElbowR   , .5)).aimZ(cg.subtract(arrPosElbowR   ,arrPosShoulderR))
-            .scale(radLnk,radLnk,cg.distance(arrPosShoulderR,arrPosElbowR   )/2).scale(_showIK);
+            .scale(radLnk,radLnk,cg.distance(arrPosShoulderR,arrPosElbowR   )/2).scale(_showIK).scale(showArmR?1:0);
       linkEWL.identity().move(cg.mix(arrPosElbowL   ,arrPosWristL   , .5)).aimZ(cg.subtract(arrPosWristL   ,arrPosElbowL   ))
-            .scale(radLnk,radLnk,cg.distance(arrPosElbowL   ,arrPosWristL   )/2).scale(_showIK);
+            .scale(radLnk,radLnk,cg.distance(arrPosElbowL   ,arrPosWristL   )/2).scale(_showIK).scale(showArmL?1:0);
       linkEWR.identity().move(cg.mix(arrPosElbowR   ,arrPosWristR   , .5)).aimZ(cg.subtract(arrPosWristR   ,arrPosElbowR   ))
-            .scale(radLnk,radLnk,cg.distance(arrPosElbowR   ,arrPosWristR   )/2).scale(_showIK);
+            .scale(radLnk,radLnk,cg.distance(arrPosElbowR   ,arrPosWristR   )/2).scale(_showIK).scale(showArmR?1:0);
    }
 
    this.packData = () => {
