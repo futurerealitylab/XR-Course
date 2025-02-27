@@ -243,9 +243,10 @@ let drawMesh = (mesh, materialId, textureSrc, txtr, bumpTextureSrc, bumptxtr, du
       window.customShader = customShader;
 
    let m = M.getValue();
+   let mInv = cg.mInverse(m);
    setUniform('Matrix4fv', 'uIRM', false, clay.inverseRootMatrix);
    setUniform('Matrix4fv', 'uModel', false, m);
-   setUniform('Matrix4fv', 'uInvModel', false, matrix_inverse_w_buffer16(m, __retBuf16));
+   setUniform('Matrix4fv', 'uInvModel', false, mInv);
 
    setUniform('1f', 'uOpacity', opacity ? opacity : 1);
 
@@ -263,7 +264,7 @@ let drawMesh = (mesh, materialId, textureSrc, txtr, bumpTextureSrc, bumptxtr, du
       if (mesh.particlesInline)
          this.renderParticlesMeshInline(this, mesh, views);
       else
-         renderParticlesMesh(mesh);
+         renderParticlesMesh(mesh, mInv);
 
    setUniform('1iv', 'uSampler', [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]);  // SPECIFY TEXTURE INDICES.
    setUniform('1i', 'uTexture' , isTexture(textureSrc) ? 1 : 0); // ARE WE RENDERING A TEXTURE?
@@ -571,7 +572,7 @@ let createParticlesMesh = n => {
    return mesh;
 }
 
-let renderParticlesMesh = mesh => {
+let renderParticlesMesh = (mesh, mInv) => {
    let data = mesh.particleData;
    let orient = mesh.orient;
 
@@ -579,7 +580,7 @@ let renderParticlesMesh = mesh => {
       return;
 
    let N = mesh.length / (6 * 16);
-   let vm = cg.mMultiply(clay.inverseRootMatrix, this.pose.transform.matrix);
+   let vm = cg.mMultiply(clay.inverseRootMatrix, cg.mMultiply(this.pose.transform.matrix, mInv));
    let X = vm.slice(0,3);
    let Y = vm.slice(4,7);
    let Z = vm.slice(8,11);
@@ -595,21 +596,18 @@ let renderParticlesMesh = mesh => {
       order.push(i);
    order.sort((a,b) => cg.dot(Z,data[a]?data[a].p: -1) - cg.dot(Z,data[b]?data[b].p: -1));
 
-/*
-   Need to add an option for p to be 2 points.
-   The particle will go from p[0] to p[1], and its normal will point toward the viewer.
-*/
-
-   let setVertex = (j, p, n, s, c, t, u, v, uRaw, vRaw) => {
+   let setVertex = (j, p, n, s, c, u, v, uRaw, vRaw) => {
       let nx = X, ny = Y, nz = Z;
       let pos, d = [1,0,0];
+      let sx = s[0] ? s[0] : s;
+      let sy = s[1] ? s[1] : s;
       if (Array.isArray(p[0])) {
          let c = cg.mix(p[0],p[1],.5,.5);
          d = cg.mix(p[0],p[1],-1, 1);
          ny = cg.normalize(cg.cross(nz,d));
-         pos = [ c[0] + u * d[0] + v * s * ny[0],
-                 c[1] + u * d[1] + v * s * ny[1],
-                 c[2] + u * d[2] + v * s * ny[2] ];
+         pos = [ sx * c[0] + u * d[0] + v * ny[0],
+                 sy * c[1] + u * d[1] + v * ny[1],
+                 sx * c[2] + u * d[2] + v * ny[2] ];
       }
       else {
          if (n) {
@@ -619,14 +617,14 @@ let renderParticlesMesh = mesh => {
                ny = cg.normalize(cg.cross(nz,nx));
             }
             else {
-               nz = cg.normalize(n);
-               nx = cg.normalize(cg.cross([0,1,0],nz));
-               ny = cg.normalize(cg.cross(nz,nx));
+	       ny = [0,1,0];
+               nx = cg.normalize(cg.cross(ny,n));
+               nz = cg.normalize(cg.cross(nx,ny));
             }
          }
-         pos = [ p[0] + u * s * nx[0] + v * s * ny[0],
-                 p[1] + u * s * nx[1] + v * s * ny[1],
-                 p[2] + u * s * nx[2] + v * s * ny[2] ];
+         pos = [ p[0] + u * sx * nx[0],
+                 p[1] + v * sy * ny[1],
+                 p[2] + u * sx * nx[2] ];
       }
       let V = vertexArray(pos, nz, null, [uRaw, vRaw], c);
       for (let k = 0 ; k < 16 ; k++)
@@ -641,13 +639,14 @@ let renderParticlesMesh = mesh => {
       let s = d.s ? d.s : .01;
       let c = d.c;
       let t = d.t ? d.t : [0,0,1,1];
-      setVertex(6 * i    , p, n, s, c, t, -.5, -.5, t[0], t[3]); // NOTE: passing in raw UVs as well
-      setVertex(6 * i + 1, p, n, s, c, t,  .5, -.5, t[2], t[3]);
-      setVertex(6 * i + 2, p, n, s, c, t, -.5,  .5, t[0], t[1]);
-      setVertex(6 * i + 3, p, n, s, c, t, -.5,  .5, t[0], t[1]);
-      setVertex(6 * i + 4, p, n, s, c, t,  .5, -.5, t[2], t[3]);
-      setVertex(6 * i + 5, p, n, s, c, t,  .5,  .5, t[2], t[1]);
+      setVertex(6 * i    , p, n, s, c, -.5, -.5, t[0], t[3]); // NOTE: passing in raw UVs as well
+      setVertex(6 * i + 1, p, n, s, c,  .5, -.5, t[2], t[3]);
+      setVertex(6 * i + 2, p, n, s, c, -.5,  .5, t[0], t[1]);
+      setVertex(6 * i + 3, p, n, s, c, -.5,  .5, t[0], t[1]);
+      setVertex(6 * i + 4, p, n, s, c,  .5, -.5, t[2], t[3]);
+      setVertex(6 * i + 5, p, n, s, c,  .5,  .5, t[2], t[1]);
    }
+   mesh.order = order;
 }
 
 let createSquareMesh = (i,j,k, z) => {
@@ -2966,9 +2965,11 @@ window._canvas_txtr = [];
       let Z = vm.slice(8,11);
 
       let setVertex = (j, p, s, c, t, u, v) => {
-         let pos = [ p[0] + u * s * X[0] + v * s * Y[0],
-                     p[1] + u * s * X[1] + v * s * Y[1],
-                     p[2] + u * s * X[2] + v * s * Y[2] ];
+         let su = s[0] ? s[0] : s;
+         let sv = s[1] ? s[1] : s;
+         let pos = [ p[0] + u * su * X[0] + v * sv * Y[0],
+                     p[1] + u * su * X[1] + v * sv * Y[1],
+                     p[2] + u * su * X[2] + v * sv * Y[2] ];
          let tu = t[0] + (.5+u) * t[2];
          let tv = t[1] + (.5+v) * t[3];
          let V = vertexArray(pos, Z, null, [tu, 1 - tv], c);

@@ -11,21 +11,25 @@ export default () => {
    return {
       enableSceneReloading: true,
       scenes: [ 
-            // { name: "example1"           , path: "./example1.js"           , public: false },
-            // { name: "example2"           , path: "./example2.js"           , public: false },
-            // { name: "example3"           , path: "./example3.js"           , public: false },
-            // { name: "example4"           , path: "./example4.js"           , public: false },
-            // { name: "example5"           , path: "./example5.js"           , public: false },
-            // { name: "example6"           , path: "./example6.js"           , public: false },
-            // { name: "example7"           , path: "./example7.js"           , public: false },
-            // { name: "example8"           , path: "./example8.js"           , public: false },
+//          { name: "example1"           , path: "./example1.js"           , public: false },
+//          { name: "example2"           , path: "./example2.js"           , public: false },
+//          { name: "example3"           , path: "./example3.js"           , public: false },
+//          { name: "example4"           , path: "./example4.js"           , public: false },
+//          { name: "example5"           , path: "./example5.js"           , public: false },
+//          { name: "example6"           , path: "./example6.js"           , public: false },
+//          { name: "example7"           , path: "./example7.js"           , public: false },
+//          { name: "example8"           , path: "./example8.js"           , public: false },
 
-            { name: "fractal"             , path: "./fractal.js"             , public: true  },
-            // { name: "nestedA"            , path: "./nestedA.js"            , public: true  },
-            // { name: "nestedB"            , path: "./nestedB.js"            , public: true  },
-            { name: "textured"           , path: "./textured.js"            , public: true  },
+            { name: "wordcloud"          , path: "./wordcloud.js"          , public: true  },
+            { name: "wordcloud2"         , path: "./wordcloud2.js"         , public: true  },
+            { name: "wordcloud3"         , path: "./wordcloud3.js"         , public: true  },
 
-            { name: "particleNoise"       , path: "./particleNoise.js"       , public: true  },
+            { name: "fractal"            , path: "./fractal.js"            , public: true  },
+//          { name: "nestedA"            , path: "./nestedA.js"            , public: true  },
+//          { name: "nestedB"            , path: "./nestedB.js"            , public: true  },
+            { name: "textured"           , path: "./textured.js"           , public: true  },
+
+            { name: "particleNoise"      , path: "./particleNoise.js"      , public: true  },
 
             { name: "testAvatar"         , path: "./testAvatar.js"         , public: true  },
 

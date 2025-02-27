@@ -52,7 +52,7 @@
    //        pack(array, hi)     -- lowest and highest array values must be: at least 0  and at most hi.
    //        pack(array, lo, hi) -- lowest and highest array values must be: at least lo and at most hi.
 
-   let pack = (array, lo, hi) => {
+   export let pack = (array, lo, hi) => {
       if (lo === undefined) { lo = 0; hi = 1; } else if (hi === undefined) { hi = lo ; lo = 0; }
       let C = " !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~";
       let pack = t => C[92 * t >> 0] + C[92 * (92 * t % 1) + .5 >> 0];
@@ -318,6 +318,16 @@ export let isLineIntersectPoly = (A, B, P) => {
          t1 = Math.min(t1, -pv / pw);
    }
    return t0 > t1 || t1 < 0 || t0 > distance(A, B) ? null : [t0, t1];
+}
+
+export let rayIntersectTriangle = (V,W, A,B,C) => {
+   let AB = subtract(B,A), BC = subtract(C,B), CA = subtract(A,C);
+   let Z = cross(AB, BC);
+   let t = (dot(Z,A) - dot(Z,V)) / dot(Z,W);
+   let P = add(V, scale(W, t));
+   let I = cross(Z, BC), J = cross(Z, CA), K = cross(Z, AB);
+   let d = (B, I, AB) => dot(subtract(P,B), I) / dot(AB, I);
+   return Math.max(d(B,I,AB), d(C,J,BC), d(A,K,CA)) <= 0 ? t : -1;
 }
 
 export let isSphereIntersectBox = (S,B) => {
