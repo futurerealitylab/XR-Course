@@ -248,7 +248,7 @@ export function initXR() {
     global.setXREntry(xrButton);
     let pending = null;
     if (navigator.xr) {
-        pending = navigator.xr.isSessionSupported("immersive-vr").then((supported) => {
+        pending = navigator.xr.isSessionSupported("immersive-ar").then((supported) => {
             console.log("immersive-vr supported:[" + supported + "]");
             xrButton.enabled = supported;
             window.vr = supported;
@@ -450,7 +450,7 @@ function initGL() {
 
 function onRequestSession() {
     return navigator.xr
-        .requestSession("immersive-vr", {
+        .requestSession("immersive-ar", {
             requiredFeatures: ["local-floor"],
             optionalFeatures: ["hand-tracking", "layers", "mesh-detection", "depth-sensing"],
         })
