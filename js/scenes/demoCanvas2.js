@@ -4,36 +4,23 @@ import { matchCurves } from "../render/core/matchCurves.js";
 export const init = async model => {
 
    let g2A = new G2();
-   model.txtrSrc(3, g2A.getCanvas());
-   let objA = model.add('square').txtr(3);
-
    let g2B = new G2();
-   model.txtrSrc(4, g2B.getCanvas());
-   let objB = model.add('square').txtr(4);
-
    let g2C = new G2();
-   model.txtrSrc(5, g2C.getCanvas());
-   let objC = model.add('square').txtr(5);
-
    let g2D = new G2();
-   model.txtrSrc(6, g2D.getCanvas());
-   let objD = model.add('square').txtr(6);
-
    let g2E = new G2();
-   model.txtrSrc(7, g2E.getCanvas());
-   let objE = model.add('square').txtr(7);
+
+   let objA = model.add('square').setTxtr(g2A.getCanvas());
+   let objB = model.add('square').setTxtr(g2B.getCanvas());
+   let objC = model.add('square').setTxtr(g2C.getCanvas());
+   let objD = model.add('square').setTxtr(g2D.getCanvas());
+   let objE = model.add('square').setTxtr(g2E.getCanvas());
 
    model.animate(() => {
-      g2A.update();
-      objA.identity().move(-.4,1.7,0).scale(.15);
-      g2B.update();
-      objB.identity().move(0,1.7,0).scale(.15);
-      g2C.update();
-      objC.identity().move(-.4,1.3,0).scale(.15);
-      g2D.update();
-      objD.identity().move(0,1.3,0).scale(.15);
-      g2E.update();
-      objE.identity().move(.4,1.7,0).scale(.15);
+      g2A.update(); objA.identity().move(-.4,1.7,0).scale(.15);
+      g2B.update(); objB.identity().move(0,1.7,0).scale(.15);
+      g2C.update(); objC.identity().move(-.4,1.3,0).scale(.15);
+      g2D.update(); objD.identity().move(0,1.3,0).scale(.15);
+      g2E.update(); objE.identity().move(.4,1.7,0).scale(.15);
    });
 
    // ANIMATED DRAWING OF A WIGGLY LINE

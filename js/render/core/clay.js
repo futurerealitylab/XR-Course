@@ -2405,21 +2405,16 @@ function Node(_form) {
                               .aimZ(cg.subtract(b,a))
                               .scale(r,r,cg.distance(a,b)/2);
    this.text = (text, textHeight) => {
+      if (this.nChildren() == 0) {
+         this._g2 = new G2();
+         this.add('cubeXZ').setTxtr(this._g2.getCanvas());
+      }
+      let nLines = (text.match(new RegExp("\n", "g")) || []).length;
       textHeight = cg.def(textHeight, .1);
-      if (this.nChildren() == 0)
-         this.add('cubeXZ');
-      let lines = 0;
-      for (let n = 0 ; n < text.length ; n++)
-         if (text.charAt(n) == '\n')
-            lines++;
-
-      let g2 = new G2();
-      g2.setColor('white');
-      g2.textHeight(textHeight);
-      g2.fillText(text, .5, .5 + .5 * lines * textHeight, 'center');
-      this.txtrSrc(14, g2.getCanvas());
-
-      this.child(0).color(10,10,10).txtr(14);
+      this._g2.clear();
+      this._g2.setColor('white');
+      this._g2.textHeight(textHeight);
+      this._g2.fillText(text, .5, .5 + .5 * nLines * textHeight, 'center');
       return this;
    }
    this.createAxes = (al, r) => {

@@ -67,7 +67,7 @@ export function G2(do_not_animate_flag=false, canvasWidth=512, canvasHeight) {
 
    this.update = () => {
       if (window.vr)
-         mouseZ = lcb.down || rcb.down;
+         mouseZ = (lcb && lcb.down) || (rcb && rcb.down);
       mouseState = ! mouseZPrev && mouseZ ? 'press' :
                    ! mouseZ && mouseZPrev ? 'release' : mouseZ ? 'drag' : 'move';
       mouseZPrev = mouseZ;
