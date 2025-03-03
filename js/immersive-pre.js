@@ -197,6 +197,28 @@ function initHands() {
     indexFingerBoxes.right = addBox(0, 0, 0, rightBoxColor.r, rightBoxColor.g, rightBoxColor.b);
 }
 
+function initAudioVolume() {
+   window.audioVolume = 0;
+   if (! window.audioContext) {
+      let onSuccess = stream => {
+         window.audioContext = new AudioContext();
+         let mediaStreamSource = audioContext.createMediaStreamSource(stream);
+         let scriptProcessor = audioContext.createScriptProcessor(2048,1,1);
+         mediaStreamSource.connect(scriptProcessor);
+         scriptProcessor.connect(audioContext.destination);
+         scriptProcessor.onaudioprocess = e => {
+            let amp = 0, data = e.inputBuffer.getChannelData(0);
+            for (let i = 0 ; i < 2048 ; i++)
+               amp += data[i] * data[i];
+            audioVolume = Math.max(0, Math.min(1, Math.log(amp) / 3));
+         }
+      }
+      navigator.mediaDevices.getUserMedia({video: false, audio: true})
+                            .then(onSuccess)
+                            .catch(err => console.log('error:', err));
+   }
+}
+
 let recognition = null;
 function initWebSpeech() {
     // if (! isSpeechRecognitionEnabled)
@@ -504,6 +526,7 @@ async function onSessionStarted(session) {
 
     initGL();
     initHands();
+    initAudioVolume();
     await scenesSetup();
     // scene.inputRenderer.useProfileControllerMeshes(session);
 

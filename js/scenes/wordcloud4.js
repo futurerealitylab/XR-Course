@@ -3,13 +3,13 @@ import { buttonState } from '../render/core/controllerInput.js';                
 import { lcb, rcb } from '../handle_scenes.js';                                  // Import the controller beams.    //
 import { wordlist } from "../util/wordlist.js";                                  // Import the word atlas data.     //
                                                                                  //                                 //
-window.wcS = { yaw : 0, drag : {}, head : {}, pos : '' };                        // Initialize shared state.        //
+window.wcS = { yaw: 0, drag: {}, head: {}, pos: '' };                            // Initialize shared state.        //
 server.init('wcI', {});                                                          // Initialize message passing.     //
                                                                                  //                                 //
 export const init = async model => {                                             //                                 //
                                                                                  //                                 //
    let r = t => (1000 * t >> 0) / 1000;                                          // Round numbers so that messages  //
-                                                                                 // to the server are more compact. //
+                                                                                 // take up fewer characters.       //
    let canvas = document.createElement('canvas');                                //                                 //
    let wordatlas = [];                                                           // When the scene is loaded,       //
    canvas.width = 1844;                                                          // create a canvas that will be    //
@@ -47,8 +47,10 @@ export const init = async model => {                                            
                                                                                  //                                 //
    let particles = model.add('particles').info(N).setTxtr(canvas);               // Create a custom particles mesh. //
                                                                                  //                                 //
-   let infobox = {};                                                             // An object to store the labels   //
-                                                                                 // floating over users' heads.     //
+   let whois = {};                                                             // An object to store the labels   //
+
+   //let volumeBox = model.add().move(0,1.5,0).scale(.2);
+
    let data = [];                                                                //                                 //
    for (let n = 0 ; n < N ; n++) {                                               // The wordatlas database contains //
       let u  = wordatlas[4*n + 1] / 1844;                                        // the position and scale of each  //
@@ -62,10 +64,20 @@ export const init = async model => {                                            
                                                                                  //                                 //
    let lastSpeech = '';                                                          //                                 //
                                                                                  //                                 //
-   model.animate(() => {                                                         //                                 //
+   let parseSpeech = speech => {                                                 //                                 //
+      if (clientID == clients[0]) {
+         let pre = 'my name is';                                                 //                                 //
+         if (speakerID >= 0 && speech.indexOf(pre) == 0)                         //                                 //
+            server.send('wcI', { name: speech.substring(pre.length+1),
+	                         id: speakerID });                               //                                 //
+      }                                                                          //                                 //
+   }                                                                             //                                 //
                                                                                  //                                 //
-      if (speech != lastSpeech)                                                  // We will eventually make use of  //
-         lastSpeech = speech;                                                    // putting in the capability.      //
+   model.animate(() => {                                                         //                                 //
+      if (speech != lastSpeech) {
+         server.send('wcI', { speech: speech.trim() });
+         lastSpeech = speech;                                                    // the speech text to client 0.    //
+      }                                                                          //                                 //
                                                                                  //                                 //
       let hm = cg.mMultiply(clay.inverseRootMatrix,                              // If a user is in immersive mode, //
                             cg.mix(clay.root().inverseViewMatrix(0),             // then broadcast their head       //
@@ -135,13 +147,16 @@ export const init = async model => {                                            
          let dt = model.deltaTime;                                               // other clients.                  //
          for (let id in msgs) {                                                  //                                 //
             let msg = msgs[id];                                                  // Messages can do various things: //
-            if (msg.yaw)                                                         //                                 //
-	       wcS.yaw = r(wcS.yaw + msg.yaw * dt);                              //   rotate the entire word cloud  //
+	    console.log(msg);
+            if      (msg.yaw) wcS.yaw = r(wcS.yaw + msg.yaw * dt);               //   rotate the entire word cloud  //
             else if (msg.sort !== undefined) sort = msg.sort;                    //   trigger sorting.              //
             else if (msg.press) wcS.drag[msg.i] = 1;                             //   select a tile.                //
             else if (msg.release) delete wcS.drag[msg.i];                        //   unselect a tile.              //
             else if (msg.head) wcS.head[msg.id] = msg.head;                      //   set a head position.          //
-            else data[msg.i].p = cg.unpack(msg.p,-1,1);                          //   position a tile.              //
+            else if (msg.speech) parseSpeech(msg.speech);
+            else if (msg.speakerID !== undefined) speakerID = msg.speakerID;     //   figure out who is talking.    //
+            else if (msg.name) whois[msg.id] && (whois[msg.id].name = msg.name); //   change a label name.          //
+            else if (msg.pos) data[msg.i].p = cg.unpack(msg.pos,-1,1);           //   position a tile.              //
          }                                                                       //                                 //
       });                                                                        //                                 //
                                                                                  //                                 //
@@ -178,7 +193,7 @@ export const init = async model => {                                            
             if (ray.isDragging = ray.index >= 0 && ray.wasB[0] && ray.isB[0]) {  // If either controller is already //
                let p = cg.add(ray.V, cg.scale(ray.W, ray.t));                    // dragging a tile, then just move //
                data[ray.index].p = p;                                            // that tile, and send a message   //
-               server.send('wcI', {i:ray.index, p:cg.pack(p,-1,1)});             // the first client to tell it //
+               server.send('wcI', { pos:cg.pack(p,-1,1), i:ray.index });         // to the first client to tell it  //
             }                                                                    // the tile's new position.        //
          }                                                                       //                                 //
          initRay(L);                                                             //                                 //
@@ -209,23 +224,29 @@ export const init = async model => {                                            
       }                                                                          //                                 //
                                                                                  //                                 //
       for (let id in wcS.head) {                                                 // For every user in immersive     //
-         let p = cg.add(wcS.head[id], [0,.3,0]);                                 // mode, display an infobox over   //
-         if (! infobox[id]) {                                                    // that user's head to identify    //
-	    infobox[id] = model.add().color(1,0,0);                              // that user to all other users.   //
-	    infobox[id].q = [0,0,0];                                             //                                 //
-	    infobox[id].count = 0;                                               // Prepare to remove any infobox   //
+         let p = cg.add(wcS.head[id], [0,.3,0]);                                 // mode, display an whois over     //
+         if (! whois[id]) {                                                      // that user's head to identify    //
+	    whois[id] = model.add().color(1,0,0);                                // that user to all other users.   //
+	    whois[id].q = [0,0,0];                                               //                                 //
+	    whois[id].name = 'My name';                                          //                                 //
+	    whois[id].count = 0;                                                 // Prepare to remove any whois     //
          }                                                                       // when it's no longer associated  //
-         let q = infobox[id].q;                                                  // with a live immersive client.   //
+         let q = whois[id].q;                                                    // with a live immersive client.   //
          if (q[0] == p[0] && q[1] == p[1] && q[2] == p[2])                       //                                 //
-	    infobox[id].count++;                                                 // If the position of an infobox   //
-         if (infobox[id].count >= 10)                                            // has not moved after 10 frames   //
-	    infobox[id].scale(0);                                                // of animation, then assume that  //
+	    whois[id].count++;                                                   // If the position of a whois      //
+         if (whois[id].count >= 10)                                              // has not moved after 10 frames   //
+	    whois[id].scale(0);                                                  // of animation, then assume that  //
          else {                                                                  // it is inactive and scale it to  //
-	    infobox[id].identity().move(p).scale(.1).textBox('My name');         // zero instead of displaying it.  //
-	    infobox[id].count = 0;                                               //                                 //
+	    whois[id].identity().move(p).scale(.1).textBox(whois[id].name);      // zero instead of displaying it.  //
+	    whois[id].count = 0;                                                 //                                 //
          }                                                                       //                                 //
-	 infobox[id].q = p;                                                      //                                 //
+	 whois[id].q = p;                                                        //                                 //
       }                                                                          //                                 //
-                                                                                 //                                 //
+
+      if (previousAudioVolume < .1 && audioVolume >= .1)
+         server.send('wcI', { speakerID: clientID });
+      previousAudioVolume = audioVolume;
    });                                                                           //                                 //
+
+   let speakerID = -1, previousAudioVolume = 0;
 }                                                                                //                                 //

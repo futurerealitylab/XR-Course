@@ -2413,6 +2413,7 @@ function Node(_form) {
       textHeight = cg.def(textHeight, .1);
       this._g2.clear();
       this._g2.setColor('white');
+      this._g2.setFont('Arial');
       this._g2.textHeight(textHeight);
       this._g2.fillText(text, 0, nLines * textHeight, 'center');
       return this;
