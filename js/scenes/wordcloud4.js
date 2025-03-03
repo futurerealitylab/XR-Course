@@ -64,10 +64,8 @@ export const init = async model => {                                            
                                                                                  //                                 //
    model.animate(() => {                                                         //                                 //
                                                                                  //                                 //
-      if (speech != lastSpeech) {                                                // We will eventually make use of  //
-         console.log(speech);                                                    // spoken text. For now we are     //
+      if (speech != lastSpeech)                                                  // We will eventually make use of  //
          lastSpeech = speech;                                                    // putting in the capability.      //
-      }                                                                          //                                 //
                                                                                  //                                 //
       let hm = cg.mMultiply(clay.inverseRootMatrix,                              // If a user is in immersive mode, //
                             cg.mix(clay.root().inverseViewMatrix(0),             // then broadcast their head       //
@@ -148,7 +146,6 @@ export const init = async model => {                                            
       });                                                                        //                                 //
                                                                                  //                                 //
       for (let n = 0 ; n < N ; n++) {                                            //                                 //
-         console.log(JSON.stringify(wcS.drag));                                  // While a tile is being dragged   //
          let select = L.index == n || R.index == n || wcS.drag[n];               // by any client's controller ray, //
          data[n].c = select ? [1,.5,.5] : [1,1,1];                               // highlight that tile by tinting  //
          data[n].s = [ wordatlas[4*n + 2] / 1844 * (select ? 1.2 : .75) ,        // it pink and displaying it in a  //
@@ -213,9 +210,21 @@ export const init = async model => {                                            
                                                                                  //                                 //
       for (let id in wcS.head) {                                                 // For every user in immersive     //
          let p = cg.add(wcS.head[id], [0,.3,0]);                                 // mode, display an infobox over   //
-         if (! infobox[id])                                                      // that user's head to identify    //
-	    infobox[id] = model.add().color(1,0,0);                              // them to all of the other users. //
-	 infobox[id].identity().move(p).scale(.1).text('My name');               //                                 //
+         if (! infobox[id]) {                                                    // that user's head to identify    //
+	    infobox[id] = model.add().color(1,0,0);                              // that user to all other users.   //
+	    infobox[id].q = [0,0,0];                                             //                                 //
+	    infobox[id].count = 0;                                               // Prepare to remove any infobox   //
+         }                                                                       // when it's no longer associated  //
+         let q = infobox[id].q;                                                  // with a live immersive client.   //
+         if (q[0] == p[0] && q[1] == p[1] && q[2] == p[2])                       //                                 //
+	    infobox[id].count++;                                                 // If the position of an infobox   //
+         if (infobox[id].count >= 10)                                            // has not moved after 10 frames   //
+	    infobox[id].scale(0);                                                // of animation, then assume that  //
+         else {                                                                  // it is inactive and scale it to  //
+	    infobox[id].identity().move(p).scale(.1).text('My name');            // zero instead of displaying it.  //
+	    infobox[id].count = 0;                                               //                                 //
+         }                                                                       //                                 //
+	 infobox[id].q = p;                                                      //                                 //
       }                                                                          //                                 //
                                                                                  //                                 //
    });                                                                           //                                 //
