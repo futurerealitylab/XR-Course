@@ -221,7 +221,7 @@ export const init = async model => {                                            
          if (infobox[id].count >= 10)                                            // has not moved after 10 frames   //
 	    infobox[id].scale(0);                                                // of animation, then assume that  //
          else {                                                                  // it is inactive and scale it to  //
-	    infobox[id].identity().move(p).scale(.1).text('My name');            // zero instead of displaying it.  //
+	    infobox[id].identity().move(p).scale(.1).textBox('My name');         // zero instead of displaying it.  //
 	    infobox[id].count = 0;                                               //                                 //
          }                                                                       //                                 //
 	 infobox[id].q = p;                                                      //                                 //

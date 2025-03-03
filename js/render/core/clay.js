@@ -2404,7 +2404,7 @@ function Node(_form) {
    this.link = (a,b,r) => this.move(cg.mix(a,b,.5))
                               .aimZ(cg.subtract(b,a))
                               .scale(r,r,cg.distance(a,b)/2);
-   this.text = (text, textHeight) => {
+   this.textBox = (text, textHeight) => {
       if (this.nChildren() == 0) {
          this._g2 = new G2();
          this.add('cubeXZ').setTxtr(this._g2.getCanvas());
