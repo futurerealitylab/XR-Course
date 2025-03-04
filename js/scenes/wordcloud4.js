@@ -1,4 +1,4 @@
-import * as cg from "../render/core/cg.js";                                      //                                 //
+import * as cg from "../render/core/cg.js";                                      // Import the CG library.          //
 import { buttonState } from '../render/core/controllerInput.js';                 // Import the button state.        //
 import { lcb, rcb } from '../handle_scenes.js';                                  // Import the controller beams.    //
 import { wordlist } from "../util/wordlist.js";                                  // Import the word atlas data.     //
@@ -8,8 +8,10 @@ server.init('wcI', {});                                                         
                                                                                  //                                 //
 export const init = async model => {                                             //                                 //
                                                                                  //                                 //
-   let r = t => (1000 * t >> 0) / 1000;                                          // Round numbers so that messages  //
-                                                                                 // take up fewer characters.       //
+   let message = msg => server.send('wcI', msg);                                 // Send messages between clients.  //
+                                                                                 //                                 //
+   let r = t => (1000 * t >> 0) / 1000;                                          // Truncate floating pt numbers so //
+                                                                                 // messages have fewer characters. //
    let canvas = document.createElement('canvas');                                //                                 //
    let wordatlas = [];                                                           // When the scene is loaded,       //
    canvas.width = 1844;                                                          // create a canvas that will be    //
@@ -33,24 +35,24 @@ export const init = async model => {                                            
       }                                                                          //                                 //
    }                                                                             //                                 //
                                                                                  //                                 //
-   model.control('l','turn left' ,()=>server.send('wcI',{yaw:-10}));             // Use 'l' and 'r' keys to rotate  //
-   model.control('r','turn right',()=>server.send('wcI',{yaw:+10}));             // the word cloud left and right.  //
-   model.control('a','sort tiles',()=>server.send('wcI',{sort:-1}));             // 'a' key sorts with a on top.    //
-   model.control('n','sort tiles',()=>server.send('wcI',{sort: 0}));             // 'n' key stops sorting.          //
-   model.control('z','sort tiles',()=>server.send('wcI',{sort: 1}));             // 'z' key sorts with z on top.    //
+   model.control('l','turn left' ,() => message({ yaw: -10 }));                  // Use 'l' and 'r' keys to rotate  //
+   model.control('r','turn right',() => message({ yaw: +10 }));                  // the word cloud left and right.  //
+   model.control('a','sort tiles',() => message({ sort:  1 }));                  // 'a' key sorts with a on top.    //
+   model.control('n','sort tiles',() => message({ sort:  0 }));                  // 'n' key stops sorting.          //
+   model.control('z','sort tiles',() => message({ sort: -1 }));                  // 'z' key sorts with z on top.    //
                                                                                  //                                 //
    let N = wordatlas.length / 4;                                                 // Maintain a ray object for both  //
    let L = { isB: [], wasB: [] };                                                // the left and right controller.  //
    let R = { isB: [], wasB: [] };                                                // the left and right controller.  //
+                                                                                 //                                 //
+   let speakerID = -1, previousAudioVolume = 0;                                  // Remember speaker ID.            //
+   let lastSpeech = '';                                                          // Remember previous speech state. //
+   let whois = {};                                                               // Keep track of name labels.      //
    let yaw = 0, sort = 0;                                                        //                                 //
    let Y = [];                                                                   //                                 //
                                                                                  //                                 //
    let particles = model.add('particles').info(N).setTxtr(canvas);               // Create a custom particles mesh. //
                                                                                  //                                 //
-   let whois = {};                                                             // An object to store the labels   //
-
-   //let volumeBox = model.add().move(0,1.5,0).scale(.2);
-
    let data = [];                                                                //                                 //
    for (let n = 0 ; n < N ; n++) {                                               // The wordatlas database contains //
       let u  = wordatlas[4*n + 1] / 1844;                                        // the position and scale of each  //
@@ -62,61 +64,55 @@ export const init = async model => {                                            
       data.push({ p: [x, y, z], t: [u, v, u+du, v+dv], });                       // high by 1 meter in diameter.    //
    }                                                                             //                                 //
                                                                                  //                                 //
-   let lastSpeech = '';                                                          //                                 //
-                                                                                 //                                 //
-   let parseSpeech = speech => {                                                 //                                 //
-      if (clientID == clients[0]) {
+   let parseSpeech = speech => {                                                 // The first client parses speech  //
+      if (clientID == clients[0]) {                                              // by any user and then does:      //
          let pre = 'my name is';                                                 //                                 //
-         if (speakerID >= 0 && speech.indexOf(pre) == 0)                         //                                 //
-            server.send('wcI', { name: speech.substring(pre.length+1),
-	                         id: speakerID });                               //                                 //
+         if (speakerID >= 0 && speech.indexOf(pre) == 0)                         //   Let a user choose a name.     //
+            message({ name: speech.substring(pre.length+1), id: speakerID });    //                                 //
       }                                                                          //                                 //
    }                                                                             //                                 //
                                                                                  //                                 //
    model.animate(() => {                                                         //                                 //
-      if (speech != lastSpeech) {
-         server.send('wcI', { speech: speech.trim() });
-         lastSpeech = speech;                                                    // the speech text to client 0.    //
+      if (speech != lastSpeech) {                                                // Whenever the content of speech  //
+         message({ speech: speech.trim() });                                     // changes, send the new speech    //
+         lastSpeech = speech;                                                    // text to the first client.       //
       }                                                                          //                                 //
                                                                                  //                                 //
-      let hm = cg.mMultiply(clay.inverseRootMatrix,                              // If a user is in immersive mode, //
-                            cg.mix(clay.root().inverseViewMatrix(0),             // then broadcast their head       //
-                                   clay.root().inverseViewMatrix(1), .5));       // position to all other users,    //
-      if (hm[0]!=1 || hm[1]!=0 || hm[2]!=0)                                      // so that the other users can see //
-         server.send('wcI',                                                      // a label over that user's head.  //
-            { head: [ r(hm[12]), r(hm[13]), r(hm[14]) ], id: clientID });        //                                 //
+      let hm = cg.mMultiply(clay.inverseRootMatrix,                              // If a user is wearing an XR      //
+                            cg.mix(clay.root().inverseViewMatrix(0),             // headset, then broadcast their   //
+                                   clay.root().inverseViewMatrix(1), .5));       // head position to all other      //
+      let is_an_XR_client = hm[0]!=1 || hm[1]!=0 || hm[2]!=0;                    // users, so that the other users  //
+      if (is_an_XR_client)                                                       // can see a floating name label   //
+         message({ head: [ r(hm[12]), r(hm[13]), r(hm[14]) ], id: clientID });   // over that user's head.          //
                                                                                  //                                 //
       for (let b = 0 ; b < 6 ; b++) {                                            // Update the up/down states of    //
          L.isB[b] = buttonState.left [b].pressed;                                // all the buttons for the two     //
          R.isB[b] = buttonState.right[b].pressed;                                // controller beams.               //
       }                                                                          //                                 //
                                                                                  //                                 //
-      if (L.isB[1]) server.send('wcI',{yaw:-1});                                 // Pressing a side trigger turns   //
-      if (R.isB[1]) server.send('wcI',{yaw: 1});                                 // the cloud about the Y axis.     //
+      if (L.isB[1]) message({ yaw: -1 });                                        // Pressing a side trigger turns   //
+      if (R.isB[1]) message({ yaw:  1 });                                        // the cloud about the Y axis.     //
                                                                                  //                                 //
-      if (! L.wasB[4] && L.isB[4]) server.send('wcI',{sort:-1});                 // Holding down the A or X button  //
-      if (! R.wasB[4] && R.isB[4]) server.send('wcI',{sort: 1});                 // does a sort from a-z or z-a.    //
+      if (! L.wasB[4] && L.isB[4]) message({ sort: -1 });                        // Holding down the A or X button  //
+      if (! R.wasB[4] && R.isB[4]) message({ sort:  1 });                        // does a sort from a-z or z-a.    //
                                                                                  //                                 //
-      if (L.wasB[4] && ! L.isB[4] || R.wasB[4] && ! R.isB[4])                    //                                 //
-         server.send('wcI',{sort:0});                                            //                                 //
+      if (L.wasB[4] && ! L.isB[4] || R.wasB[4] && ! R.isB[4])                    // Lifting up the A or X button    //
+         message({ sort: 0 });                                                   // stops the sort.                 //
                                                                                  //                                 //
       yaw = .9 * yaw + .1 * wcS.yaw;                                             // Smooth out the yaw value.       //
-      particles.identity().move(0,1.5,0).turnY(yaw).scale(.8);                   //                                 //
+      particles.identity().move(0,1.5,0).turnY(yaw).scale(.8);                   // Prepare to render the cloud.    //
                                                                                  //                                 //
       wcS = server.synchronize('wcS');                                           // Synchronize state betw clients. //
                                                                                  //                                 //
-      if (isNaN(wcS.yaw))                                                        //                                 //
-         wcS.yaw = 0;                                                            //                                 //
-                                                                                 //                                 //
-      if (clientID == clients[0]) {                                              // first client sends a packed     //
-                                                                                 //                                 //
+      if (clientID == clients[0]) {                                              // The first client controls all   //
+                                                                                 // changes in word cloud state.    //
          if (sort) {                                                             //                                 //
             for (let i = 0 ; i < 100 ; i++) {                                    // Sort tiles vertically, either   //
                let a = N * Math.random() >> 0;                                   // from a to z or from z to a.     //
                let b = N * Math.random() >> 0;                                   //                                 //
                if (Y[a] == undefined && Y[b] == undefined &&                     // Do this by choosing tile pairs  //
-                   wordatlas[4*a] < wordatlas[4*b] ==                            // randomly and swapping their y   //
-                      sort*data[a].p[1] < sort*data[b].p[1]) {                   // coordinates if they are out of  //
+                   wordatlas[4*a].toLowerCase() < wordatlas[4*b].toLowerCase()   // randomly and swapping their y   //
+                           == sort*data[a].p[1] < sort*data[b].p[1]) {           // coordinates if they are out of  //
                   Y[a] = data[b].p[1];                                           // order, using Y[] array to store //
                   Y[b] = data[a].p[1];                                           // the destination y coordinate    //
                }                                                                 // during the swap.                //
@@ -143,25 +139,23 @@ export const init = async model => {                                            
                data[n].p[i] = pos[3 * n + i];                                    // is allowed to set set the       //
       }                                                                          // positions of word tiles.        //
                                                                                  //                                 //
-      server.sync('wcI', msgs => {                                               // Respond to messages sent from   //
-         let dt = model.deltaTime;                                               // other clients.                  //
+      server.sync('wcI', msgs => {                                               // Respond to messages.            //
          for (let id in msgs) {                                                  //                                 //
             let msg = msgs[id];                                                  // Messages can do various things: //
-	    console.log(msg);
-            if      (msg.yaw) wcS.yaw = r(wcS.yaw + msg.yaw * dt);               //   rotate the entire word cloud  //
-            else if (msg.sort !== undefined) sort = msg.sort;                    //   trigger sorting.              //
+                 if (msg.head) wcS.head[msg.id] = msg.head;                      //   set a head position.          //
+            else if (msg.name) whois[msg.id] && (whois[msg.id].name = msg.name); //   change a "whois" name.        //
+            else if (msg.pos) data[msg.i].p = cg.unpack(msg.pos,-1,1);           //   position a tile.              //
             else if (msg.press) wcS.drag[msg.i] = 1;                             //   select a tile.                //
             else if (msg.release) delete wcS.drag[msg.i];                        //   unselect a tile.              //
-            else if (msg.head) wcS.head[msg.id] = msg.head;                      //   set a head position.          //
-            else if (msg.speech) parseSpeech(msg.speech);
+            else if (msg.sort !== undefined) sort = msg.sort;                    //   trigger sorting.              //
             else if (msg.speakerID !== undefined) speakerID = msg.speakerID;     //   figure out who is talking.    //
-            else if (msg.name) whois[msg.id] && (whois[msg.id].name = msg.name); //   change a label name.          //
-            else if (msg.pos) data[msg.i].p = cg.unpack(msg.pos,-1,1);           //   position a tile.              //
+            else if (msg.speech) parseSpeech(msg.speech);                        //   parse spoken words & phrases. //
+            else if (msg.yaw) wcS.yaw = r(wcS.yaw + msg.yaw * model.deltaTime);  //   rotate the entire word cloud  //
          }                                                                       //                                 //
       });                                                                        //                                 //
                                                                                  //                                 //
       for (let n = 0 ; n < N ; n++) {                                            //                                 //
-         let select = L.index == n || R.index == n || wcS.drag[n];               // by any client's controller ray, //
+         let select = L.index == n || R.index == n || (wcS.drag && wcS.drag[n]); // by any client's controller ray, //
          data[n].c = select ? [1,.5,.5] : [1,1,1];                               // highlight that tile by tinting  //
          data[n].s = [ wordatlas[4*n + 2] / 1844 * (select ? 1.2 : .75) ,        // it pink and displaying it in a  //
                                        37 / 1844 * (select ? 1.2 : .75) ];       // larger size.                    //
@@ -176,10 +170,10 @@ export const init = async model => {                                            
          let initRay = ray => {                                                  //                                 //
                                                                                  //                                 //
             if (ray.index >= 0 && ! ray.wasB[0] && ray.isB[0])                   // On trigger down, send a message //
-               server.send('wcI', {press:true, i:ray.index});                    // to highlight any selected tile. //
+               message({ press:true, i:ray.index });                             // to highlight any selected tile. //
                                                                                  //                                 //
             if (ray.index >= 0 && ray.wasB[0] && ! ray.isB[0])                   // On trigger up, send a message   //
-               server.send('wcI', {release:true, i:ray.index});                  // to unhighlight selected tile.   //
+               message({ release:true, i:ray.index });                           // to unhighlight selected tile.   //
                                                                                  //                                 //
             let m = (ray == L ? lcb : rcb).beamMatrix();                         //                                 //
             ray.V = cg.mTransform(invMatrix, [m[12], m[13], m[14]]);             //                                 //
@@ -193,7 +187,7 @@ export const init = async model => {                                            
             if (ray.isDragging = ray.index >= 0 && ray.wasB[0] && ray.isB[0]) {  // If either controller is already //
                let p = cg.add(ray.V, cg.scale(ray.W, ray.t));                    // dragging a tile, then just move //
                data[ray.index].p = p;                                            // that tile, and send a message   //
-               server.send('wcI', { pos:cg.pack(p,-1,1), i:ray.index });         // to the first client to tell it  //
+               message({ pos:cg.pack(p,-1,1), i:ray.index });                    // to the first client to tell it  //
             }                                                                    // the tile's new position.        //
          }                                                                       //                                 //
          initRay(L);                                                             //                                 //
@@ -224,29 +218,27 @@ export const init = async model => {                                            
       }                                                                          //                                 //
                                                                                  //                                 //
       for (let id in wcS.head) {                                                 // For every user in immersive     //
-         let p = cg.add(wcS.head[id], [0,.3,0]);                                 // mode, display an whois over     //
+         let p = cg.add(wcS.head[id], [0,.3,0]);                                 // mode, display a name label over //
          if (! whois[id]) {                                                      // that user's head to identify    //
 	    whois[id] = model.add().color(1,0,0);                                // that user to all other users.   //
 	    whois[id].q = [0,0,0];                                               //                                 //
-	    whois[id].name = 'My name';                                          //                                 //
-	    whois[id].count = 0;                                                 // Prepare to remove any whois     //
-         }                                                                       // when it's no longer associated  //
-         let q = whois[id].q;                                                    // with a live immersive client.   //
+	    whois[id].name = 'My name';                                          // Be ready to remove any name     //
+	    whois[id].count = 0;                                                 // label after it is no longer     //
+         }                                                                       // associated with an active       //
+         let q = whois[id].q;                                                    // immersive client.               //
          if (q[0] == p[0] && q[1] == p[1] && q[2] == p[2])                       //                                 //
-	    whois[id].count++;                                                   // If the position of a whois      //
-         if (whois[id].count >= 10)                                              // has not moved after 10 frames   //
-	    whois[id].scale(0);                                                  // of animation, then assume that  //
-         else {                                                                  // it is inactive and scale it to  //
+	    whois[id].count++;                                                   // If a name label position has    //
+         if (whois[id].count >= 10)                                              // not moved after 10 frames of    //
+	    whois[id].scale(0);                                                  // animation, then assume that it  //
+         else {                                                                  // is inactive and scale it to     //
 	    whois[id].identity().move(p).scale(.1).textBox(whois[id].name);      // zero instead of displaying it.  //
 	    whois[id].count = 0;                                                 //                                 //
          }                                                                       //                                 //
 	 whois[id].q = p;                                                        //                                 //
       }                                                                          //                                 //
-
-      if (previousAudioVolume < .1 && audioVolume >= .1)
-         server.send('wcI', { speakerID: clientID });
-      previousAudioVolume = audioVolume;
-   });                                                                           //                                 //
-
-   let speakerID = -1, previousAudioVolume = 0;
+                                                                                 //                                 //
+      if (is_an_XR_client && previousAudioVolume < .1 && audioVolume >= .1)      // Whenever a user wearing an XR   //
+         message({ speakerID: clientID });                                       // headset starts to speak, send a //
+      previousAudioVolume = audioVolume;                                         // message saying that this is the //
+   });                                                                           // current speaker.                //
 }                                                                                //                                 //
