@@ -452,7 +452,7 @@ export function G2(do_not_animate_flag=false, canvasWidth=512, canvasHeight) {
          context.fillText(lines[n],0,h2c(n*dy));
 	 context.save();
 	    context.strokeStyle = 'black';
-	    context.lineWidth = 1.5;
+	    context.lineWidth = 15 * _h;
             context.strokeText(lines[n],0,h2c(n*dy));
 	 context.restore();
       }
