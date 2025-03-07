@@ -246,6 +246,13 @@ export class InlineViewerHelper {
   }
 
   onKeyUp(e) {
+    if (this._isControlKeyDown) {
+       if (clay.model._controlActions[e.key]) {
+          clay.model._controlActions[e.key].func();
+          return;
+       }
+    }
+
     if (e.key == 't' && this._isSpaceKeyDown) {
        if (window.interactMode == 3)
           window.interactMode = 0;

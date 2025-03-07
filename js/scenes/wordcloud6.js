@@ -70,6 +70,7 @@ export const init = async model => {                                            
                                                                                  //                                 //
    let whois = {};                                                               // Keep track of name labels.      //
    let yaw = 0;                                                                  //                                 //
+   let driftCount = 0;                                                           //                                 //
    let P = [];                                                                   //                                 //
                                                                                  //                                 //
    let wordcloud = model.add('particles').info(N).setTxtr(canvas);               // Create a custom wordcloud mesh. //
@@ -85,16 +86,9 @@ export const init = async model => {                                            
       data.push({ p: [x, y, z], t: [u, v, u+du, v+dv], });                       // high by 1 meter in diameter.    //
    }                                                                             //                                 //
 
-   let count = 0;
-
    model.animate(() => {
 
       xrSharing.update();
-
-      for (let b = 0 ; b < 6 ; b++) {                                            // Update the up/down states of    //
-         L.isB[b] = buttonState.left [b].pressed;
-         R.isB[b] = buttonState.right[b].pressed;
-      }
 
       w6S = server.synchronize('w6S');                                           // Synchronize state betw clients. //
 
@@ -145,13 +139,13 @@ export const init = async model => {                                            
                                                                                  //                                 //
          if (drift) {                                                            // Optionally drift words to other //
             let findWordTile = word => {                                         // words that had appeared next to //
-               for (let i = 0 ; 4 * i < wordatlas.length ; i++)                  // them in the source text.        //
-                  if (wordatlas[4 * i] == word)                                  //                                 //
+               for (let i = 0 ; 4 * i < wordatlas.length ; i++)                  // them in the source text, by     //
+                  if (wordatlas[4 * i] == word)                                  // by doing these three things:    //
                      return i;                                                   //                                 //
                return -1;                                                        //                                 //
             }                                                                    //                                 //
-            for (let n = 0 ; n < pairs.length ; n++) {                           //                                 //
-               let pair = pairs[n].key;                                          //                                 //
+            for (let n = 0 ; n < pairs.length ; n++) {                           // (1) Words from the same word    //
+               let pair = pairs[n].key;                                          //     pair drift together.        //
                let k = pair.indexOf(' ');                                        //                                 //
                let a = findWordTile(pair.substring(0,k));                        //                                 //
                let b = findWordTile(pair.substring(k+1));                        //                                 //
@@ -163,9 +157,9 @@ export const init = async model => {                                            
                }                                                                 //                                 //
             }                                                                    //                                 //
                                                                                  //                                 //
-            for (let a = 0 ; a < N ; a++) {                                      //                                 //
-               for (let k = 0 ; k < 100 ; k++) {                                 //                                 //
-                  let b = count++ % N;                                           //                                 //
+            for (let a = 0 ; a < N ; a++) {                                      // (2) Words very near each other  //
+               for (let k = 0 ; k < 100 ; k++) {                                 //     repel one another.          //
+                  let b = driftCount++ % N;                                      //                                 //
                   if (b != a) {                                                  //                                 //
                      let d = cg.subtract(data[a].p, data[b].p);                  //                                 //
                      d = cg.scale(d, .00003 / cg.dot(d,d));                      //                                 //
@@ -174,9 +168,8 @@ export const init = async model => {                                            
                   }                                                              //                                 //
                }                                                                 //                                 //
             }                                                                    //                                 //
-                                                                                 //                                 //
-            for (let a = 0 ; a < N ; a++)                                        //                                 //
-               data[a].p = cg.scale(data[a].p, .99);                             //                                 //
+            for (let a = 0 ; a < N ; a++)                                        // (3) Scale everything down a bit //
+               data[a].p = cg.scale(data[a].p, .99);                             //     to maintain cloud size.     //
          }                                                                       //                                 //
                                                                                  // Send an encoded data            //
          let pos = [];                                                           // string to all other clients     //
@@ -268,20 +261,21 @@ export const init = async model => {                                            
       }                                                                          //                                 //
                                                                                  //                                 //
       for (let id in xrS) {                                                      // For every user in immersive     //
-         if (! xrS[id].head)
-            continue;
-
+         if (! xrS[id].head)                                                     //                                 //
+            continue;                                                            //                                 //
+                                                                                 //                                 //
          if (! whois[id]) {                                                      // Use user's head loc to identify //
             whois[id] = model.add().color(0,.5,1);                               // that user to all other users.   //
             whois[id].q = [0,0,0];                                               //                                 //
-            whois[id].name = 'Guest';                                            // Be ready to remove any name     //
-            whois[id].count = 0;                                                 // label after it is no longer     //
-         }                                                                       // associated with an active       //
-         if (xrS[id].name)
-            whois[id].name = xrS[id].name;
-
-         let p = cg.add(xrS[id].head, [0,.2,0]);                                 // mode, display a name label over //
-         let q = whois[id].q;                                                    // immersive client.               //
+            whois[id].name = 'Guest';                                            // But be ready to remove any name //
+            whois[id].count = 0;                                                 // label after it is no longer in  //
+         }                                                                       // use by an active client.        //
+         if (xrS[id].name)                                                       //                                 //
+            whois[id].name = xrS[id].name;                                       //                                 //
+                                                                                 //                                 //
+         let hm = cg.unpackMatrix(xrS[id].head);                                 // For a client in an XR headset,  //
+         let p = cg.add(hm.slice(12,15), [0,.2,0]);                              // use their head matrix to place  //
+         let q = whois[id].q;                                                    // a name label above their head.  //
          if (q[0] == p[0] && q[1] == p[1] && q[2] == p[2])                       //                                 //
             whois[id].count++;                                                   // If a name label position has    //
          if (whois[id].count >= 10)                                              // not moved after 10 frames of    //
