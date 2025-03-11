@@ -75,9 +75,9 @@ export const init = async model => {                                            
    let P = [];                                                                   //                                 //
                                                                                  //                                 //
    let wordcloud = model.add('particles').info(N).setTxtr(canvas);               // Create a custom wordcloud mesh. //
-
-   let hands = model.add();
-
+                                                                                 //                                 //
+   let hands = model.add();                                                      // Prepare to show the controller  //
+                                                                                 // positions and aim directions.   //
    let data = [];                                                                //                                 //
    for (let n = 0 ; n < N ; n++) {                                               // The wordatlas database contains //
       let u  = wordatlas[4*n + 1] / 1844;                                        // the position and scale of each  //
@@ -289,15 +289,14 @@ export const init = async model => {                                            
          }                                                                       //                                 //
          whois[id].q = p;                                                        //                                 //
       }                                                                          //                                 //
-
-      while (hands.nChildren())
-         hands.remove(0);
-      for (let id in xrS)
-         for (let hand in {left:{}, right:{}})
-            if (xrS[id][hand] && xrS[id][hand].mat) {
-	       let mat = cg.unpackMatrix(xrS[id][hand].mat);
-	       hands.add('coneZ').setMatrix(mat).move(0,0,-.02).scale(.005,.005,.02).turnY(Math.PI).color(1,0,0);
-	    }
-
+                                                                                 //                                 //
+      while (hands.nChildren())                                                  // Show the position and aiming    //
+         hands.remove(0);                                                        // direction of both controllers   //
+      for (let id in xrS)                                                        // for every user who is wearing   //
+         for (let hand in {left:{}, right:{}})                                   // an XR headset.                  //
+            if (xrS[id][hand] && xrS[id][hand].mat) {                            //                                 //
+	       let mat = cg.unpackMatrix(xrS[id][hand].mat);                     //                                 //
+	       hands.add('coneZ').setMatrix(mat).move(0,0,-.02).scale(.005,.005,.02).turnY(Math.PI).color(1,0,0);   //
+	    }                                                                    //                                 //
    });                                                                           //                                 //
 }                                                                                //                                 //

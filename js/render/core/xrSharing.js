@@ -57,9 +57,9 @@ export function XRSharing(handle) {                                             
 			      cg.mRotateX(-Math.PI/4)))) });
          if (previousAudioVolume < .1 && audioVolume >= .1)                      // Whenever a user wearing an XR   //
             message({ speaking: true });                                         // headset starts to speak, send a //
-         previousAudioVolume = audioVolume;                                      // message saying that this is the //
+         previousAudioVolume = audioVolume;                                      // message to indicate that.       //
       }                                                                          //                                 //
       if (clientID == clients[0])                                                // The first client sends their    //
-         server.broadcastGlobal('xrS');                                          // state to all other clients.     //
-   }                                                                             //                                 //
+         server.broadcastGlobal('xrS');                                          // state to all other clients at   //
+   }                                                                             // every animation frame.          //
 }                                                                                //                                 //
