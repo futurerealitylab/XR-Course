@@ -69,7 +69,8 @@ export function Clay(gl, canvas) {
          this.vao = gl.createVertexArray();
       };
    }
-   this.controllerOrigin = hand => cg.mTransform(controllerMatrix[hand], [hand=='left'?.01:-.01,-.04,-.08]);
+   //this.controllerOrigin = hand => cg.mTransform(controllerMatrix[hand], [hand=='left'?.01:-.01,-.04,-.08]);
+   this.controllerOrigin = hand => cg.mTransform(controllerMatrix[hand], [0,-.05,-.08]);
    this.gl = gl;
    this.clayPgm = new clayPgm();
    this.formMesh = name => formMesh[name];
