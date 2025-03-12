@@ -473,8 +473,9 @@ function initGL() {
 function onRequestSession() {
     return navigator.xr
         .requestSession("immersive-ar", {
-            requiredFeatures: ["local-floor"],
+            requiredFeatures: ["local-floor", "depth-sensing"],
             optionalFeatures: ["hand-tracking", "layers", "mesh-detection", "depth-sensing"],
+            depthSensing: { 'usagePreference': [ 'gpu-optimized' ], 'dataFormatPreference': ["unsigned-short"] }
         })
         .then((session) => {
             xrButton.setSession(session);
