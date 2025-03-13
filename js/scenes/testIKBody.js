@@ -12,7 +12,16 @@ export const init = async model => {
    
    let movePos = { left: [0,1,0], right: [0,1,0] };
 
-   let table = model.add("square").color(.5,.5,.5);
+   let table = model.add("square").color(.5,.5,.5).flag("uTreadmill");
+
+   model.customShader(`
+      uniform int uTreadmill;
+      --------------------------
+      if (uTreadmill == 1) {
+         vec3 uv = mod(vAPos*.8+vec3(0,.35*uTime,0), 0.5)/0.5;
+         color = uv.g < .5 ? vec3(.1) : vec3(.5);
+      }
+   `)
 
    let rootIkbody = model.add();
    
@@ -46,7 +55,6 @@ export const init = async model => {
    
    inputEvents.onMove = hand => movePos[hand] = inputEvents.pos(hand);
 
-
    ///////////////////////////////////////////
    /*            Model Animation            */
    ///////////////////////////////////////////
@@ -58,7 +66,7 @@ export const init = async model => {
       if (buttonState.right[5].pressed || buttonState.left[5].pressed) pitch = yaw = 0;
       // floor.identity().scale(5, 5, 5).turnX(-TAU/4).color(.1, .1, .1);
 
-
+      
       /* Update IK Body */
       // let matrixHead = cg.mMultiply(clay.inverseRootMatrix,
       //                               cg.mix(clay.root().inverseViewMatrix(0), 
@@ -91,10 +99,25 @@ export const init = async model => {
       ikbody.pos[IK.HEAD].set(0, 1.7, 0);
       ikbody.pos[IK.WRIST_L].set(-.3, .8, 0);
       ikbody.pos[IK.WRIST_R].set(+.3, .8, 0);
-      ikbody.pos[IK.ANKLE_L].set(-.1, .1, 0);
-      ikbody.pos[IK.ANKLE_R].set(+.1, .1, 0);
+      ikbody.pos[IK.ANKLE_L].set(-.1, .05, 0);
+      ikbody.pos[IK.ANKLE_R].set(+.1, .05, 0);
 
-      let cycle = 0; /* 0-1 */
+      let DURATION_STEP = 1;
+      let cycle = model.time/(DURATION_STEP*2) % 1; /* 0-1 */
+
+      ikbody.pos[IK.WRIST_L].set(-.25, .8-.02*Math.cos(Math.cos(cycle*TAU)*TAU/2), -.25*Math.cos(cycle*TAU));
+      ikbody.pos[IK.WRIST_R].set(+.25, .8-.02*Math.cos(Math.cos(cycle*TAU)*TAU/2), +.25*Math.cos(cycle*TAU));
+      if (cycle < .5) { // Move left foot
+         let t = cycle*2;
+         ikbody.pos[IK.ANKLE_R].set(+.1, .05, .7*(t-.5)); // sync right foot to the ground
+         let h = .05+.2*Math.sin(t*TAU/2);
+         ikbody.pos[IK.ANKLE_L].set(-.1, h  , .7*(.5-t));
+      } else { // Move right foot
+         let t = (cycle-.5)*2;
+         ikbody.pos[IK.ANKLE_L].set(-.1, .05, .7*(t-.5)); // sync left foot to the ground
+         let h = .05+.2*Math.sin(t*TAU/2);
+         ikbody.pos[IK.ANKLE_R].set(+.1,   h, .7*(.5-t));
+      }
 
 
       ikbody.update(0);
@@ -131,7 +154,7 @@ export const init = async model => {
          bodySprings[i].identity().move(cg.mix(a,b,.5)).aimZ(cg.subtract(b,a)).scale(.005,.005,cg.distance(a,b)/2).color(1,w,w);
       }
 
-      table.identity().move(0,.8,-.7).turnX(-TAU/4).scale(.8).turnY(yaw);
+      table.identity().move(0,.8,-.7).turnY(yaw).turnX(-TAU/4).scale(.8);
       rootIkbody.identity().move(+0,.8,-.7).scale(.5).turnY(yaw);
 
    });

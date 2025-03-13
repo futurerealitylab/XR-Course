@@ -183,14 +183,13 @@ IKBody.prototype = {
 
                // ALIGN PELVIS DIRECTION WITH HEAD DIRECTION
 
-               this.graph.nodes[IK.HIP_L ].p.offset(-.1, 0, 0, this.ikBody.getQF(IK.HEAD));
-               this.graph.nodes[IK.HIP_R ].p.offset( .1, 0, 0, this.ikBody.getQF(IK.HEAD));
-               // console.log(this.ikBody.getQF(IK.HEAD));
+               this.graph.nodes[IK.HIP_L ].p.offset(-.3, 0, 0, this.ikBody.getQF(IK.HEAD));
+               this.graph.nodes[IK.HIP_R ].p.offset( .3, 0, 0, this.ikBody.getQF(IK.HEAD));
 
                // FORCE KNEES TO BEND FORWARD, RATHER THAN BACKWARD.
 
-               this.graph.nodes[IK.KNEE_L].p.offset( 0, 0, .02, this.ikBody.getQF(IK.HEAD));
-               this.graph.nodes[IK.KNEE_R].p.offset( 0, 0, .02, this.ikBody.getQF(IK.HEAD));
+               this.graph.nodes[IK.KNEE_L].p.offset( 0, 0, -.3, this.ikBody.getQF(IK.HEAD));
+               this.graph.nodes[IK.KNEE_R].p.offset( 0, 0, -.3, this.ikBody.getQF(IK.HEAD));
 
                // FORCE SPINE TO CURVE BACKWARD, RATHER THAN FORWARD.
 
@@ -204,8 +203,8 @@ IKBody.prototype = {
                this.graph.nodes[IK.SHOULDER_R ].p.offset( .1, 0, 0, this.ikBody.getQF(IK.HEAD));
 
                // FORCE ELBOWS TO BEND BACKWARD.
-               this.graph.nodes[IK.ELBOW_L].p.offset( 0, -.1, .05, this.ikBody.getQF(IK.HEAD));
-               this.graph.nodes[IK.ELBOW_R].p.offset( 0, -.1, .05, this.ikBody.getQF(IK.HEAD));
+               this.graph.nodes[IK.ELBOW_L].p.offset( 0, -.1, 1, this.ikBody.getQF(IK.HEAD));
+               this.graph.nodes[IK.ELBOW_R].p.offset( 0, -.1, 1, this.ikBody.getQF(IK.HEAD));
             }
          }
          IKBodyResponder.prototype = new GraphResponder;
