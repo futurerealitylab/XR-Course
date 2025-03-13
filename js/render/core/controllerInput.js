@@ -80,9 +80,8 @@ export function ControllerBeam(model, hand) {
    this.hand = hand;
    let bend = Math.PI/4;
    this.beam = model.add();
-   let beamOffset = hand => [ hand=='left'?.005:-.01, .02, -.095 ];
    this.beam.add('tubeZ').color(10,0,0).dull(1).turnX(-bend)
-                                               .move(cg.add([0,0,-10], beamOffset(hand)))
+                                               .move([0,.0212,-10.092])
                                                .scale(.0005,.0005,10);
    this.update = matrix => {
       if (! this.isEnabled) {
@@ -102,11 +101,11 @@ export function ControllerBeam(model, hand) {
       }
       else
          this.beam.child(0).identity().turnX(-bend)
-                                      .move(cg.add([0,0,-10], beamOffset(hand)))
+                                      .move([0,.0212,-10.092])
                                       .scale(.0005,.0005,10);
 
-      if (hand == 'left' ) update(matrix ? [0,0,0] : [ .0060,.014,0], [-.2,0,0]);
-      if (hand == 'right') update(matrix ? [0,0,0] : [-.0015,.014,0], [ .2,0,0]);
+      if (hand == 'left' ) update(matrix ? [0,0,0] : [0,0,0], [-.2,0,0]);
+      if (hand == 'right') update(matrix ? [0,0,0] : [0,0,0], [ .2,0,0]);
    }
    this.beamMatrix = () =>
       cg.mMultiply(worldCoords,

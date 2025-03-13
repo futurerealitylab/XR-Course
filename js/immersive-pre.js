@@ -197,6 +197,28 @@ function initHands() {
     indexFingerBoxes.right = addBox(0, 0, 0, rightBoxColor.r, rightBoxColor.g, rightBoxColor.b);
 }
 
+function initAudioVolume() {
+   window.audioVolume = 0;
+   if (! window.audioContext) {
+      let onSuccess = stream => {
+         window.audioContext = new AudioContext();
+         let mediaStreamSource = audioContext.createMediaStreamSource(stream);
+         let scriptProcessor = audioContext.createScriptProcessor(2048,1,1);
+         mediaStreamSource.connect(scriptProcessor);
+         scriptProcessor.connect(audioContext.destination);
+         scriptProcessor.onaudioprocess = e => {
+            let amp = 0, data = e.inputBuffer.getChannelData(0);
+            for (let i = 0 ; i < 2048 ; i++)
+               amp += data[i] * data[i];
+            audioVolume = Math.max(0, Math.min(1, Math.log(amp) / 3));
+         }
+      }
+      navigator.mediaDevices.getUserMedia({video: false, audio: true})
+                            .then(onSuccess)
+                            .catch(err => console.log('error:', err));
+   }
+}
+
 let recognition = null;
 function initWebSpeech() {
     // if (! isSpeechRecognitionEnabled)
@@ -248,7 +270,7 @@ export function initXR() {
     global.setXREntry(xrButton);
     let pending = null;
     if (navigator.xr) {
-        pending = navigator.xr.isSessionSupported("immersive-vr").then((supported) => {
+        pending = navigator.xr.isSessionSupported("immersive-ar").then((supported) => {
             console.log("immersive-vr supported:[" + supported + "]");
             xrButton.enabled = supported;
             window.vr = supported;
@@ -450,7 +472,7 @@ function initGL() {
 
 function onRequestSession() {
     return navigator.xr
-        .requestSession("immersive-vr", {
+        .requestSession("immersive-ar", {
             requiredFeatures: ["local-floor"],
             optionalFeatures: ["hand-tracking", "layers", "mesh-detection", "depth-sensing"],
         })
@@ -504,6 +526,7 @@ async function onSessionStarted(session) {
 
     initGL();
     initHands();
+    initAudioVolume();
     await scenesSetup();
     // scene.inputRenderer.useProfileControllerMeshes(session);
 

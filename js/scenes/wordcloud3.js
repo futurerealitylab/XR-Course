@@ -41,10 +41,10 @@ export const init = async model => {                                            
       if (L.isB[1]) server.send('wordcloudInput',{yaw:-1});  // Pressing a side trigger turns   //
       if (R.isB[1]) server.send('wordcloudInput',{yaw: 1});  // the cloud about the Y axis.     //
 
-      if (! L.wasB[3] && L.isB[3]) server.send('wordcloudInput',{sort:-1});
-      if (! R.wasB[3] && R.isB[3]) server.send('wordcloudInput',{sort: 1});
+      if (! L.wasB[4] && L.isB[4]) server.send('wordcloudInput',{sort:-1});
+      if (! R.wasB[4] && R.isB[4]) server.send('wordcloudInput',{sort: 1});
 
-      if (L.wasB[3] && ! L.isB[3] || R.wasB[3] && ! R.isB[3])
+      if (L.wasB[4] && ! L.isB[4] || R.wasB[4] && ! R.isB[4])
          server.send('wordcloudInput',{sort:0});
 
       yaw = .9 * yaw + .1 * wordcloudState.yaw;                                  // Smooth out the yaw value.       //

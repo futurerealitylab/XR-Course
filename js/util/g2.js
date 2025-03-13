@@ -67,7 +67,7 @@ export function G2(do_not_animate_flag=false, canvasWidth=512, canvasHeight) {
 
    this.update = () => {
       if (window.vr)
-         mouseZ = lcb.down || rcb.down;
+         mouseZ = (lcb && lcb.down) || (rcb && rcb.down);
       mouseState = ! mouseZPrev && mouseZ ? 'press' :
                    ! mouseZ && mouseZPrev ? 'release' : mouseZ ? 'drag' : 'move';
       mouseZPrev = mouseZ;
@@ -450,7 +450,11 @@ export function G2(do_not_animate_flag=false, canvasWidth=512, canvasHeight) {
       for (let n = 0 ; n < lines.length ; n++, y -= dy) {
          context.lineWidth = _h / 6;
          context.fillText(lines[n],0,h2c(n*dy));
-         context.strokeText(lines[n],0,h2c(n*dy));
+	 context.save();
+	    context.strokeStyle = 'black';
+	    context.lineWidth = 15 * _h;
+            context.strokeText(lines[n],0,h2c(n*dy));
+	 context.restore();
       }
       context.restore();
    }
