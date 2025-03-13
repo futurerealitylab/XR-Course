@@ -1,5 +1,6 @@
 import { buttonState, controllerMatrix, joyStickState } from "../render/core/controllerInput.js";
 import * as cg from "../render/core/cg.js";
+import { startWorld } from "./spiderData/worldData.js";
 
 let TAU = Math.PI * 2;
 
@@ -12,6 +13,7 @@ let worldDim = [16, 8, 16];
 let block = Array.from(Array(worldDim[0]), () => 
             Array.from(Array(worldDim[1]), () => 
             Array.from(Array(worldDim[2]), () => 0)));
+block = structuredClone(startWorld);
 
 let colorIdx = 0;
 let terrainColor = [
@@ -24,48 +26,90 @@ let terrainColor = [
 ]
 
 export const init = async model => {
+   let lastButtonState = structuredClone(buttonState);
+   let transitionStartTime = -100;
+   let transitionDuration = 1;
+   let getTransProg = () => clamp((model.time - transitionStartTime) / transitionDuration);
    
-   randomizeWorld();
-   
+   let worldRoot = model.add().move(0,.2,0).scale(.1).move(-worldDim[0]/2,0,-worldDim[2]/2).move(0,0,-worldDim[2]/2);
+   let terrainRoot = worldRoot.add();
+   let npcRoot = worldRoot.add();
+
+   /* Generate Terrain */
+   genMeshForWorld();
+   terrainRoot.add('terrain');
+
    let robotObj = new Robot(6);
 
-   let worldRoot = model.add().move(0,.5,0).scale(.1).move(-worldDim[0]/2,0,-worldDim[2]/2).move(0,0,-worldDim[2]/2);
+   /* Generate Robot */
+   let robotBody = npcRoot.add('tubeY').color(.3,.3,.3);
+   clay.defineMesh('robotFoot', clay.combineMeshes([
+      ["tubeY", cg.mMultiply(cg.mScale(.06,.05,.06), cg.mTranslate(0,1,0)), [.3,.3,.3]],
+      ["cube", cg.mMultiply(cg.mScale(.1,.02,.05), cg.mTranslate(1,1,0)), [.2,.2,.2]],
+      ["cube", cg.mMultiply(cg.mRotateY(+TAU/3), cg.mMultiply(cg.mScale(.1,.02,.05), cg.mTranslate(1,1,0))), [.2,.2,.2]],
+      ["cube", cg.mMultiply(cg.mRotateY(-TAU/3), cg.mMultiply(cg.mScale(.1,.02,.05), cg.mTranslate(1,1,0))), [.2,.2,.2]],
+   ]));
 
-   for (let x = 0; x < worldDim[0]; ++x)
-   for (let y = 0; y < worldDim[1]; ++y)
-   for (let z = 0; z < worldDim[2]; ++z)
-      if (block[x][y][z] != 0) {
-         let cube = worldRoot.add('cube').move(x+.5,y+.5,z+.5).scale(.5).color(
-            cg.scale(cg.mix(terrainColor[colorIdx], [1,1,1], y/worldDim[1]), (x+y+z)%2 ? .9 : 1)
-         );
-      }
 
-   let meshRobotCenter = worldRoot.add('sphere').color(1,0,0);
-
-   let meshLegs = [];
+   let LEG_SEGMENT_NUM = 8;
+   let meshFeet = [];
+   let meshArraySegments = [];
    for (const leg of robotObj.arrLegs) {
-      let meshLeg = worldRoot.add('sphere').color(0,1,0);
-      meshLegs.push(meshLeg);
+      let meshFoot = npcRoot.add('robotFoot');
+      meshFeet.push(meshFoot);
+      let meshSegments = [];
+      for (let i = 0; i < LEG_SEGMENT_NUM; ++i) {
+         meshSegments.push(npcRoot.add('sphere').color(.2,.2,.2));
+         meshSegments.push(npcRoot.add('tubeZ').color(.3,.3,.3));
+      }
+      meshArraySegments.push(meshSegments);
    }
 
    
-   // let hudFPS = new fps(model);
+   
+   let hudFPS = new fps(model);
 
    model.animate(() => {
-      // hudFPS.update();
+      hudFPS.update();
       let time = model.time;
       let delta = model.deltaTime;
+
+      if (buttonState.right[4].pressed - lastButtonState.right[4].pressed == 1 && getTransProg()>= 1) {
+         randomizeWorld();
+         genMeshForWorld(terrainRoot);
+         robotObj = new Robot(6);
+         transitionStartTime = model.time;
+      }
       
       robotObj.update(time, delta, 0, null);
 
-      meshRobotCenter.identity().move(cg.add(robotObj.averageCenter, [0, robotObj.height, 0])).scale(.1);
+      robotBody.identity().move(cg.add(robotObj.averageCenter, [0, robotObj.height, 0])).scale(.3,robotObj.bodyHeight,.3);
 
       for (let l = 0; l < robotObj.arrLegs.length; ++l) {
          let leg = robotObj.arrLegs[l];
-         let meshLeg = meshLegs[l];
+         let posRoot = cg.add(leg.root, robotObj.body);
          let posFoot = leg.position;
-         meshLeg.identity().move(posFoot).scale(.1);
+         let posKnee = cg.add(posRoot, cg.ik(robotObj.leg1Len, robotObj.leg2Len, cg.subtract(posFoot, posRoot), [0,1,0]));
+         let curve1 = cg.mix(posRoot, posKnee, .5);
+         let curve2 = cg.mix(posKnee, posFoot, .5);
+         let posSegments = [];
+         for (let i = 0; i <= LEG_SEGMENT_NUM; ++i) {
+            posSegments.push(bezierCurve(posRoot, curve1, curve2, posFoot, i/LEG_SEGMENT_NUM));
+         }
+
+         /* Render Leg Segments */
+         let meshSeg = meshArraySegments[l];
+         for (let i = 0; i < LEG_SEGMENT_NUM; ++i) {
+            meshSeg[i*2].identity().move(posSegments[i]).aimZ(cg.subtract(posSegments[i], posSegments[i+1])).scale(.1);
+            meshSeg[i*2+1].identity().move(cg.mix(posSegments[i], posSegments[i+1], .5)).aimZ(cg.subtract(posSegments[i], posSegments[i+1])).scale(.12,.12,cg.distance(posSegments[i], posSegments[i+1])/2-.04);
+         }
+
+         /* Render Foot */
+         let meshFoot = meshFeet[l];
+         meshFoot.identity().move(posFoot);
       }
+
+      lastButtonState = structuredClone(buttonState);   
    });
 }
 
@@ -112,8 +156,6 @@ class Robot {
    }
 
    update(time, delta, camDirRad, probe) {
-      // let fb = inputKB.KeyW-inputKB.KeyS;
-      // let rl = inputKB.KeyD-inputKB.KeyA;
       let fb = -joyStickState.left.y;
       let rl = joyStickState.left.x;
       this.isMoving = Math.abs(fb) + Math.abs(rl);
@@ -139,11 +181,6 @@ class Robot {
       let newAvgCenter = [0,0,0];
       let newAvgTarget = [0,0,0];
       for (const leg of this.arrLegs) {
-         // let tgt = add(this.center, [
-         //    this.rad * Math.sin(TAU/this.numLegs*leg.index + TAU/this.numLegs/2 - this.movDir), 
-         //    0, 
-         //    this.rad * Math.cos(TAU/this.numLegs*leg.index + TAU/this.numLegs/2 - this.movDir)
-         // ])
          let tgt = cg.add(this.center, [
             this.rad * Math.sin(TAU/this.numLegs*leg.index + TAU/this.numLegs/2), 
             0, 
@@ -205,16 +242,6 @@ class Leg {
             
          
          } else if (newH - this.parent.averageTarget[1] > 1.8 ) { /* Target Position is too high */
-            // this.update8AdjList(targetPos);
-
-            // this.adjList.sort((a,b) => 
-            // distance(a, add(this.parent.averageCenter,[0,.5,0])) - 
-            // distance(b, add(this.parent.averageCenter,[0,.5,0])));
-            // if (this.adjList.length) {
-
-            //    this.targetPosition = this.adjList[0];
-            // }
-
             this.parent.blockMoving();
          } else { /* Target Position is good */
             this.targetPosition = targetPos;
@@ -239,7 +266,6 @@ class Leg {
             let changeHeight = Math.abs(this.posFrom[1] - this.posDest[1]) > .1;
             let y = cg.mixf(this.posFrom[1], this.posDest[1], p)
                + (changeHeight?1: .2) * Math.sin(p * TAU/2);
-               console.log(this.index,y)
             this.position = [x, y, z];
             if (p >= 1) { /* Moving animation end */
                this.state = -1;
@@ -312,16 +338,17 @@ class Leg {
 }
 
 function randomizeWorld() {
-   // colorIdx += 1;
+   colorIdx += 1;
    block = Array.from(Array(worldDim[0]), () => 
             Array.from(Array(worldDim[1]), () => 
             Array.from(Array(worldDim[2]), () => 0)));
 
+   let seed = Math.random()*100;
    for (let x = 0; x < worldDim[0]; ++x)
       for (let z = 0; z < worldDim[2]; ++z) {
          let _x = x-worldDim[0]/2;
          let _z = z-worldDim[2]/2;
-         let _y = .75*Math.round(9*cg.noise(x*.07,0, z*.07))+2;
+         let _y = .75*Math.round(9*cg.noise(x*.07, seed, z*.07))+2;
    
          for (let y = 1; y <= _y; ++y)
             try {
@@ -339,8 +366,6 @@ function randomizeWorld() {
             continue;
          }
 
-   // robot = new Robot(parseInt(numLegs.value));
-
    // let goalX = Math.floor(Math.random() * worldDim[0]);
    // let goalZ = Math.floor(Math.random() * worldDim[2]);
    // let _y = getHeight(goalX, goalZ);
@@ -356,6 +381,20 @@ function randomizeWorld() {
    // }
 
    // goal = [goalX, goalY, goalZ];
+}
+
+function genMeshForWorld() {
+   let meshList = [];
+   for (let x = 0; x < worldDim[0]; ++x)
+   for (let y = 0; y < worldDim[1]; ++y)
+   for (let z = 0; z < worldDim[2]; ++z)
+      if (block[x][y][z] != 0) {
+         let matrix = cg.mTranslate(x+.5, y+.5, z+.5);
+         matrix = cg.mMultiply(matrix, cg.mScale(.5,.5,.5));
+         let color = cg.scale(cg.mix(terrainColor[colorIdx], [1,1,1], y/worldDim[1]), (x+y+z)%2 ? .9 : 1);
+         meshList.push(['cube', matrix, color]);
+      }
+   clay.defineMesh('terrain', clay.combineMeshes(meshList));
 }
 
 function getHeight(xf, zf) {
@@ -388,4 +427,31 @@ function fps(model) {
          lastUpdateTime = model.time;
       }
    }
+}
+
+function clamp(x, min = 0, max = 1) {
+   return Math.min(max, Math.max(min, x));
+}
+
+function bezierCurve(A, B, C, D, t) {
+   let [xA, yA, zA] = A;
+   let [xB, yB, zB] = B;
+   let [xC, yC, zC] = C;
+   let [xD, yD, zD] = D;
+   let x =
+      xA * (1 - t) ** 3 +
+      3 * xB * (1 - t) ** 2 * t +
+      3 * xC * (1 - t) * t ** 2 +
+      xD * t ** 3;
+   let y =
+      yA * (1 - t) ** 3 +
+      3 * yB * (1 - t) ** 2 * t +
+      3 * yC * (1 - t) * t ** 2 +
+      yD * t ** 3;
+   let z =
+      zA * (1 - t) ** 3 +
+      3 * zB * (1 - t) ** 2 * t +
+      3 * zC * (1 - t) * t ** 2 +
+      zD * t ** 3;
+   return [x, y, z]
 }
