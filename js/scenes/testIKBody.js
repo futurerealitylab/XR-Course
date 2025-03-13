@@ -1,6 +1,5 @@
 import { IKBody } from "../render/core/ikbody/ikbody.js";
 import { ik_data } from "../render/core/ikbody/ik_data.js";
-import { updateAvatars, avatars } from "../render/core/avatar.js";
 import { buttonState, controllerMatrix, joyStickState } from "../render/core/controllerInput.js";
 import * as cg from "../render/core/cg.js";
 import { Quaternion } from "../render/core/ikbody/quaternion.js";
@@ -13,7 +12,7 @@ export const init = async model => {
    
    let movePos = { left: [0,1,0], right: [0,1,0] };
 
-   let table = model.add("cube").color(.5,.5,.5);
+   let table = model.add("square").color(.5,.5,.5);
 
    let rootIkbody = model.add();
    
@@ -48,53 +47,6 @@ export const init = async model => {
    inputEvents.onMove = hand => movePos[hand] = inputEvents.pos(hand);
 
 
-   let avatarAnchor = model.add();
-   avatarAnchor.add('tubeY').move(0,0,.5).scale(.2,.001,.2);
-   updateAvatars(model);
-   for (let n in clients){
-      avatarAnchor._children.push(avatars[clients[n]].getRoot());
-      avatars[clients[n]].showIK(true);
-   }
-
-
-   // model.customShader(`
-   //    uniform int uAvatarHead;
-   //    uniform int uAvatarEye;
-   //    uniform int uAvatarArm;
-   //    uniform int uAvatarBody;
-   //    --------------------------
-   //    if (uAvatarBody == 1 || uAvatarArm == 1 || uAvatarHead == 1) {
-   //       float t = .5 + noise(400. * vAPos + 5. * vec3(0.,0.,mod(uTime, 100.)));
-   //       float u = dot(eye, normal);
-   //       t = t * t * (3. - t - t);
-   //       opacity = 30. * pow(t, 9.) * u * u;
-   //       color = .02 * opacity * vec3(.0,.4,.9);
-   //    }
-   //    if (uAvatarEye == 1) {
-   //       color = vec3(.2,.5,.9);
-   //    }
-   // `)
-
-   model.customShader(`
-      uniform int uAvatarHead, uAvatarEye, uAvatarArm, uAvatarBody;
-      --------------------------
-      if (uAvatarBody == 1 || uAvatarHead == 1) {
-         apos.xyz += noise(apos.xyz + uTime * .5) * aNor * .25;
-         pos.xyz = obj2Clip(apos.xyz);
-      }
-      **************************
-      uniform highp int uAvatarHead, uAvatarEye, uAvatarArm, uAvatarBody;
-      --------------------------
-      if (uAvatarEye == 1) {
-         color = vec3(0.02);
-      }
-      if (uAvatarBody == 1 || uAvatarHead == 1) {
-         color = vec3(1.);
-         opacity = .8;
-      }
-   `);
-
-
    ///////////////////////////////////////////
    /*            Model Animation            */
    ///////////////////////////////////////////
@@ -106,40 +58,49 @@ export const init = async model => {
       if (buttonState.right[5].pressed || buttonState.left[5].pressed) pitch = yaw = 0;
       // floor.identity().scale(5, 5, 5).turnX(-TAU/4).color(.1, .1, .1);
 
-      /* Update Avatars */
-      updateAvatars(model);
-
 
       /* Update IK Body */
-      let matrixHead = cg.mMultiply(clay.inverseRootMatrix,
-                                    cg.mix(clay.root().inverseViewMatrix(0), 
-                                           clay.root().inverseViewMatrix(1), .5));
-      let quaternionHead = cg.mToQuaternion(matrixHead);
-      let [qHx, qHy, qHz, qHw] = [quaternionHead.x, quaternionHead.y, quaternionHead.z, quaternionHead.w];
-      ikbody.pos[IK.HEAD].set(matrixHead[12], matrixHead[13], matrixHead[14]);
-      ikbody.qua[IK.HEAD].set(qHx, qHy, qHz, qHw);
+      // let matrixHead = cg.mMultiply(clay.inverseRootMatrix,
+      //                               cg.mix(clay.root().inverseViewMatrix(0), 
+      //                                      clay.root().inverseViewMatrix(1), .5));
+      // let quaternionHead = cg.mToQuaternion(matrixHead);
+      // let [qHx, qHy, qHz, qHw] = [quaternionHead.x, quaternionHead.y, quaternionHead.z, quaternionHead.w];
+      // ikbody.pos[IK.HEAD].set(matrixHead[12], matrixHead[13], matrixHead[14]);
+      // ikbody.qua[IK.HEAD].set(qHx, qHy, qHz, qHw);
 
-      // ikbody.pos[IK.ANKLE_L].set(-.1,0,0);
-      // ikbody.pos[IK.ANKLE_R].set( .1,0,0);
-      /* Keep y rotation only of head's quaternion */
-      let headYRot = Math.atan2(2 * (qHw * qHy + qHx * qHz),
-                            1 - 2 * (qHx * qHx + qHy * qHy));
-      let quaternionHeadYRot = new Quaternion(0, Math.sin(headYRot / 2), 0, Math.cos(headYRot / 2));
-      ikbody.pos[IK.ANKLE_L].set(matrixHead[12], 0, matrixHead[14]).offset(-.1,0,0,quaternionHeadYRot);
-      ikbody.pos[IK.ANKLE_R].set(matrixHead[12], 0, matrixHead[14]).offset( .1,0,0,quaternionHeadYRot);
-      ikbody.qua[IK.ANKLE_L].copy(quaternionHeadYRot);
-      ikbody.qua[IK.ANKLE_R].copy(quaternionHeadYRot);
+      // // ikbody.pos[IK.ANKLE_L].set(-.1,0,0);
+      // // ikbody.pos[IK.ANKLE_R].set( .1,0,0);
+      // /* Keep y rotation only of head's quaternion */
+      // let headYRot = Math.atan2(2 * (qHw * qHy + qHx * qHz),
+      //                       1 - 2 * (qHx * qHx + qHy * qHy));
+      // let quaternionHeadYRot = new Quaternion(0, Math.sin(headYRot / 2), 0, Math.cos(headYRot / 2));
+      // ikbody.pos[IK.ANKLE_L].set(matrixHead[12], 0, matrixHead[14]).offset(-.1,0,0,quaternionHeadYRot);
+      // ikbody.pos[IK.ANKLE_R].set(matrixHead[12], 0, matrixHead[14]).offset( .1,0,0,quaternionHeadYRot);
+      // ikbody.qua[IK.ANKLE_L].copy(quaternionHeadYRot);
+      // ikbody.qua[IK.ANKLE_R].copy(quaternionHeadYRot);
       
-      let matrixHandL = controllerMatrix.left .length > 0 ? cg.mMultiply(clay.inverseRootMatrix, controllerMatrix.left ) : matrixHead;
-      let matrixHandR = controllerMatrix.right.length > 0 ? cg.mMultiply(clay.inverseRootMatrix, controllerMatrix.right) : matrixHead;
-      let quaternionHandL = cg.mToQuaternion(matrixHandL);
-      let quaternionHandR = cg.mToQuaternion(matrixHandR);
-      ikbody.pos[IK.WRIST_L].set(matrixHandL[12], matrixHandL[13], matrixHandL[14]);
-      ikbody.pos[IK.WRIST_R].set(matrixHandR[12], matrixHandR[13], matrixHandR[14]);
-      ikbody.qua[IK.WRIST_L].set(quaternionHandL.x, quaternionHandL.y, quaternionHandL.z, quaternionHandL.w);
-      ikbody.qua[IK.WRIST_R].set(quaternionHandR.x, quaternionHandR.y, quaternionHandR.z, quaternionHandR.w);
+      // let matrixHandL = controllerMatrix.left .length > 0 ? cg.mMultiply(clay.inverseRootMatrix, controllerMatrix.left ) : matrixHead;
+      // let matrixHandR = controllerMatrix.right.length > 0 ? cg.mMultiply(clay.inverseRootMatrix, controllerMatrix.right) : matrixHead;
+      // let quaternionHandL = cg.mToQuaternion(matrixHandL);
+      // let quaternionHandR = cg.mToQuaternion(matrixHandR);
+      // ikbody.pos[IK.WRIST_L].set(matrixHandL[12], matrixHandL[13], matrixHandL[14]);
+      // ikbody.pos[IK.WRIST_R].set(matrixHandR[12], matrixHandR[13], matrixHandR[14]);
+      // ikbody.qua[IK.WRIST_L].set(quaternionHandL.x, quaternionHandL.y, quaternionHandL.z, quaternionHandL.w);
+      // ikbody.qua[IK.WRIST_R].set(quaternionHandR.x, quaternionHandR.y, quaternionHandR.z, quaternionHandR.w);
+
+      ikbody.pos[IK.HEAD].set(0, 1.7, 0);
+      ikbody.pos[IK.WRIST_L].set(-.3, .8, 0);
+      ikbody.pos[IK.WRIST_R].set(+.3, .8, 0);
+      ikbody.pos[IK.ANKLE_L].set(-.1, .1, 0);
+      ikbody.pos[IK.ANKLE_R].set(+.1, .1, 0);
+
+      let cycle = 0; /* 0-1 */
+
 
       ikbody.update(0);
+
+
+      /* Render */
 
       let nodes = ikbody.graph.nodes;
 
@@ -170,13 +131,8 @@ export const init = async model => {
          bodySprings[i].identity().move(cg.mix(a,b,.5)).aimZ(cg.subtract(b,a)).scale(.005,.005,cg.distance(a,b)/2).color(1,w,w);
       }
 
-      table.identity().move(0,0,-.7).scale(.8).turnY(yaw).scale(0);
-      rootIkbody.identity().move(+.5,.8,-.7).scale(.5).turnY(yaw).scale(0);
+      table.identity().move(0,.8,-.7).turnX(-TAU/4).scale(.8).turnY(yaw);
+      rootIkbody.identity().move(+0,.8,-.7).scale(.5).turnY(yaw);
 
-
-
-      /////* Test Body 2 */////
-
-      avatarAnchor.setMatrix(matrixHead).move(0,0,-1).scale(.5).turnX(pitch).turnY(yaw).move(0,-1,-.5);
    });
 }
