@@ -1,0 +1,391 @@
+import { buttonState, controllerMatrix, joyStickState } from "../render/core/controllerInput.js";
+import * as cg from "../render/core/cg.js";
+
+let TAU = Math.PI * 2;
+
+let worldDim = [16, 8, 16];
+/** block[x][y][z] to get the block id.
+ * -1: Unremovable block
+ *  0: Air
+ *  1: Removable block
+ * */
+let block = Array.from(Array(worldDim[0]), () => 
+            Array.from(Array(worldDim[1]), () => 
+            Array.from(Array(worldDim[2]), () => 0)));
+
+let colorIdx = 0;
+let terrainColor = [
+   [.1,.1,.4],
+   [.1,.3,.3],
+   [.1,.4,.1],
+   [.4,.2,.1],
+   [.4,.1,.1],
+   [.2,.1,.4],
+]
+
+export const init = async model => {
+   
+   randomizeWorld();
+   
+   let robotObj = new Robot(6);
+
+   let worldRoot = model.add().move(0,.5,0).scale(.1).move(-worldDim[0]/2,0,-worldDim[2]/2).move(0,0,-worldDim[2]/2);
+
+   for (let x = 0; x < worldDim[0]; ++x)
+   for (let y = 0; y < worldDim[1]; ++y)
+   for (let z = 0; z < worldDim[2]; ++z)
+      if (block[x][y][z] != 0) {
+         let cube = worldRoot.add('cube').move(x+.5,y+.5,z+.5).scale(.5).color(
+            cg.scale(cg.mix(terrainColor[colorIdx], [1,1,1], y/worldDim[1]), (x+y+z)%2 ? .9 : 1)
+         );
+      }
+
+   let meshRobotCenter = worldRoot.add('sphere').color(1,0,0);
+
+   let meshLegs = [];
+   for (const leg of robotObj.arrLegs) {
+      let meshLeg = worldRoot.add('sphere').color(0,1,0);
+      meshLegs.push(meshLeg);
+   }
+
+   
+   // let hudFPS = new fps(model);
+
+   model.animate(() => {
+      // hudFPS.update();
+      let time = model.time;
+      let delta = model.deltaTime;
+      
+      robotObj.update(time, delta, 0, null);
+
+      meshRobotCenter.identity().move(cg.add(robotObj.averageCenter, [0, robotObj.height, 0])).scale(.1);
+
+      for (let l = 0; l < robotObj.arrLegs.length; ++l) {
+         let leg = robotObj.arrLegs[l];
+         let meshLeg = meshLegs[l];
+         let posFoot = leg.position;
+         meshLeg.identity().move(posFoot).scale(.1);
+      }
+   });
+}
+
+
+class Robot {
+   bodyHeight = 0.15;
+   height = 1.5;
+   leg1Len = 1.1;
+   leg2Len = 1.3;
+   rad = 0.9;
+   speed = 3; // per second
+   legMoveDuration = .3; // leg moving in air duration, in second
+   body;
+   arrLegs = [];
+   arm;
+   
+   isMoving = false;
+   movDir = 0;
+   movVec = [0,0,0];
+
+   constructor(numLegs) {
+      this.numLegs = numLegs;
+      this.center = [worldDim[0] / 2+.1, worldDim[1], worldDim[2] / 2+.1];
+      this.centerLast = [...this.center];
+      this.targetCenter = [...this.center];
+      this.averageCenter = [...this.center];
+      this.averageTarget = [...this.center];
+      this.body = cg.add(this.averageCenter, [0, this.height, 0]);
+      this.initLegs();
+   //    this.arm = new Arm(this);
+   }
+
+   initLegs() {
+      this.arrLegs = Array.from({length: this.numLegs}, (_, i) => 
+         new Leg(i, this, this.center, [
+            this.rad * Math.sin(TAU/this.numLegs*i + TAU/this.numLegs/2), 
+            0, 
+            this.rad * Math.cos(TAU/this.numLegs*i + TAU/this.numLegs/2)
+         ]));
+      for (let i = 0; i < this.numLegs; ++i) {
+         this.arrLegs[i].nextLeg = this.arrLegs[(i+1)%this.numLegs];
+         this.arrLegs[i].prevLeg = this.arrLegs[(i+this.numLegs-1)%this.numLegs];
+      }
+   }
+
+   update(time, delta, camDirRad, probe) {
+      // let fb = inputKB.KeyW-inputKB.KeyS;
+      // let rl = inputKB.KeyD-inputKB.KeyA;
+      let fb = -joyStickState.left.y;
+      let rl = joyStickState.left.x;
+      this.isMoving = Math.abs(fb) + Math.abs(rl);
+      this.movDir = camDirRad + Math.atan2(rl,fb);
+      this.movVec = this.isMoving
+         ? [Math.sin(this.movDir),0,-Math.cos(this.movDir)] : [0,0,0];
+
+      this.targetCenter = cg.add(this.center, this.movVec);
+      updateHeight(this.targetCenter);
+      let diff = cg.subtract(this.targetCenter, this.center);
+      let deltaMove = cg.scale(diff, this.speed * delta);
+      this.center = cg.add(this.center, deltaMove);
+      updateHeight(this.center);
+
+      this.updateLegs(time, delta);
+
+   //    this.arm.update(probe);
+
+      this.centerLast = [...this.center];
+   }
+
+   updateLegs(time, delta) {
+      let newAvgCenter = [0,0,0];
+      let newAvgTarget = [0,0,0];
+      for (const leg of this.arrLegs) {
+         // let tgt = add(this.center, [
+         //    this.rad * Math.sin(TAU/this.numLegs*leg.index + TAU/this.numLegs/2 - this.movDir), 
+         //    0, 
+         //    this.rad * Math.cos(TAU/this.numLegs*leg.index + TAU/this.numLegs/2 - this.movDir)
+         // ])
+         let tgt = cg.add(this.center, [
+            this.rad * Math.sin(TAU/this.numLegs*leg.index + TAU/this.numLegs/2), 
+            0, 
+            this.rad * Math.cos(TAU/this.numLegs*leg.index + TAU/this.numLegs/2)
+         ])
+         leg.update(time, delta, tgt);
+         newAvgCenter = cg.add(newAvgCenter, leg.position);
+         newAvgTarget = cg.add(newAvgTarget, leg.targetPosition);
+      }
+      this.averageCenter = cg.scale(newAvgCenter, 1/this.numLegs);
+      this.body = cg.add(this.averageCenter, [0, this.height, 0]);
+      this.averageTarget = cg.scale(newAvgTarget, 1/this.numLegs);
+   }
+
+   blockMoving() {
+      this.center = [...this.centerLast];
+   }
+}
+ 
+class Leg {
+   radStartMoving = .5;
+   prevLeg = null;
+   nextLeg = null;
+   audStep = null;
+   constructor(index, parent, body, offset) {
+      this.index = index;
+      this.parent = parent;
+      this.root = cg.scale(cg.normalize(offset), .3);
+      this.targetPosition = cg.add(body, offset);
+      updateHeight(this.targetPosition);
+      this.position = [...this.targetPosition];
+      this.posFrom = [...this.targetPosition];
+      this.posDest = [...this.targetPosition];
+      this.state = 0;       /* -1: cooldown, 0: inBound, 1: outBound, 2: moving */
+      this.timeMem = -1;    /* moving: start moving time, cooldown: start cooling time */
+      this.onGround = true;
+      // this.audStep = new Audio("audio/step.mp3")
+      // this.audStep.volume = .2;
+   }
+   update(time, delta, targetPos) {
+      if (this.parent.isMoving) {
+         let newH = getTerrainHeight(targetPos);
+         // console.log(newH - this.targetPosition[1])
+         
+         this.adjList = [];
+         if (this.parent.averageTarget[1] - newH > 1.1) { /* Target Position is too low */
+            this.update8AdjList(targetPos);
+            
+            this.adjList.sort((a,b) => 
+               cg.distance(a, cg.add(this.targetPosition,[0,.5,0])) - 
+               cg.distance(b, cg.add(this.targetPosition,[0,.5,0])));
+            if (this.adjList.length) {
+               if (Math.abs(this.adjList[0][1] - this.parent.averageTarget[1]) > 1.5) {
+                  this.parent.blockMoving();
+               }
+               else
+                  this.targetPosition = this.adjList[0];
+            }
+            
+         
+         } else if (newH - this.parent.averageTarget[1] > 1.8 ) { /* Target Position is too high */
+            // this.update8AdjList(targetPos);
+
+            // this.adjList.sort((a,b) => 
+            // distance(a, add(this.parent.averageCenter,[0,.5,0])) - 
+            // distance(b, add(this.parent.averageCenter,[0,.5,0])));
+            // if (this.adjList.length) {
+
+            //    this.targetPosition = this.adjList[0];
+            // }
+
+            this.parent.blockMoving();
+         } else { /* Target Position is good */
+            this.targetPosition = targetPos;
+            updateHeight(this.targetPosition);
+         }
+         // console.log(this.parent.targetCenter)
+      }
+      this.radStartMoving = this.parent.isMoving ? .5: .1;
+      if (this.state == 0 && this.isOutBound()) this.state = 1;
+      if (this.state == 1 && this.isAdjacentNotMoving()) { /* Start moving animation */
+         this.state = 2;
+         this.timeMem = time;
+         this.posFrom = [...this.position];
+         this.posDest = [...this.targetPosition];
+      }
+      if (this.state == 2) { /* Moving animation going */
+         let t = time - this.timeMem;
+            let p = t / this.parent.legMoveDuration;
+            
+            let [x, z] = 
+               cg.mix([this.posFrom[0], this.posFrom[2]], [this.posDest[0], this.posDest[2]], p);
+            let changeHeight = Math.abs(this.posFrom[1] - this.posDest[1]) > .1;
+            let y = cg.mixf(this.posFrom[1], this.posDest[1], p)
+               + (changeHeight?1: .2) * Math.sin(p * TAU/2);
+               console.log(this.index,y)
+            this.position = [x, y, z];
+            if (p >= 1) { /* Moving animation end */
+               this.state = -1;
+               this.timeMem = time;
+               this.position = this.posDest;
+               
+               this.onGround = getTerrainHeight(this.position) - this.position[1] >= -1;
+               // this.audStep.volume = Math.random()*.1;
+               // this.audStep.currentTime = 0;
+               // this.audStep.play();
+            }
+      }
+      if (this.state == -1) { /* Leg cooling down */
+         if (time - this.timeMem >= this.parent.legMoveDuration/2) { // End cooling down
+            this.state = 0;
+         }
+      }
+      
+   }
+   isOutBound() {
+      return cg.distance(this.position, this.targetPosition) > this.radStartMoving;
+   }
+   isAdjacentNotMoving() {
+      return this.prevLeg.state != 2 && this.nextLeg.state != 2;
+   }
+   update8AdjList(targetPos) {
+      this.adjList = [];
+      try {
+         let adjPos = [Math.ceil(targetPos[0])+.1, 0, targetPos[2]];
+         updateHeight(adjPos);
+         this.adjList.push(adjPos);
+      } catch (error) {}
+      try {
+         let adjPos = [Math.floor(targetPos[0])-.1, 0, targetPos[2]];
+         updateHeight(adjPos);
+         this.adjList.push(adjPos);
+      } catch (error) {}
+      try {
+         let adjPos = [targetPos[0], 0, Math.ceil(targetPos[2])+.1];
+         updateHeight(adjPos);
+         this.adjList.push(adjPos);
+      } catch (error) {}
+      try {
+         let adjPos = [targetPos[0], 0, Math.floor(targetPos[2])-.1];
+         updateHeight(adjPos);
+         this.adjList.push(adjPos);
+      } catch (error) {}
+      
+      try {
+         let adjPos = [Math.ceil(targetPos[0])+.1, 0, Math.ceil(targetPos[2])+.1];
+         updateHeight(adjPos);
+         this.adjList.push(adjPos);
+      } catch (error) {}
+      try {
+         let adjPos = [Math.floor(targetPos[0])-.1, 0, Math.ceil(targetPos[2])+.1];
+         updateHeight(adjPos);
+         this.adjList.push(adjPos);
+      } catch (error) {}
+      try {
+         let adjPos = [Math.ceil(targetPos[0])+.1, 0, Math.floor(targetPos[2])-.1];
+         updateHeight(adjPos);
+         this.adjList.push(adjPos);
+      } catch (error) {}
+      try {
+         let adjPos = [Math.floor(targetPos[0])-.1, 0, Math.floor(targetPos[2])+.1];
+         updateHeight(adjPos);
+         this.adjList.push(adjPos);
+      } catch (error) {}
+   }
+}
+
+function randomizeWorld() {
+   // colorIdx += 1;
+   block = Array.from(Array(worldDim[0]), () => 
+            Array.from(Array(worldDim[1]), () => 
+            Array.from(Array(worldDim[2]), () => 0)));
+
+   for (let x = 0; x < worldDim[0]; ++x)
+      for (let z = 0; z < worldDim[2]; ++z) {
+         let _x = x-worldDim[0]/2;
+         let _z = z-worldDim[2]/2;
+         let _y = .75*Math.round(9*cg.noise(x*.07,0, z*.07))+2;
+   
+         for (let y = 1; y <= _y; ++y)
+            try {
+               block[x][y][z] = 1;
+            } catch (error) {
+               continue;
+            }
+      }
+
+   for (let x = 0; x < worldDim[0]; ++x)
+      for (let z = 0; z < worldDim[2]; ++z)
+         try {
+            block[x][0][z] = -1;
+         } catch (error) {
+            continue;
+         }
+
+   // robot = new Robot(parseInt(numLegs.value));
+
+   // let goalX = Math.floor(Math.random() * worldDim[0]);
+   // let goalZ = Math.floor(Math.random() * worldDim[2]);
+   // let _y = getHeight(goalX, goalZ);
+   // let goalY = _y + Math.floor(Math.random() * (worldDim[1] - _y)) ;
+   // goalY = Math.min(goalY, worldDim[1]);
+
+   // for (let y = 0; y < goalY; ++y) {
+   //    try {
+   //       block[goalX][y][goalZ] = 1;
+   //    } catch (error) {
+   //       continue;
+   //    }
+   // }
+
+   // goal = [goalX, goalY, goalZ];
+}
+
+function getHeight(xf, zf) {
+   try {
+      let x = Math.floor(xf);
+      let z = Math.floor(zf);
+      for (let y = worldDim[1] -1; y >= 0; --y)
+         if (block[x][y][z]) {
+            return y+1;
+         }
+      return -10;
+   } catch (e) { 
+      return -10;
+   }
+}
+
+function getTerrainHeight(vec) { return getHeight(vec[0], vec[2]); }
+
+function updateHeight(vec) { vec[1] = getHeight(vec[0], vec[2]); }
+
+function fps(model) {
+   let f = model.add();
+   let lastUpdateTime = -1;
+   this.updateGap = .25;
+
+   this.update = () => {
+      f.hud().move(.5,.5,0).scale(.5,.5,.001).color(1,0,0);
+      if (model.time - lastUpdateTime > this.updateGap) {
+         f.textBox(((1 / model.deltaTime)>>0)+"");
+         lastUpdateTime = model.time;
+      }
+   }
+}
