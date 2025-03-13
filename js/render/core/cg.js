@@ -572,17 +572,19 @@ export let Matrix = function() {
    this.restore   = ()      => --top;
 }
 
-let decimalFactor = 10000; // number of digits after the decimal for floats
-
 export let packMatrix = m => { // PACK A ROTATION+TRANSLATION MATRIX (SCALING IS NOT SUPPORTED)
-   let I = t => decimalFactor * t >> 0, Q = mToQuaternion(m);
-   return [ I(Q.x), I(Q.y), I(Q.z), I(Q.w), I(m[12]), I(m[13]), I(m[14]) ];
+   let I = t => 10000 * t >> 0, Q = mToQuaternion(m);
+   return [ I(m[12]), I(m[13]), I(m[14]), I(Q.x), I(Q.y), I(Q.z) ];
 }
 
 export let unpackMatrix = P => { // UNPACK A ROTATION+TRANSLATION MATRIX
-   let m = mFromQuaternion({x:P[0]/decimalFactor, y:P[1]/decimalFactor, z:P[2]/decimalFactor, w:P[3]/decimalFactor});
-   return m.slice(0, 12).concat([P[4]/decimalFactor, P[5]/decimalFactor, P[6]/decimalFactor, 1]);
+   let x = P[3]/10000, y = P[4]/10000, z = P[5]/10000, w = Math.sqrt(1 - x * x - y * y - z * z);
+   return mFromQuaternion({x:x, y:y, z:z, w:w}).slice(0, 12).concat([P[0]/10000, P[1]/10000, P[2]/10000, 1]);
 }
+
+let C92 = " !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~";
+export let packC   = t => { let n = (t + 1.27) / .0003 >> 0; return C92[n / 92 >> 0] + C92[n % 92]; }
+export let unpackC = s => .0003 * (92 * C92.indexOf(s.charAt(0)) + C92.indexOf(s.charAt(1))) - 1.27;
 
 export let vec2vecProj = (a,b) => {
    let proj = dot(a,b)/dot(b,b);
