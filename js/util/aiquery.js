@@ -17,7 +17,7 @@ export function askAI(prompt, options = {}) {
     console.log(`AI Query: "${prompt}"`);
     return globalAIQueryInstance.askAI(prompt, options)
         .then(response => {
-            console.log(`AI Response: "${response.substring(0, 100)}${response.length > 100 ? '...' : ''}"`);
+            console.log(`AI Response: "${response}"`);
             return response;
         })
         .catch(error => {
