@@ -28,6 +28,9 @@ export default () => {
             { name: "wordcloud6"         , path: "./wordcloud6.js"         , public: true  },
             { name: "wordcloud7"         , path: "./wordcloud7.js"         , public: true  },
 
+            { name: "aiquery"            , path: "./demoAIQuery.js"        , public: true  },
+            { name: "aiquery-console"    , path: "./demoAIQueryConsole.js" , public: true  },
+
             { name: "fractal"            , path: "./fractal.js"            , public: true  },
 //          { name: "nestedA"            , path: "./nestedA.js"            , public: true  },
 //          { name: "nestedB"            , path: "./nestedB.js"            , public: true  },
