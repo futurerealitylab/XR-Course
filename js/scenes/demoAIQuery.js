@@ -30,6 +30,18 @@ export const init = async model => {
          });
    };
    
+   const getAIJsonResponse = async (prompt) => {
+      try {
+         console.log(`Sending JSON query: "${prompt}"`);
+         const jsonResponse = await aiQuery.askAIJson(prompt);
+         console.log(`Received JSON response:`, jsonResponse);
+         return jsonResponse;
+      } catch (error) {
+         console.error(`Error getting AI JSON response: ${error.message}`);
+         return { error: error.message };
+      }
+   };
+   
    const runExamples = async () => {
       // Example 1: Using async/await
       const response1 = await getAIResponse("What is WebXR?");
@@ -55,6 +67,21 @@ export const init = async model => {
          const response = await aiQuery.askAI("This query will timeout", { timeout: 1 });
       } catch (error) {
          console.log("Example 4 complete - caught error:", error.message);
+      }
+      
+      // Example 5: Getting a JSON response
+      const jsonPrompt = "Generate data about 3 popular VR headsets. Include an array called 'headsets' where each headset has: name, price (number), resolution, and at least 3 key features (as an array of strings)";
+      const jsonResponse = await getAIJsonResponse(jsonPrompt);
+      console.log("Example 5 complete - received JSON response");
+      
+      // Example of accessing the parsed JSON data
+      if (jsonResponse && !jsonResponse.error && Array.isArray(jsonResponse.headsets)) {
+         console.log(`Found ${jsonResponse.headsets.length} VR headsets in the response`);
+         jsonResponse.headsets.forEach(headset => {
+            console.log(`- ${headset.name}: $${headset.price}`);
+            console.log(`  Resolution: ${headset.resolution}`);
+            console.log(`  Features: ${headset.features.join(', ')}`);
+         });
       }
    };
    

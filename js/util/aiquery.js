@@ -26,8 +26,33 @@ export function askAI(prompt, options = {}) {
         });
 }
 
+/**
+ * Global function to send an AI query and receive JSON response
+ * @param {string} prompt - The text prompt to send to the AI
+ * @param {Object} options - Additional options for the query
+ * @returns {Promise<Object>} - Promise that resolves with the AI's response as a parsed JSON object
+ */
+export function askAIJson(prompt, options = {}) {
+    if (!globalAIQueryInstance) {
+        globalAIQueryInstance = new AIQuery();
+        console.log("Global AI query instance created. You can use askAIJson() from anywhere.");
+    }
+    
+    console.log(`AI JSON Query: "${prompt}"`);
+    return globalAIQueryInstance.askAIJson(prompt, options)
+        .then(response => {
+            console.log(`AI JSON Response:`, response);
+            return response;
+        })
+        .catch(error => {
+            console.error(`AI JSON Query Error: ${error.message}`);
+            throw error;
+        });
+}
+
 if (typeof window !== 'undefined') {
     window.askAI = askAI;
+    window.askAIJson = askAIJson;
 }
 
 export class AIQuery {
@@ -48,6 +73,7 @@ export class AIQuery {
             
             if (typeof window !== 'undefined') {
                 window.askAI = askAI;
+                window.askAIJson = askAIJson;
             }
         }
     }
@@ -67,6 +93,70 @@ export class AIQuery {
                     resolve(response);
                 }
             }, options);
+        });
+    }
+
+    /**
+     * Send a query to the AI model and return a Promise that resolves with a JSON object
+     * @param {string} prompt - The text prompt to send to the AI
+     * @param {Object} options - Additional options for this specific query
+     * @returns {Promise<Object>} - Promise that resolves with the AI's response as a parsed JSON object
+     */
+    askAIJson(prompt, options = {}) {
+        const jsonOptions = { ...options, responseFormat: 'json' };
+        
+        // Create a more explicit prompt that instructs the AI to return valid JSON
+        const jsonPrompt = `You must respond with valid JSON only. No explanations, no preamble, just valid parseable JSON.
+        
+Format your response as a JSON object that a JSON.parse() function can parse.
+
+Here is the query: ${prompt}`;
+        
+        return new Promise((resolve, reject) => {
+            this.query(jsonPrompt, response => {
+                if (response.startsWith("Error:")) {
+                    reject(new Error(response.substring(7)));
+                } else {
+                    try {
+                        // Try to extract JSON if the response contains non-JSON text
+                        let jsonText = response.trim();
+                        
+                        // If response has markdown code blocks, extract JSON from there
+                        if (jsonText.includes("```json")) {
+                            const startIndex = jsonText.indexOf("```json") + 7;
+                            const endIndex = jsonText.indexOf("```", startIndex);
+                            if (endIndex > startIndex) {
+                                jsonText = jsonText.substring(startIndex, endIndex).trim();
+                            }
+                        } else if (jsonText.includes("```")) {
+                            const startIndex = jsonText.indexOf("```") + 3;
+                            const endIndex = jsonText.indexOf("```", startIndex);
+                            if (endIndex > startIndex) {
+                                jsonText = jsonText.substring(startIndex, endIndex).trim();
+                            }
+                        }
+                        
+                        // If still not valid JSON, try to extract just the JSON part
+                        try {
+                            JSON.parse(jsonText);
+                        } catch (e) {
+                            const jsonStartIndex = jsonText.indexOf('{');
+                            const jsonEndIndex = jsonText.lastIndexOf('}');
+                            
+                            if (jsonStartIndex >= 0 && jsonEndIndex > jsonStartIndex) {
+                                jsonText = jsonText.substring(jsonStartIndex, jsonEndIndex + 1);
+                            }
+                        }
+                        
+                        // Try to parse as JSON
+                        const jsonResponse = JSON.parse(jsonText);
+                        resolve(jsonResponse);
+                    } catch (error) {
+                        console.error("Failed to parse JSON response:", response);
+                        reject(new Error(`Failed to parse response as JSON: ${error.message}`));
+                    }
+                }
+            }, jsonOptions);
         });
     }
 
