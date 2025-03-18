@@ -1,29 +1,11 @@
 import { buttonState, controllerMatrix, joyStickState } from "../render/core/controllerInput.js";
 import * as cg from "../render/core/cg.js";
-import { startWorld } from "./spiderData/worldData.js";
 
 let TAU = Math.PI * 2;
 
-let worldDim = [16, 8, 16];
-/** block[x][y][z] to get the block id.
- * -1: Unremovable block
- *  0: Air
- *  1: Removable block
- * */
+let worldDim = [16, 16];
 let block = Array.from(Array(worldDim[0]), () => 
-            Array.from(Array(worldDim[1]), () => 
-            Array.from(Array(worldDim[2]), () => 0)));
-block = structuredClone(startWorld);
-
-let colorIdx = 0;
-let terrainColor = [
-   [.1,.1,.4],
-   [.1,.3,.3],
-   [.1,.4,.1],
-   [.4,.2,.1],
-   [.4,.1,.1],
-   [.2,.1,.4],
-]
+            Array.from(Array(worldDim[1]), () => 0));
 
 export const init = async model => {
    let lastButtonState = structuredClone(buttonState);
@@ -31,7 +13,7 @@ export const init = async model => {
    let transitionDuration = 1;
    let getTransProg = () => clamp((model.time - transitionStartTime) / transitionDuration);
    
-   let worldRoot = model.add().move(0,.2,0).scale(.1).move(-worldDim[0]/2,0,-worldDim[2]/2).move(0,0,-worldDim[2]/2);
+   let worldRoot = model.add().move(0,.5,0).scale(.1).move(-worldDim[0]/2,0,-worldDim[1]/2).move(0,0,-worldDim[1]/2);
    let terrainRoot = worldRoot.add();
    let npcRoot = worldRoot.add();
 
@@ -44,7 +26,7 @@ export const init = async model => {
    /* Generate Robot */
    let robotBody = npcRoot.add('tubeY').color(.3,.3,.3);
    clay.defineMesh('robotFoot', clay.combineMeshes([
-      ["tubeY", cg.mMultiply(cg.mScale(.06,.05,.06), cg.mTranslate(0,1,0)), [.3,.3,.3]],
+      ["tubeY", cg.mMultiply(cg.mScale(.12,.03,.12), cg.mTranslate(0,1,0)), [.3,.3,.3]],
       ["cube", cg.mMultiply(cg.mScale(.1,.02,.05), cg.mTranslate(1,1,0)), [.2,.2,.2]],
       ["cube", cg.mMultiply(cg.mRotateY(+TAU/3), cg.mMultiply(cg.mScale(.1,.02,.05), cg.mTranslate(1,1,0))), [.2,.2,.2]],
       ["cube", cg.mMultiply(cg.mRotateY(-TAU/3), cg.mMultiply(cg.mScale(.1,.02,.05), cg.mTranslate(1,1,0))), [.2,.2,.2]],
@@ -53,16 +35,12 @@ export const init = async model => {
 
    let LEG_SEGMENT_NUM = 8;
    let meshFeet = [];
-   let meshArraySegments = [];
-   for (const leg of robotObj.arrLegs) {
+   let meshLegs = [];
+   for (let l = 0; l < robotObj.arrLegs.length; ++l) {
       let meshFoot = npcRoot.add('robotFoot');
       meshFeet.push(meshFoot);
-      let meshSegments = [];
-      for (let i = 0; i < LEG_SEGMENT_NUM; ++i) {
-         meshSegments.push(npcRoot.add('sphere').color(.2,.2,.2));
-         meshSegments.push(npcRoot.add('tubeZ').color(.3,.3,.3));
-      }
-      meshArraySegments.push(meshSegments);
+      let meshLeg = npcRoot.add(clay.wire(LEG_SEGMENT_NUM,8,l)).color(1,.2,0);
+      meshLegs.push(meshLeg);
    }
 
    
@@ -92,17 +70,9 @@ export const init = async model => {
          let posKnee = cg.add(posRoot, cg.ik(robotObj.leg1Len, robotObj.leg2Len, cg.subtract(posFoot, posRoot), [0,1,0]));
          let curve1 = cg.mix(posRoot, posKnee, .5);
          let curve2 = cg.mix(posKnee, posFoot, .5);
-         let posSegments = [];
-         for (let i = 0; i <= LEG_SEGMENT_NUM; ++i) {
-            posSegments.push(bezierCurve(posRoot, curve1, curve2, posFoot, i/LEG_SEGMENT_NUM));
-         }
-
-         /* Render Leg Segments */
-         let meshSeg = meshArraySegments[l];
-         for (let i = 0; i < LEG_SEGMENT_NUM; ++i) {
-            meshSeg[i*2].identity().move(posSegments[i]).aimZ(cg.subtract(posSegments[i], posSegments[i+1])).scale(.1);
-            meshSeg[i*2+1].identity().move(cg.mix(posSegments[i], posSegments[i+1], .5)).aimZ(cg.subtract(posSegments[i], posSegments[i+1])).scale(.12,.12,cg.distance(posSegments[i], posSegments[i+1])/2-.04);
-         }
+         let meshLeg = meshLegs[l];
+         let offsetRoot = cg.mix(posRoot, robotObj.body, .2);
+         clay.animateWire(meshLeg, .08, (t) => bezierCurve(offsetRoot, curve1, curve2, posFoot, t));
 
          /* Render Foot */
          let meshFoot = meshFeet[l];
@@ -132,7 +102,7 @@ class Robot {
 
    constructor(numLegs) {
       this.numLegs = numLegs;
-      this.center = [worldDim[0] / 2+.1, worldDim[1], worldDim[2] / 2+.1];
+      this.center = [worldDim[0] / 2+.1, 0, worldDim[1] / 2+.1];
       this.centerLast = [...this.center];
       this.targetCenter = [...this.center];
       this.averageCenter = [...this.center];
@@ -337,78 +307,44 @@ class Leg {
    }
 }
 
+function clearGrid(grid) {
+   for (let x = 0; x < grid.length; ++x)
+   for (let z = 0; z < grid[0].length; ++z)
+      grid[x][z] = 0;
+}
+
 function randomizeWorld() {
-   colorIdx += 1;
-   block = Array.from(Array(worldDim[0]), () => 
-            Array.from(Array(worldDim[1]), () => 
-            Array.from(Array(worldDim[2]), () => 0)));
+   clearGrid(block);
 
    let seed = Math.random()*100;
    for (let x = 0; x < worldDim[0]; ++x)
-      for (let z = 0; z < worldDim[2]; ++z) {
-         let _x = x-worldDim[0]/2;
-         let _z = z-worldDim[2]/2;
-         let _y = .75*Math.round(9*cg.noise(x*.07, seed, z*.07))+2;
-   
-         for (let y = 1; y <= _y; ++y)
-            try {
-               block[x][y][z] = 1;
-            } catch (error) {
-               continue;
-            }
-      }
+   for (let z = 0; z < worldDim[1]; ++z) {
+      let y = Math.round(9*cg.noise(x*.07, seed, z*.07))+2;
+      y = Math.max(0, y);
 
-   for (let x = 0; x < worldDim[0]; ++x)
-      for (let z = 0; z < worldDim[2]; ++z)
-         try {
-            block[x][0][z] = -1;
-         } catch (error) {
-            continue;
-         }
+      block[x][z] = y;
+   }
 
-   // let goalX = Math.floor(Math.random() * worldDim[0]);
-   // let goalZ = Math.floor(Math.random() * worldDim[2]);
-   // let _y = getHeight(goalX, goalZ);
-   // let goalY = _y + Math.floor(Math.random() * (worldDim[1] - _y)) ;
-   // goalY = Math.min(goalY, worldDim[1]);
-
-   // for (let y = 0; y < goalY; ++y) {
-   //    try {
-   //       block[goalX][y][goalZ] = 1;
-   //    } catch (error) {
-   //       continue;
-   //    }
-   // }
-
-   // goal = [goalX, goalY, goalZ];
 }
 
 function genMeshForWorld() {
    let meshList = [];
    for (let x = 0; x < worldDim[0]; ++x)
-   for (let y = 0; y < worldDim[1]; ++y)
-   for (let z = 0; z < worldDim[2]; ++z)
-      if (block[x][y][z] != 0) {
-         let matrix = cg.mTranslate(x+.5, y+.5, z+.5);
-         matrix = cg.mMultiply(matrix, cg.mScale(.5,.5,.5));
-         let color = cg.scale(cg.mix(terrainColor[colorIdx], [1,1,1], y/worldDim[1]), (x+y+z)%2 ? .9 : 1);
+   for (let z = 0; z < worldDim[1]; ++z) {
+         let y = block[x][z];
+         let matrix = cg.mTranslate(x+.5, .5*y, z+.5);
+         matrix = cg.mMultiply(matrix, cg.mScale(.5,Math.max(.5*y, .01),.5));
+         let color = cg.scale(cg.mix([0,.5,1], [1,1,1], y/8), (x+z)%2 ? .9 : 1);
          meshList.push(['cube', matrix, color]);
       }
    clay.defineMesh('terrain', clay.combineMeshes(meshList));
 }
 
 function getHeight(xf, zf) {
-   try {
-      let x = Math.floor(xf);
-      let z = Math.floor(zf);
-      for (let y = worldDim[1] -1; y >= 0; --y)
-         if (block[x][y][z]) {
-            return y+1;
-         }
-      return -10;
-   } catch (e) { 
-      return -10;
-   }
+   let x = Math.floor(xf);
+   let z = Math.floor(zf);
+   if (x < 0 || x >= block.length || z < 0 || z >= block[0].length) return 0;
+   return block[x][z];
 }
 
 function getTerrainHeight(vec) { return getHeight(vec[0], vec[2]); }
