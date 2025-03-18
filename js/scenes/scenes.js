@@ -20,6 +20,13 @@ export default () => {
 //          { name: "example7"           , path: "./example7.js"           , public: false },
 //          { name: "example8"           , path: "./example8.js"           , public: false },
 
+            { name: "stock1"             , path: "./stock1.js"             , public: true  },
+            { name: "stock2"             , path: "./stock2.js"             , public: true  },
+            { name: "stock3"             , path: "./stock3.js"             , public: true  },
+            { name: "stock"              , path: "./stock.js"              , public: true  },
+
+            { name: "screen"             , path: "./screen.js"             , public: true  },
+
             { name: "wordcloud"          , path: "./wordcloud.js"          , public: true  },
             { name: "wordcloud2"         , path: "./wordcloud2.js"         , public: true  },
             { name: "wordcloud3"         , path: "./wordcloud3.js"         , public: true  },

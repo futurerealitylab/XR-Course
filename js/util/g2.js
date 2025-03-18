@@ -228,7 +228,7 @@ export function G2(do_not_animate_flag=false, canvasWidth=512, canvasHeight) {
       }
       this.draw = () => {
          context.save();
-         context.font = (height * .07 * size) + 'px ' + font;
+         context.font = 'bold ' + (height * .07 * size) + 'px ' + font;
          g2.setColor(color, this.isWithin() ? .7 : 1);
          g2.fillRect(x-w/2, y-h/2, w, h);
          g2.setColor('black');
@@ -378,11 +378,17 @@ export function G2(do_not_animate_flag=false, canvasWidth=512, canvasHeight) {
    }
    this.drawPath = path => {
       context.beginPath();
+/*
       for (let n = 0 ; n < path.length ; n++)
          if (n==0)
             moveTo(x2c(path[n][0]), y2c(path[n][1]));
          else
             lineTo(x2c(path[n][0]), y2c(path[n][1]));
+*/
+      for (let n = 0 ; n < path.length-1 ; n++) {
+         moveTo(x2c(path[n][0]), y2c(path[n][1]));
+         lineTo(x2c(path[n+1][0]), y2c(path[n+1][1]));
+      }
       context.stroke();
    }
    this.drawRect = (x,y,w,h,r) => {
@@ -439,6 +445,8 @@ export function G2(do_not_animate_flag=false, canvasWidth=512, canvasHeight) {
    }
    let _h = 0.1;
    this.text = (text,x,y,alignment,rotation) => {
+      if (typeof text === 'number')
+         text = '' + text;
       context.save();
       let lines = text.split('\n');
       let dy = 2 * parseFloat(context.font) / height;
@@ -448,17 +456,12 @@ export function G2(do_not_animate_flag=false, canvasWidth=512, canvasHeight) {
       if (alignment)
          context.textAlign = alignment;
       for (let n = 0 ; n < lines.length ; n++, y -= dy) {
-         context.lineWidth = _h / 6;
+         context.lineWidth = _h;
          context.fillText(lines[n],0,h2c(n*dy));
-	 context.save();
-	    context.strokeStyle = 'black';
-	    context.lineWidth = 15 * _h;
-            context.strokeText(lines[n],0,h2c(n*dy));
-	 context.restore();
       }
       context.restore();
    }
-   this.textHeight = h => { _h = h; context.font = (height * h) + 'px ' + font; }
+   this.textHeight = h => { _h = h; context.font = (height * h) + 'px bold sans-serif'; }
    this.setFont = f => { font = f; this.textHeight(_h); }
 
    let font = 'Courier';

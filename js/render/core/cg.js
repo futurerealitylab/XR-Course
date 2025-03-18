@@ -135,7 +135,7 @@
    }
 
    let c2i = c => c < 65 ? c - 48 : c < 65 ? c - 55 : c - 87;
-   let h2f = h => c2i(h.charCodeAt(0)) / 16 + c2i(h.charCodeAt(1)) / 256;
+   let h2f = h => Math.pow(c2i(h.charCodeAt(0)) / 16 + c2i(h.charCodeAt(1)) / 256,2.2);
    export let hexToRgba = hex => [ h2f(hex.substring(1,3)),
                                    h2f(hex.substring(3,5)),
 				   h2f(hex.substring(5,7)),
