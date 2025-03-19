@@ -556,20 +556,22 @@ export let mProject = (x,y,z) => [1,0,0,x, 0,1,0,y, 0,0,1,z, 0,0,0,1 ];
 
 export let Matrix = function() {
    let top = 0, m = [ mIdentity() ];
-   this.aimX      = X       => m[top] = mMultiply(m[top], mAimX(X,undefined));
-   this.aimY      = Y       => m[top] = mMultiply(m[top], mAimY(Y,undefined));
-   this.aimZ      = Z       => m[top] = mMultiply(m[top], mAimZ(Z,undefined));
-   this.identity  = ()      => m[top] = mIdentity();
-   this.translate = (x,y,z) => m[top] = mMultiply(m[top], mTranslate(x,y,z));
-   this.rotateX   = theta   => m[top] = mMultiply(m[top], mRotateX(theta));
-   this.rotateY   = theta   => m[top] = mMultiply(m[top], mRotateY(theta));
-   this.rotateZ   = theta   => m[top] = mMultiply(m[top], mRotateZ(theta));
-   this.scale     = (x,y,z) => m[top] = mMultiply(m[top], mScale(x,y,z));
-   this.project   = (x,y,z) => m[top] = mMultiply(m[top], mProject(x,y,z));
-   this.getValue  = ()      => m[top];
-   this.setValue  = value   => m[top] = value.slice();
-   this.save      = ()      => { m[top+1] = m[top].slice(); top++; }
-   this.restore   = ()      => --top;
+   this.aimX      = (X,Y)   => this.setValue(mMultiply(m[top], mAimX(X,Y)));
+   this.aimY      = (Y,Z)   => this.setValue(mMultiply(m[top], mAimY(Y,Z)));
+   this.aimZ      = (Z,X)   => this.setValue(mMultiply(m[top], mAimZ(Z,X)));
+   this.getValue  = ()      => m[top].slice();
+   this.identity  = ()      => this.setValue(mIdentity());
+   this.inverse   = ()      => this.setValue(mInverse(m[top]));
+   this.project   = (x,y,z) => this.setValue(mMultiply(m[top], mProject(x,y,z)));
+   this.restore   = ()      => { --top; return this; }
+   this.rotateX   = theta   => this.setValue(mMultiply(m[top], mRotateX(theta)));
+   this.rotateY   = theta   => this.setValue(mMultiply(m[top], mRotateY(theta)));
+   this.rotateZ   = theta   => this.setValue(mMultiply(m[top], mRotateZ(theta)));
+   this.save      = ()      => { m[top+1] = m[top].slice(); top++; return this; }
+   this.scale     = (x,y,z) => this.setValue(mMultiply(m[top], mScale(x,y,z)));
+   this.setValue  = value   => { m[top] = value.slice(); return this; }
+   this.translate = (x,y,z) => this.setValue(mMultiply(m[top], mTranslate(x,y,z)));
+   this.transpose = ()      => this.setValue(mTranspose(m[top]));
 }
 
 export let packMatrix = m => { // PACK A ROTATION+TRANSLATION MATRIX (SCALING IS NOT SUPPORTED)
