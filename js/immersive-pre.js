@@ -973,6 +973,21 @@ function onXRFrame(t, frame) {
     let pose = frame.getViewerPose(refSpace);
     clay.pose = pose;
 
+    console.log(gl.program);
+    
+    //=============================== DEPTH ===================================//
+    if (pose) {
+        for (const view of pose.views) {
+            const depthInformation = xrGLFactory.getDepthInformation(view);
+            if (depthInformation) {
+                gl.activeTexture(gl.TEXTURE0 + 3);
+                gl.bindTexture(gl.TEXTURE_2D, depthInformation.texture);
+                gl.uniform1i(gl.getUniformLocation(gl.program, 'uDepthTexture'), 0);
+            }
+        }
+    }
+    //=============================== DEPTH ===================================//
+    
     session.requestAnimationFrame(onXRFrame);
 
     keyboardInput.updateKeyState();
@@ -984,7 +999,7 @@ function onXRFrame(t, frame) {
 
     if(window.isLayersSuported && session.isImmersive){
 
-        for(let i = 1;i<xrLayerObjects.length;i++){
+        /*for(let i = 1;i<xrLayerObjects.length;i++){
             let lo = xrLayerObjects[i];
             let layer = lo.layer;
             if (layer && layer.needsRedraw) {
@@ -996,7 +1011,7 @@ function onXRFrame(t, frame) {
                 gl.bindTexture(gl.TEXTURE_2D, null);
             }
         }
-        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);*/
     }
 
 
