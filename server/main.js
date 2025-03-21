@@ -5,6 +5,7 @@ var fs = require("fs");
 var http = require("http");
 var path = require("path");
 var fetch = require("node-fetch");
+require('dotenv').config();
 
 // behave as a relay
 
@@ -419,10 +420,10 @@ app.route("/api/aiquery").post(function(req, res) {
    
    const apiKey = process.env.OPENAI_API_KEY;
    if (!apiKey) {
-      console.error('OpenAI API key not found in environment variables');
+      console.error('OpenAI API key not found in .env file');
       return res.status(500).json({ 
          error: "OpenAI API key not configured", 
-         details: "Set the OPENAI_API_KEY environment variable"
+         details: "Add OPENAI_API_KEY to your .env file"
       });
    }
    
