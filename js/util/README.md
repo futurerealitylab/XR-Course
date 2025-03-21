@@ -34,6 +34,32 @@ const data = await askAIJson("Generate 3D object properties", {
 });
 ```
 
+## Creating Custom Methods
+
+You can create your own specialized query methods with custom system prompts:
+
+```javascript
+// Example: Create a method for generating 3D animations
+function askAIAnimation(prompt, options = {}) {
+    const animationPrompt = `You must respond with a valid JSON animation sequence.
+    Format your response as an array of keyframes with timestamps.
+    No explanations, just valid JSON.
+    
+    Here is the query: ${prompt}`;
+    
+    return askAIJson(animationPrompt, options);
+}
+
+// Example: Create a method for scene descriptions
+function askAIScene(prompt, options = {}) {
+    const customOptions = {
+        ...options,
+        systemPrompt: "You are a WebXR scene designer. Provide detailed scene layouts and object placements."
+    };
+    return askAI(prompt, customOptions);
+}
+```
+
 ## Configuration
 
 The AI query instance is created automatically on first use. You can customize it by creating your own instance:
