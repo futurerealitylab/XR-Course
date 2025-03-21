@@ -60,6 +60,74 @@ function askAIScene(prompt, options = {}) {
 }
 ```
 
+## WebXR Examples
+
+Here are some practical examples for generating WebXR objects and scenes:
+
+### Generate Object Properties
+```javascript
+// Create a method for WebXR object properties
+function askAIObject(prompt, options = {}) {
+    const objectPrompt = `Generate WebXR object properties as JSON. Include position, rotation, scale, and color.
+    Example format:
+    {
+        "position": [0, 1.5, 0],
+        "rotation": [0, 0, 0],
+        "scale": [0.3, 0.3, 0.3],
+        "color": [1, 0, 0]
+    }
+    
+    Query: ${prompt}`;
+    
+    return askAIJson(objectPrompt, options);
+}
+
+// Usage example:
+const sphere = await askAIObject("Create a red sphere floating at eye level");
+model.add('sphere')
+     .move(...sphere.position)
+     .scale(...sphere.scale)
+     .color(...sphere.color);
+```
+
+### Generate Scene Layout
+```javascript
+// Create a method for room layouts
+function askAIRoom(prompt, options = {}) {
+    const roomPrompt = `Generate a WebXR room layout as JSON. Include an array of objects with their properties.
+    Example format:
+    {
+        "objects": [
+            {
+                "type": "cube",
+                "position": [0, 1, 0],
+                "scale": [0.4, 0.4, 0.4],
+                "texture": "brick"
+            },
+            {
+                "type": "sphere",
+                "position": [1, 1.5, 0],
+                "color": [1, 1, 0]
+            }
+        ]
+    }
+    
+    Query: ${prompt}`;
+    
+    return askAIJson(roomPrompt, options);
+}
+
+// Usage example:
+const room = await askAIRoom("Create a simple room with a floating cube and sphere");
+room.objects.forEach(obj => {
+    const shape = model.add(obj.type);
+    if (obj.position) shape.move(...obj.position);
+    if (obj.scale) shape.scale(...obj.scale);
+    if (obj.color) shape.color(...obj.color);
+    if (obj.texture) shape.txtr(obj.texture);
+});
+```
+
 ## Configuration
 
 The AI query instance is created automatically on first use. You can customize it by creating your own instance:
