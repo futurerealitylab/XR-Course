@@ -24,6 +24,7 @@ export class NPCSystem {
       this.n_rootTerrain.add(meshTerrainName);
    }
    getRootNode() { return this.n_root; }
+   getNPCsRootNode() { return this.n_rootNPCs; }
    getTerrain() { return this.terrain; }
    legNum = {"triped":3, "quadruped":4, "pentaped":5, "hexapod":6, "heptapod":7, "octopod":8};
    addNPC(type, id = null, render = true) {
@@ -262,6 +263,19 @@ export class RobotMultiLegs extends NPC {
          let meshFoot = this.m_footList[l];
          meshFoot.identity().move(posFoot);
       }
+   }
+
+   getPos() { return this.center }
+   getBodyPos() { return cg.add(this.averageCenter, [0, this.height, 0]) }
+   getLegPartsPos(n) {
+      if (n < 0 || n >= this.arrLegs.length) {
+         console.warn("getLegPartsPos: leg index out of range");
+         return null;
+      }
+      let leg = this.arrLegs[n];
+      let posRoot = cg.add(leg.root, this.body);
+      let posKnee = cg.add(posRoot, cg.ik(this.leg1Len, this.leg2Len, cg.subtract(leg.position, posRoot), [0,1,0]));
+      return { root: posRoot, foot: leg.position, knee: posKnee };
    }
 }
  

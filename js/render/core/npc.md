@@ -22,6 +22,10 @@ Please call this function before calling any other function related to the rende
 
 returns the root node of the NPC System, which can be used to move, scale, etc. the whole system.
 
+### `.getNPCsRootNode()`
+
+returns the root node of all the NPCs. When rendering custom meshes for NPCs, it is recommended to add those meshes to this node.
+
 ### `.getTerrain()`
 
 returns the NPCTerrain object.
@@ -65,6 +69,21 @@ Optional:
 
 ## Class `RobotMultiLegs`
 
+The term **local** means local to the root node for NPCs, which can be acquired from NPCSystem's `.getNPCsRootNode()`.
+
 ### `.resetPosY()`
 
 resets the robot's position in the Y axis to fit the terrain. Highly recommended after a terrain re-generation.
+
+### `.getPos()`
+
+returns the **local** position of the robot. It is always on the ground.
+
+### Functions for rendering custom meshes
+
+`.getBodyPos()`
+- returns the **local** position of the robot's body.
+
+`.getLegPartsPos(n)`
+- returns the **local** positions of the root, foot, and knee of the n-th leg.
+- Format: `{ root: number[3], foot: number[3], knee: number[3] }`
