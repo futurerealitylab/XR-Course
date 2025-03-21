@@ -50,9 +50,65 @@ export function askAIJson(prompt, options = {}) {
         });
 }
 
+/**
+ * Global function to generate WebXR object properties
+ * @param {string} prompt - Description of the object to generate
+ * @param {Object} options - Additional options for the query
+ * @returns {Promise<Object>} - Promise that resolves with object properties
+ */
+export function askAIObject(prompt, options = {}) {
+    const objectPrompt = `Generate WebXR object properties as JSON. Include position, rotation, scale, color, and type.
+    Pay special attention to the "type" property, which should match what's in the query.
+    
+    Example format:
+    {
+        "type": "cube", // Valid types: cube, sphere, cylinder, cone, donut, tubeX, tubeY, tubeZ
+        "position": [0, 0, 0],
+        "rotation": [0, 0, 0],
+        "scale": [0.3, 0.3, 0.3],
+        "color": [1, 0, 0]
+    }
+    
+    Query: ${prompt}`;
+    
+    return askAIJson(objectPrompt, options);
+}
+
+/**
+ * Global function to generate WebXR room layouts
+ * @param {string} prompt - Description of the room layout to generate
+ * @param {Object} options - Additional options for the query
+ * @returns {Promise<Object>} - Promise that resolves with room layout
+ */
+export function askAIRoom(prompt, options = {}) {
+    const roomPrompt = `Generate a WebXR room layout as JSON. Include an array of objects with their properties.
+    Example format:
+    {
+        "objects": [
+            {
+                "type": "cube",
+                "position": [0, 1, 0],
+                "scale": [0.4, 0.4, 0.4],
+                "texture": "brick"
+            },
+            {
+                "type": "sphere",
+                "position": [1, 1.5, 0],
+                "color": [1, 1, 0]
+            }
+        ]
+    }
+    
+    Query: ${prompt}`;
+    
+    return askAIJson(roomPrompt, options);
+}
+
 if (typeof window !== 'undefined') {
     window.askAI = askAI;
     window.askAIJson = askAIJson;
+    window.askAIObject = askAIObject;
+    window.askAIRoom = askAIRoom;
 }
 
 export class AIQuery {
