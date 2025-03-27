@@ -371,20 +371,41 @@ export function G2(do_not_animate_flag=false, canvasWidth=512, canvasHeight) {
          return L ? L : R ? R : null;
       }
    }
+
+/*
+      context.save();
+      let lines = text.split('\n');
+      let dy = 2 * parseFloat(context.font) / height;
+      context.translate(x2c(x), y2c(y+dy*(lines.length/2-2/3)));
+      if (rotation)
+         context.rotate(-Math.PI/2 * rotation);
+      if (alignment)
+         context.textAlign = alignment;
+      for (let n = 0 ; n < lines.length ; n++, y -= dy) {
+         context.lineWidth = _h;
+         context.fillText(lines[n],0,h2c(n*dy));
+      }
+      context.restore();
+*/
+   this.drawImage = (image,x,y,w,h,rotation, sx,sy,sw,sh) => {
+      context.save();
+         context.translate(x2c(x), y2c(y));
+         if (rotation)
+            context.rotate(-Math.PI/2 * rotation);
+         if (sx)
+            context.drawImage(image, sx,sy,sw,sh, w2c(-w/2), h2c(-h/2), w2c(w), h2c(h));
+         else {
+            context.drawImage(image, w2c(-w/2), h2c(-h/2), w2c(w), h2c(h));
+         }
+      context.restore();
+   }
    this.drawOval = (x,y,w,h) => {
       context.beginPath();
-      context.ellipse(x2c(x+w/2), y2c(y+h/2), w2c(w/2), h2c(h/2), 0, 0, 2 * Math.PI);
+      context.ellipse(x2c(x), y2c(y), w2c(w/2), h2c(h/2), 0, 0, 2 * Math.PI);
       context.stroke();
    }
    this.drawPath = path => {
       context.beginPath();
-/*
-      for (let n = 0 ; n < path.length ; n++)
-         if (n==0)
-            moveTo(x2c(path[n][0]), y2c(path[n][1]));
-         else
-            lineTo(x2c(path[n][0]), y2c(path[n][1]));
-*/
       for (let n = 0 ; n < path.length-1 ; n++) {
          moveTo(x2c(path[n][0]), y2c(path[n][1]));
          lineTo(x2c(path[n+1][0]), y2c(path[n+1][1]));
@@ -394,11 +415,11 @@ export function G2(do_not_animate_flag=false, canvasWidth=512, canvasHeight) {
    this.drawRect = (x,y,w,h,r) => {
       if (r === undefined) {
          context.beginPath();
-         context.moveTo(x2c(x),y2c(y));
-         context.lineTo(x2c(x+w),y2c(y));
-         context.lineTo(x2c(x+w),y2c(y+h));
-         context.lineTo(x2c(x),y2c(y+h));
-         context.moveTo(x2c(x),y2c(y));
+         context.moveTo(x2c(x  ), y2c(y  ));
+         context.lineTo(x2c(x+w), y2c(y  ));
+         context.lineTo(x2c(x+w), y2c(y+h));
+         context.lineTo(x2c(x  ), y2c(y+h));
+         context.moveTo(x2c(x  ), y2c(y  ));
 	 context.stroke();
       }
       else {
@@ -432,7 +453,12 @@ export function G2(do_not_animate_flag=false, canvasWidth=512, canvasHeight) {
    }
    this.fillText = (text,x,y,alignment,rotation) => this.text(text,x,y,alignment,rotation);
    this.getContext = () => context;
-   this.line = (a,b) => this.drawPath([a,b]);
+   this.line = (a,b) => {
+      context.beginPath();
+      moveTo(x2c(a[0]), y2c(a[1]));
+      lineTo(x2c(b[0]), y2c(b[1]));
+      context.stroke();
+   }
    this.lineWidth = w => context.lineWidth = width * w;
    this.mouseState = () => mouseState;
    this.setColor = (color,dim) => {
@@ -448,17 +474,20 @@ export function G2(do_not_animate_flag=false, canvasWidth=512, canvasHeight) {
       if (typeof text === 'number')
          text = '' + text;
       context.save();
-      let lines = text.split('\n');
-      let dy = 2 * parseFloat(context.font) / height;
-      context.translate(x2c(x), y2c(y-dy/3));
-      if (rotation)
-         context.rotate(-Math.PI/2 * rotation);
-      if (alignment)
-         context.textAlign = alignment;
-      for (let n = 0 ; n < lines.length ; n++, y -= dy) {
-         context.lineWidth = _h;
-         context.fillText(lines[n],0,h2c(n*dy));
-      }
+         let dy = 2 * parseFloat(context.font) / height;
+         context.translate(x2c(x), y2c(y-dy/6));
+         if (alignment)
+            context.textAlign = alignment;
+         if (rotation)
+            context.rotate(-Math.PI/2 * rotation);
+         if (text.indexOf('\n') == -1)
+            context.fillText(text,0,0);
+	 else {
+            let lines = text.split('\n');
+            context.translate(0, h2c(-dy*((lines.length-1)/2)));
+            for (let n = 0 ; n < lines.length ; n++, y -= dy)
+               context.fillText(lines[n],0,h2c(n*dy));
+         }
       context.restore();
    }
    this.textHeight = h => { _h = h; context.font = (height * h) + 'px bold sans-serif'; }

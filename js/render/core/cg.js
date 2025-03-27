@@ -436,8 +436,7 @@ export let mHitRect = (beamMatrix, objMatrix) => {
    for (let i = 1 ; i < L.length ; i++)
       if (F(i) < 0)			// if outside of any bounding plane
          return null;			//    then give up.
-// return [F(1)/2, F(3)/2, -z];		// return [0...1, 0...1, z-dist]
-   return [F(1)-1, F(3)-1, -z];		// return [0...1, 0...1, z-dist]
+   return [F(1)-1, F(3)-1, -z];		// return [-1...1, -1...1, z-dist]
 }
 
 export let mIdentity = () => [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1];
