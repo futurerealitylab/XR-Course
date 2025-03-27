@@ -228,7 +228,7 @@ export function G2(do_not_animate_flag=false, canvasWidth=512, canvasHeight) {
       }
       this.draw = () => {
          context.save();
-         context.font = 'bold ' + (height * .07 * size) + 'px ' + font;
+         context.font = (height * .07 * size) + 'px ' + font;
          g2.setColor(color, this.isWithin() ? .7 : 1);
          g2.fillRect(x-w/2, y-h/2, w, h);
          g2.setColor('black');
@@ -490,10 +490,10 @@ export function G2(do_not_animate_flag=false, canvasWidth=512, canvasHeight) {
          }
       context.restore();
    }
-   this.textHeight = h => { _h = h; context.font = (height * h) + 'px bold sans-serif'; }
+   this.textHeight = h => { _h = h; context.font = ((10 * height * h >> 0)/10) + 'px ' + font; }
    this.setFont = f => { font = f; this.textHeight(_h); }
 
-   let font = 'Courier';
+   let font = 'Helvetica';
 
    this.barChart = (x,y,w,h, values, labels, colors) => {
       context.save();
