@@ -1,16 +1,19 @@
 {
-  "name": "immersive-presentation",
+  "name": "xr-course-server",
   "version": "1.0.0",
-  "description": "2022 VR Class",
-  "main": "server.js",
-  "directories": {
-    "test": "tests"
+  "description": "Server for XR Course WebXR Project",
+  "main": "server/main.js",
+  "scripts": {
+    "start": "node server/main.js",
+    "dev": "node server.js -env local",
+    "format": "prettier --write \"**/*.{js,json,md,html,css}\"",
+    "convert": "gltf-import-export"
   },
   "dependencies": {
     "body-parser": "^1.20.2",
+    "dotenv": "^16.4.7",
     "express": "^4.18.2",
     "formidable": "^3.5.1",
-    "fs": "^0.0.1-security",
     "holojam-node": "^0.2.3",
     "node-fetch": "^2.6.7",
     "peerjs": "^1.5.2",
@@ -19,24 +22,18 @@
     "ws": "^7.4.6",
     "yargs-parser": ">=13.1.2"
   },
-  "scripts": {
-    "test": "node server.js -env local",
-    "start": "node server.js -env local",
-    "format": "prettier --write \"**/*.{js,json,md,html,css}\"",
-    "convert": "gltf-import-export"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/snowymo/immersive-presentation.git"
-  },
-  "author": "Zhenyi He",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/snowymo/immersive-presentation/issues"
-  },
-  "homepage": "https://github.com/snowymo/immersive-presentation#readme",
   "devDependencies": {
     "gltf-import-export": "^1.0.16",
     "prettier": "2.2.1"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/futurerealitylab/XR-Course.git"
+  },
+  "author": "Keru Wang",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/futurerealitylab/XR-Course/issues"
+  },
+  "homepage": "https://github.com/futurerealitylab/XR-Course#readme"
 }

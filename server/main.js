@@ -40,7 +40,8 @@ var trackMessage = "";
 var pendingAIQueries = new Map();
 
 var app = express();
-var port = process.argv[2] || 8000;
+// var port = process.argv[2] || 8000;
+var port = process.env.PORT || process.argv[2] || 8000;
 var wsPort = process.argv[3] || 22346;
 
 // serve static files from main directory
