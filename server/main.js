@@ -4,8 +4,8 @@ var formidable = require("formidable");
 var fs = require("fs");
 var http = require("http");
 var path = require("path");
-
-const { PythonShell } = require('python-shell');
+var fetch = require("node-fetch");
+require('dotenv').config();
 
 // behave as a relay
 
@@ -36,6 +36,8 @@ trackInfo["3"] = [0,0,0,0,0,0,0];
 trackInfo["4"] = [0,0,0,0,0,0,0];
 
 var trackMessage = "";
+
+var pendingAIQueries = new Map();
 
 var app = express();
 var port = process.argv[2] || 8000;
@@ -406,4 +408,67 @@ holojam.on('tick', (a, b) => {
   console.log('VR: [ ' + a[0] + ' in, ' + b[0] + ' out ]');
 });
 */
+
+app.route("/api/aiquery").post(function(req, res) {
+   const { query, queryId, model } = req.body;
+   
+   if (!query) {
+      return res.status(400).json({ error: "Query text is required" });
+   }
+   
+   console.log(`Received AI query: ${query}`);
+   
+   const apiKey = process.env.OPENAI_API_KEY;
+   if (!apiKey) {
+      console.error('OpenAI API key not found in .env file');
+      return res.status(500).json({ 
+         error: "OpenAI API key not configured", 
+         details: "Add OPENAI_API_KEY to your .env file"
+      });
+   }
+   
+   fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+         'Content-Type': 'application/json',
+         'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+         model: model || 'gpt-4o',
+         messages: [
+            {
+               role: "system",
+               content: "You are a helpful assistant in a WebXR environment. Provide concise, informative responses."
+            },
+            {
+               role: "user",
+               content: query
+            }
+         ]
+      })
+   })
+   .then(response => {
+      if (!response.ok) {
+         throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
+      }
+      return response.json();
+   })
+   .then(data => {
+      const response = data.choices[0].message.content;
+      
+      res.json({ 
+         queryId: queryId,
+         response: response
+      });
+      
+      console.log(`AI response for query ${queryId}: ${response.substring(0, 100)}${response.length > 100 ? '...' : ''}`);
+   })
+   .catch(error => {
+      console.error('Error calling OpenAI API:', error);
+      res.status(500).json({ 
+         error: "Error processing AI query", 
+         details: error.message 
+      });
+   });
+});
 

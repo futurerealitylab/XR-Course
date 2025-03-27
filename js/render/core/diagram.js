@@ -1,22 +1,13 @@
 import * as cg from "./cg.js";
 import { G2 } from "../../util/g2.js";
 
-export function Diagram(model, txtrUnitL, txtrUnitR, center, size, callback) {
+export function Diagram(model, center, size, callback) {
 
    // INITIALIZE THE FLATTENED CUBES CONTAINING THE CANVAS FOR THE USER'S TWO EYES.
 
-   let obj = [
-      model.add('cube').color(2,2,2).view(0),
-      model.add('cube').color(2,2,2).view(1),
-   ];
-
-   obj[0].txtr(txtrUnitL);
-   obj[1].txtr(txtrUnitR);
-
-   let g2LR = [ new G2(), new G2() ];
-
-   model.txtrSrc(txtrUnitL, g2LR[0].getCanvas());
-   model.txtrSrc(txtrUnitR, g2LR[1].getCanvas());
+   let g2LR = [ new G2(false, 1024), new G2(false, 1024) ];
+   model.add('square').color(2,2,2).view(0).setTxtr(g2LR[0].getCanvas());
+   model.add('square').color(2,2,2).view(1).setTxtr(g2LR[1].getCanvas());
 
    // APPLICATION PROGRAMMER'S INTERFACE FOR MATRIX MANIPULATION.
 
@@ -48,8 +39,8 @@ export function Diagram(model, txtrUnitL, txtrUnitR, center, size, callback) {
 
    this.update = () => {
       for (let view = 0 ; view < 2 ; view++) {
-         obj[view].setMatrix(createBeamMatrix(center,center))
-                  .scale(size,size,.00013);
+         model.child(view).setMatrix(createBeamMatrix(center,center))
+                          .scale(size,size,.00013);
       
          // Force a redraw by calling the texture function directly, otherwise we should make sure everything is well-initialized at the start.
          draw(view);
@@ -80,7 +71,7 @@ export function Diagram(model, txtrUnitL, txtrUnitR, center, size, callback) {
          color : color,
          text  : text,
          pos   : [pos[0],pos[1]],
-         height: cg.norm(m().slice(4,7)) / size * z,
+         height: cg.norm(m().slice(4,7)) / size * pos[2],
       });
    }
 
@@ -192,7 +183,7 @@ for (let v = -4 ; v <= 4 ; v++)
 
       // COMPUTE WHERE THE FLATTENED CUBE CONTAINING THE CANVAS IS IN 3D SPACE.
 
-      objMatrix = obj[view].getGlobalMatrix();
+      objMatrix = model.child(view).getGlobalMatrix();
       zc = cg.norm(cg.subtract(eye, center));
 
       // BUILD THE DISPLAY LIST, THEN SORT ITS ITEMS BACK TO FRONT.

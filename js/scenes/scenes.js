@@ -20,6 +20,15 @@ export default () => {
 //          { name: "example7"           , path: "./example7.js"           , public: false },
 //          { name: "example8"           , path: "./example8.js"           , public: false },
 
+            { name: "stock1"             , path: "./stock1.js"             , public: true  },
+            { name: "stock2"             , path: "./stock2.js"             , public: true  },
+            { name: "stock3"             , path: "./stock3.js"             , public: true  },
+            { name: "stock"              , path: "./stock.js"              , public: true  },
+
+            { name: "screen"             , path: "./screen.js"             , public: true  },
+            { name: "screen2"            , path: "./screen2.js"            , public: true  },
+            { name: "cities"             , path: "./cities.js"             , public: true  },
+
             { name: "wordcloud"          , path: "./wordcloud.js"          , public: true  },
             { name: "wordcloud2"         , path: "./wordcloud2.js"         , public: true  },
             { name: "wordcloud3"         , path: "./wordcloud3.js"         , public: true  },
@@ -27,6 +36,9 @@ export default () => {
             { name: "wordcloud5"         , path: "./wordcloud5.js"         , public: true  },
             { name: "wordcloud6"         , path: "./wordcloud6.js"         , public: true  },
             { name: "wordcloud7"         , path: "./wordcloud7.js"         , public: true  },
+
+            { name: "aiquery"            , path: "./demoAIQuery.js"        , public: true  },
+            { name: "aiquery-console"    , path: "./demoAIQueryConsole.js" , public: true  },
 
             { name: "fractal"            , path: "./fractal.js"            , public: true  },
 //          { name: "nestedA"            , path: "./nestedA.js"            , public: true  },
