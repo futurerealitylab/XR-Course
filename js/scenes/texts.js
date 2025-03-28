@@ -8,13 +8,13 @@ export const init = async model => {
       let p = [0,.8,0];
       draw.color('white').fill2D([[-.3,-.3],[.3,-.3],[.3,.3],[-.3,.3]], p);
       let d = draw.distance(p);
-      let fade = (A,B,C,D) => [ 0,0,0, d<A || d>D ? 0 : d>B && d<C ? 1 : cg.ease(d<B ? (d-A)/(B-A) : (d-D)/(C-D)) ];
+      let fade = (A,B,C,D) => [ 0,0,0, cg.ease(cg.plateau(A,B,C,D,d)) ];
       if (d > .2)
          draw.textHeight(.03).color(fade(s[4],s[5],1000,1000)).text('A TALE OF\nTWO CITIES\n\nby\n\nCharles Dickens', p, 'center');
       if (d > .1 && d <= .3)
          draw.textHeight(.013).color(fade(s[2],s[3],s[4],s[5])).text(texts[1], p, 'left');
       if (d > .05 && d <= .15)
-         draw.textHeight(.0068).color(fade(s[0],s[1],s[2],s[3])).text(texts[2], p, 'left');
+         draw.textHeight(.0074).color(fade(s[0],s[1],s[2],s[3])).text(texts[2], p, 'left');
       if (d <= .075)
          draw.textHeight(.004).color(fade(0,0,s[0],s[1])).text(texts[3], p, 'left');
    });
