@@ -2,7 +2,6 @@ import * as cg from "../render/core/cg.js";
 import { G2} from "./g2.js";
 
 let pz = .75;
-let frameCount = 0;
 
 let Projected = function() {
    let mp, mi, ex, ey, ez, mm;
@@ -89,6 +88,10 @@ export let G3 = function(model, callback) {
    }
 
    this.color = c => { color = c; return this; }
+   this.distance = p => {
+      p = projected.projectPoint(p);
+      return p ? distance(p[2]) : null;
+   }
    this.draw = path => {
       if (projectPath(path)) {
          let c = [0,0,0], np = path.length;
@@ -141,7 +144,7 @@ export let G3 = function(model, callback) {
       }
       return null;
    }
-   this.font = f => font = f;
+   this.font = f => { font = f; return this; }
    this.image = (image,center,width,height,sx,sy,sw,sh) => {
       if ((width || height) && image.width) {
          let p = projected.projectPoint(center);
@@ -250,7 +253,6 @@ export let G3 = function(model, callback) {
             }
          }
       }
-      frameCount++;
    }
 }
 

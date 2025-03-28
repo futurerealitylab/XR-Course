@@ -26,8 +26,8 @@ export default () => {
             { name: "stock"              , path: "./stock.js"              , public: true  },
 
             { name: "screen"             , path: "./screen.js"             , public: true  },
-            { name: "screen2"            , path: "./screen2.js"            , public: true  },
             { name: "cities"             , path: "./cities.js"             , public: true  },
+            { name: "texts"              , path: "./texts.js"              , public: true  },
 
             { name: "wordcloud"          , path: "./wordcloud.js"          , public: true  },
             { name: "wordcloud2"         , path: "./wordcloud2.js"         , public: true  },
