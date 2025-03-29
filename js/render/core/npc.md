@@ -4,10 +4,11 @@ A sample usage can be found in scenes/spider.js.
 
 ## Class `NPCSystem`
 
-### `new NPCSystem(model, dimX, dimZ)`
+### `new NPCSystem(model, dimX, dimY, dimZ, res)`
 
 Optional:  
-`dimX` and `dimZ` define the dimension of the terrain system. Default is 16x16.  
+`dimX`, `dimY`, and `dimZ` define the dimension of the terrain system. Default is 16x16x16.  
+`res` defines the resolution of the terrain system, i.e. 1 terrain unit = 1/res (global unit). Default is 1.
 
 This will create a NPC System, which is the prerequisite for the NPCs and terrain system.
 
@@ -29,6 +30,11 @@ returns the root node of all the NPCs. When rendering custom meshes for NPCs, it
 ### `.getTerrain()`
 
 returns the NPCTerrain object.
+
+### `.adaptTerrainToMeshes(nodeList)`
+
+makes the terrain adapt to the meshes of the nodes in the nodeList. This function will heavily impact the CPU performance.  
+This function will automatically update the meshes.
 
 ### `.addNPC(type, id, render)`
 
