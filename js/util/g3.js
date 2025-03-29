@@ -2,7 +2,6 @@ import * as cg from "../render/core/cg.js";
 import { G2} from "./g2.js";
 
 let pz = .75;
-let frameCount = 0;
 
 let Projected = function() {
    let mp, mi, ex, ey, ez, mm;
@@ -34,6 +33,7 @@ export let G3 = function(model, callback) {
        distance = z => 0.4 / z,
        draw = this,
        displayList = [],
+       font = 'Helvetica',
        g2 = [],
        lineWidth = .01,
        nd = 0,
@@ -88,6 +88,10 @@ export let G3 = function(model, callback) {
    }
 
    this.color = c => { color = c; return this; }
+   this.distance = p => {
+      p = projected.projectPoint(p);
+      return p ? distance(p[2]) : null;
+   }
    this.draw = path => {
       if (projectPath(path)) {
          let c = [0,0,0], np = path.length;
@@ -140,6 +144,7 @@ export let G3 = function(model, callback) {
       }
       return null;
    }
+   this.font = f => { font = f; return this; }
    this.image = (image,center,width,height,sx,sy,sw,sh) => {
       if ((width || height) && image.width) {
          let p = projected.projectPoint(center);
@@ -192,12 +197,13 @@ export let G3 = function(model, callback) {
          dl[0] = p[2];
          dl[1] = TEXT;
          dl[2] = color;
-         dl[3] = textHeight * scale;
-         dl[4] = text;
-         dl[5] = p[0];
-         dl[6] = p[1];
-         dl[7] = cg.def(alignment, 'center');
-         dl[8] = cg.def(rotation,0) - projected.tilt / (Math.PI/2);
+         dl[3] = font;
+         dl[4] = textHeight * scale;
+         dl[5] = text;
+         dl[6] = p[0];
+         dl[7] = p[1];
+         dl[8] = cg.def(alignment, 'center');
+         dl[9] = cg.def(rotation,0) - projected.tilt / (Math.PI/2);
 	 return distance(p[2]);
       }
       return null;
@@ -240,13 +246,13 @@ export let G3 = function(model, callback) {
                break;
             case TEXT:
                g2[view].setColor  (item[2]);
-               g2[view].textHeight(item[3]);
-               g2[view].text      (item[4],item[5],item[6],item[7],item[8]);
+               g2[view].setFont   (item[3]);
+               g2[view].textHeight(item[4]);
+               g2[view].text      (item[5],item[6],item[7],item[8],item[9]);
                break;
             }
          }
       }
-      frameCount++;
    }
 }
 

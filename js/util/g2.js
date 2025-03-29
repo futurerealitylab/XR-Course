@@ -228,7 +228,7 @@ export function G2(do_not_animate_flag=false, canvasWidth=512, canvasHeight) {
       }
       this.draw = () => {
          context.save();
-         context.font = 'bold ' + (height * .07 * size) + 'px ' + font;
+         context.font = (height * .07 * size) + 'px ' + font;
          g2.setColor(color, this.isWithin() ? .7 : 1);
          g2.fillRect(x-w/2, y-h/2, w, h);
          g2.setColor('black');
@@ -475,25 +475,34 @@ export function G2(do_not_animate_flag=false, canvasWidth=512, canvasHeight) {
          text = '' + text;
       context.save();
          let dy = 2 * parseFloat(context.font) / height;
-         context.translate(x2c(x), y2c(y-dy/6));
          if (alignment)
             context.textAlign = alignment;
+
+         let lines = text.split('\n');
+	 let dx = 0;
+	 if (alignment == 'left' || alignment == 'right')
+	    for (let n = 0 ; n < lines.length ; n++)
+	       dx = Math.max(dx, textWidth(lines[n]));
+         if (alignment == 'right')
+	    dx = -dx;
+
+         context.translate(x2c(x), y2c(y-dy/6));
          if (rotation)
             context.rotate(-Math.PI/2 * rotation);
-         if (text.indexOf('\n') == -1)
-            context.fillText(text,0,0);
+
+         if (lines.length == 1)
+            context.fillText(text,w2c(-dx/2),0);
 	 else {
-            let lines = text.split('\n');
-            context.translate(0, h2c(-dy*((lines.length-1)/2)));
+            context.translate(w2c(-dx/2), h2c(-dy*((lines.length-1)/2)));
             for (let n = 0 ; n < lines.length ; n++, y -= dy)
-               context.fillText(lines[n],0,h2c(n*dy));
+               context.fillText(lines[n],w2c(-dx/2),h2c(n*dy));
          }
       context.restore();
    }
-   this.textHeight = h => { _h = h; context.font = (height * h) + 'px bold sans-serif'; }
+   this.textHeight = h => { _h = h; context.font = ((10 * height * h >> 0)/10) + 'px ' + font; }
    this.setFont = f => { font = f; this.textHeight(_h); }
 
-   let font = 'Courier';
+   let font = 'Helvetica';
 
    this.barChart = (x,y,w,h, values, labels, colors) => {
       context.save();
