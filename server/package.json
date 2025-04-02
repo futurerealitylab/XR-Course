@@ -6,6 +6,8 @@
       "express": "4.7.x",
       "formidable": "1.0.x",
       "holojam-node": "^0.2.3",
-      "ws": "0.8.x"
+      "node-fetch": "^2.6.7",
+      "ws": "0.8.x",
+      "dotenv": "^16.4.5"
    }
 }

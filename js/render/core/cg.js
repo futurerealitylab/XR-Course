@@ -62,6 +62,8 @@
       return s;
    }
 
+   export let plateau = (a,b,c,d,t) => t<a || t>d ? 0 : t>b && t<c ? 1 : t<b ? (t-a)/(b-a) : (t-d)/(c-d);
+
    // Unpack a packed array. The lo, hi range must match the lo, hi range of the corresponding call to pack().
 
    export let unpack = (string, lo, hi) => {
@@ -135,7 +137,7 @@
    }
 
    let c2i = c => c < 65 ? c - 48 : c < 65 ? c - 55 : c - 87;
-   let h2f = h => c2i(h.charCodeAt(0)) / 16 + c2i(h.charCodeAt(1)) / 256;
+   let h2f = h => Math.pow(c2i(h.charCodeAt(0)) / 16 + c2i(h.charCodeAt(1)) / 256,2.2);
    export let hexToRgba = hex => [ h2f(hex.substring(1,3)),
                                    h2f(hex.substring(3,5)),
 				   h2f(hex.substring(5,7)),
@@ -436,8 +438,7 @@ export let mHitRect = (beamMatrix, objMatrix) => {
    for (let i = 1 ; i < L.length ; i++)
       if (F(i) < 0)			// if outside of any bounding plane
          return null;			//    then give up.
-// return [F(1)/2, F(3)/2, -z];		// return [0...1, 0...1, z-dist]
-   return [F(1)-1, F(3)-1, -z];		// return [0...1, 0...1, z-dist]
+   return [F(1)-1, F(3)-1, -z];		// return [-1...1, -1...1, z-dist]
 }
 
 export let mIdentity = () => [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1];
@@ -556,33 +557,37 @@ export let mProject = (x,y,z) => [1,0,0,x, 0,1,0,y, 0,0,1,z, 0,0,0,1 ];
 
 export let Matrix = function() {
    let top = 0, m = [ mIdentity() ];
-   this.aimX      = X       => m[top] = mMultiply(m[top], mAimX(X,undefined));
-   this.aimY      = Y       => m[top] = mMultiply(m[top], mAimY(Y,undefined));
-   this.aimZ      = Z       => m[top] = mMultiply(m[top], mAimZ(Z,undefined));
-   this.identity  = ()      => m[top] = mIdentity();
-   this.translate = (x,y,z) => m[top] = mMultiply(m[top], mTranslate(x,y,z));
-   this.rotateX   = theta   => m[top] = mMultiply(m[top], mRotateX(theta));
-   this.rotateY   = theta   => m[top] = mMultiply(m[top], mRotateY(theta));
-   this.rotateZ   = theta   => m[top] = mMultiply(m[top], mRotateZ(theta));
-   this.scale     = (x,y,z) => m[top] = mMultiply(m[top], mScale(x,y,z));
-   this.project   = (x,y,z) => m[top] = mMultiply(m[top], mProject(x,y,z));
-   this.getValue  = ()      => m[top];
-   this.setValue  = value   => m[top] = value.slice();
-   this.save      = ()      => { m[top+1] = m[top].slice(); top++; }
-   this.restore   = ()      => --top;
+   this.aimX      = (X,Y)   => this.setValue(mMultiply(m[top], mAimX(X,Y)));
+   this.aimY      = (Y,Z)   => this.setValue(mMultiply(m[top], mAimY(Y,Z)));
+   this.aimZ      = (Z,X)   => this.setValue(mMultiply(m[top], mAimZ(Z,X)));
+   this.getValue  = ()      => m[top].slice();
+   this.identity  = ()      => this.setValue(mIdentity());
+   this.inverse   = ()      => this.setValue(mInverse(m[top]));
+   this.project   = (x,y,z) => this.setValue(mMultiply(m[top], mProject(x,y,z)));
+   this.restore   = ()      => { --top; return this; }
+   this.rotateX   = theta   => this.setValue(mMultiply(m[top], mRotateX(theta)));
+   this.rotateY   = theta   => this.setValue(mMultiply(m[top], mRotateY(theta)));
+   this.rotateZ   = theta   => this.setValue(mMultiply(m[top], mRotateZ(theta)));
+   this.save      = ()      => { m[top+1] = m[top].slice(); top++; return this; }
+   this.scale     = (x,y,z) => this.setValue(mMultiply(m[top], mScale(x,y,z)));
+   this.setValue  = value   => { m[top] = value.slice(); return this; }
+   this.translate = (x,y,z) => this.setValue(mMultiply(m[top], mTranslate(x,y,z)));
+   this.transpose = ()      => this.setValue(mTranspose(m[top]));
 }
 
-let decimalFactor = 10000; // number of digits after the decimal for floats
-
 export let packMatrix = m => { // PACK A ROTATION+TRANSLATION MATRIX (SCALING IS NOT SUPPORTED)
-   let I = t => decimalFactor * t >> 0, Q = mToQuaternion(m);
-   return [ I(Q.x), I(Q.y), I(Q.z), I(Q.w), I(m[12]), I(m[13]), I(m[14]) ];
+   let I = t => 10000 * t >> 0, Q = mToQuaternion(m);
+   return [ I(m[12]), I(m[13]), I(m[14]), I(Q.x), I(Q.y), I(Q.z) ];
 }
 
 export let unpackMatrix = P => { // UNPACK A ROTATION+TRANSLATION MATRIX
-   let m = mFromQuaternion({x:P[0]/decimalFactor, y:P[1]/decimalFactor, z:P[2]/decimalFactor, w:P[3]/decimalFactor});
-   return m.slice(0, 12).concat([P[4]/decimalFactor, P[5]/decimalFactor, P[6]/decimalFactor, 1]);
+   let x = P[3]/10000, y = P[4]/10000, z = P[5]/10000, w = Math.sqrt(1 - x * x - y * y - z * z);
+   return mFromQuaternion({x:x, y:y, z:z, w:w}).slice(0, 12).concat([P[0]/10000, P[1]/10000, P[2]/10000, 1]);
 }
+
+let C92 = " !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~";
+export let packC   = t => { let n = (t + 1.27) / .0003 >> 0; return C92[n / 92 >> 0] + C92[n % 92]; }
+export let unpackC = s => .0003 * (92 * C92.indexOf(s.charAt(0)) + C92.indexOf(s.charAt(1))) - 1.27;
 
 export let vec2vecProj = (a,b) => {
    let proj = dot(a,b)/dot(b,b);
