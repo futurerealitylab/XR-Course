@@ -5,7 +5,7 @@ import { texts } from "../util/texts.js";
 export const init = async model => {
    let g3 = new G3(model, draw => {
       let s = [.1,.125,.155,.193,.24,.3];
-      let p = [0,.8,0];
+      let p = [0,1.5,0];
       draw.color('white').fill2D([[-.3,-.3],[.3,-.3],[.3,.3],[-.3,.3]], p);
       let d = draw.distance(p);
       let fade = (A,B,C,D) => [ 0,0,0, cg.ease(cg.plateau(A,B,C,D,d)) ];

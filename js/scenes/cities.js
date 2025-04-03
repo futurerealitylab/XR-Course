@@ -26,7 +26,9 @@ export const init = async model => {
          else
             draw.line([x,y,-z],[x,y+r,-z]);
          draw.color('blue');
-         if (draw.text(cities[n][0], [x,y+r+.018,-z]) < .2) {
+         let p = [x,y+r+.018,-z];
+         draw.text(cities[n][0], p);
+         if (draw.distance(p) < .2) {
             draw.textHeight(.008);
             draw.text('pop. ' + cities[n][2], [x,y+r+.006,-z]);
             draw.textHeight(.02);
