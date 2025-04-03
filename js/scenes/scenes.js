@@ -20,22 +20,11 @@ export default () => {
 //          { name: "example7"           , path: "./example7.js"           , public: false },
 //          { name: "example8"           , path: "./example8.js"           , public: false },
 
-            { name: "stock1"             , path: "./stock1.js"             , public: true  },
-            { name: "stock2"             , path: "./stock2.js"             , public: true  },
-            { name: "stock3"             , path: "./stock3.js"             , public: true  },
-            { name: "stock"              , path: "./stock.js"              , public: true  },
-
-            { name: "cities"             , path: "./cities.js"             , public: true  },
-            { name: "texts"              , path: "./texts.js"              , public: true  },
-            { name: "art"                , path: "./art.js"                , public: true  },
-
-            { name: "wordcloud"          , path: "./wordcloud.js"          , public: true  },
-            { name: "wordcloud2"         , path: "./wordcloud2.js"         , public: true  },
-            { name: "wordcloud3"         , path: "./wordcloud3.js"         , public: true  },
-            { name: "wordcloud4"         , path: "./wordcloud4.js"         , public: true  },
-            { name: "wordcloud5"         , path: "./wordcloud5.js"         , public: true  },
-            { name: "wordcloud6"         , path: "./wordcloud6.js"         , public: true  },
             { name: "wordcloud7"         , path: "./wordcloud7.js"         , public: true  },
+            { name: "stock"              , path: "./stock.js"              , public: true  },
+            { name: "cities"             , path: "./cities.js"             , public: true  },
+            { name: "tale"               , path: "./tale.js"               , public: true  },
+            { name: "art"                , path: "./art.js"                , public: true  },
 
             { name: "aiquery"            , path: "./demoAIQuery.js"        , public: true  },
             { name: "aiquery-console"    , path: "./demoAIQueryConsole.js" , public: true  },
@@ -43,9 +32,9 @@ export default () => {
             { name: "fractal"            , path: "./fractal.js"            , public: true  },
 //          { name: "nestedA"            , path: "./nestedA.js"            , public: true  },
 //          { name: "nestedB"            , path: "./nestedB.js"            , public: true  },
-            { name: "textured"           , path: "./textured.js"           , public: true  },
+//          { name: "textured"           , path: "./textured.js"           , public: true  },
 
-            { name: "particleNoise"      , path: "./particleNoise.js"      , public: true  },
+//          { name: "particleNoise"      , path: "./particleNoise.js"      , public: true  },
 
             { name: "testAvatar"         , path: "./testAvatar.js"         , public: true  },
 
@@ -65,7 +54,7 @@ export default () => {
 //          { name: "DemoControllers"    , path: "./demoControllers.js"    , public: false},
 //          { name: "DemoCroquet"        , path: "./demoCroquet.js"        , public: false},
 //          { name: "demoHands"          , path: "./demoHands.js"          , public: false},
-          { name: "DemoHUD"            , path: "./demoHUD.js"            , public: false},
+//          { name: "DemoHUD"            , path: "./demoHUD.js"            , public: false},
 //          { name: "DemoIntersect"      , path: "./demoIntersect.js"      , public: false},
 //          { name: "DemoOpacity"        , path: "./demoOpacity.js"        , public: false},
 //          { name: "DemoParticles"      , path: "./demoParticles.js"      , public: false},
@@ -119,8 +108,8 @@ export default () => {
 //          { name: "snowOriginal"       , path: "./demoSnow.js"           , public: false},
 //          { name: "snow"               , path: "./demoSnowDots.js"       , public: false },
 //          { name: "snow2"              , path: "./demoSnow2.js"          , public: false},
-          { name: "statue"             , path: "./demoGLTF.js"           , public: true },
-            { name: "attic"              , path: "./attic.js"              , public: false },
+            { name: "statue"             , path: "./demoGLTF.js"           , public: true },
+//          { name: "attic"              , path: "./attic.js"              , public: false },
 //          { name: "sync"               , path: "./demoSync.js"           , public: false},
 //          { name: "table"              , path: "./demoTable.js"          , public: false},
 //          { name: "telekinesis"        , path: "./demoTelekinesis.js"    , public: false },
@@ -141,10 +130,10 @@ export default () => {
 //          { name: "offset"             , path: "./demoOffset.js"         , public: false},
 //          { name: "spinning sound"     , path: "./demoSpinningSound.js"  , public: false },
 //          { name: "forest"             , path: "./demoForest.js"         , public: false },
-      //    // { name: "spatial audio test" , path: "./demoSpatialAudioWrapper.js"         , public: true },
-      //    { name: "spatial audio wrapper" , path: "./demoSoundWrapper.js" , public: false },
-      //    { name: "opti-track"         , path: "./demoTrack.js"          , public: false },
-      //    { name: "opti-track-offset" , path: "./demoTrackOffset.js"    , public: false },
+//          { name: "spatial audio test" , path: "./demoSpatialAudioWrapper.js" , public: true },
+//          { name: "spatial audio wrapper",path:"./demoSoundWrapper.js"   , public: false },
+//          { name: "opti-track"         , path: "./demoTrack.js"          , public: false },
+//          { name: "opti-track-offset"  , path: "./demoTrackOffset.js"    , public: false },
       ]
    };
 }

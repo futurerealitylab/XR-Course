@@ -6,23 +6,26 @@ import { buttonState, controllerMatrix } from "../render/core/controllerInput.js
 let pz = .75;
 
 let Projected = function() {
-   let em, mp, mi, ex, ey, ez, mm;
-   this.getMatrix = () => mm;
-   this.getScale = p => .5 * pz / (pz - (mi[2]*p[0] + mi[6]*p[1] + mi[10]*p[2] + mi[14]));
+   let em, mf, ex, ey, ez, a,b,c, d,e,f, g,h,i, j,k,l, B, C;
+   this.getMatrix = () => mf;
+   this.getScale = p => .5 * pz / (pz - (c*p[0] + f*p[1] + i*p[2] + l));
    this.projectPoint = p => {
-      let X = ex-p[0], Y = ey-p[1], Z = ez-p[2];
-      let z = -(mi[2]*ex + mi[6]*ey + mi[10]*ez + mi[14]) / (mi[2]*X + mi[6]*Y + mi[10]*Z);
-      return z > 0 ? null : [z*(mi[0]*X+mi[4]*Y+mi[8]*Z), mi[1]*(z*X+ex)+mi[5]*(z*Y+ey)+mi[9]*(z*Z+ez)+mi[13], -z];
+      let X = p[0] - ex, Y = p[1] - ey, Z = p[2] - ez;
+      let z = -C / (c*X + f*Y + i*Z);
+      return z < 0 ? null : [z * (a*X + d*Y + g*Z), z * (b*X + e*Y + h*Z) + B, z];
    }
    this.update = view => {
       em = cg.mMultiply(clay.inverseRootMatrix, clay.root().inverseViewMatrix(view));
+      this.tilt = Math.atan2(em[1], Math.sqrt(em[0]*em[0]+em[2]*em[2]));
       ex = em[12];
       ey = em[13];
       ez = em[14];
-      mp = cg.mMultiply(clay.root().inverseViewMatrix(view), cg.mTranslate([0,-.22,-pz]));
-      mi = cg.mInverse(mp);
-      mm = cg.mMultiply(clay.inverseRootMatrix, mp);
-      this.tilt = Math.atan2(mm[1], Math.sqrt(mm[0]*mm[0]+mm[2]*mm[2]));
+      mf = cg.mMultiply(em, cg.mTranslate([0,-.22,-pz]));
+      let m = cg.mInverse(mf);
+      a=m[0],b=m[1],c=m[2], d=m[4],e=m[5],f=m[6],g=m[8],h=m[9],i=m[10],j=m[12],k=m[13],l=m[14];
+      this.tilt = Math.atan2(d, Math.sqrt(a*a + g*g));
+      B = b * ex + e * ey + h * ez + k;
+      C = c * ex + f * ey + i * ez + l;
    }
 }
 
@@ -64,24 +67,19 @@ export let G3 = function(model, callback) {
       return true;
    }
 
-   let projectPath2D = (path,center,width) => {
+   let projectPath2D = (path,center) => {
       let p = projected.projectPoint(center);
       if (! p)
          return false;
 
-      let sin = Math.sin(projected.tilt);
-      let cos = Math.cos(projected.tilt);
-
       let scale = projected.getScale(center);
-      let size = cg.def(width, 1) * scale;
+      let sin = scale * Math.sin(projected.tilt);
+      let cos = scale * Math.cos(projected.tilt);
 
       let path2D = [];
-      for (let n = 0 ; n < path.length ; n++) {
-         let x = size * path[n][0];
-         let y = size * path[n][1];
-         path2D.push([ p[0] + cos * x + sin * y,
-                       p[1] - sin * x + cos * y ]);
-      }
+      for (let n = 0 ; n < path.length ; n++)
+         path2D.push([ p[0] + cos * path[n][0] + sin * path[n][1],
+                       p[1] - sin * path[n][0] + cos * path[n][1] ]);
 
       p_path  = path2D;
       p_z     = p[2];
@@ -105,13 +103,13 @@ export let G3 = function(model, callback) {
          dl[0] = p_z;
          dl[1] = DRAW;
          dl[2] = color;
-         dl[3] = lineWidth * scale;
-         dl[4] = p_path;
+         dl[3] = p_path;
+         dl[4] = lineWidth * scale;
       }
       return this;
    }
-   this.draw2D = (path,center,width) => {
-      if (projectPath2D(path, center, width)) {
+   this.draw2D = (path,center,) => {
+      if (projectPath2D(path, center)) {
 	 if (! displayList[nd]) displayList[nd] = []; let dl = displayList[nd++];
          dl[0] = p_z;
          dl[1] = DRAW;
@@ -123,18 +121,17 @@ export let G3 = function(model, callback) {
    }
    this.fill = path => {
       if (projectPath(path)) {
-	 if (! displayList[nd]) displayList[nd] = []; let dl = displayList[nd];
+	 if (! displayList[nd]) displayList[nd] = []; let dl = displayList[nd++];
          dl[0] = p_z;
          dl[1] = FILL;
          dl[2] = color;
          dl[3] = p_path;
-	 nd++;
       }
       return this;
    }
-   this.fill2D = (path,center,width) => {
-      if (projectPath2D(path, center, width)) {
-	 if (! displayList[nd]) displayList[nd] = []; let dl = displayList[nd++];
+   this.fill2D = (path,center) => {
+      if (projectPath2D(path, center)) {
+         if (! displayList[nd]) displayList[nd] = []; let dl = displayList[nd++];
          dl[0] = p_z;
          dl[1] = FILL;
          dl[2] = color;
@@ -258,8 +255,8 @@ export let G3 = function(model, callback) {
             switch (item[1]) {
             case DRAW:
                g2[view].setColor (item[2]);
-               g2[view].lineWidth(item[3]);
-               g2[view].drawPath (item[4]);
+               g2[view].drawPath (item[3]);
+               g2[view].lineWidth(item[4]);
                break;
             case FILL:
                g2[view].setColor(item[2]);
