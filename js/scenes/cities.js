@@ -19,18 +19,20 @@ export const init = async model => {
          let z = 1.190 * (cities[n][3] - lo3) / (hi3 - lo3) - 0.60;
          let r = cities[n][2] / 10000000;
          draw.color('red');
-	 if (r > .4) {
-	    draw.line([x,y,-z],[x,y+r/2,-z]);
-	    draw.line([x,y+r/2,-z],[x,y+r,-z]);
+         if (r > .4) {
+            draw.line([x,y,-z],[x,y+r/2,-z]);
+            draw.line([x,y+r/2,-z],[x,y+r,-z]);
          }
-	 else
-	    draw.line([x,y,-z],[x,y+r,-z]);
+         else
+            draw.line([x,y,-z],[x,y+r,-z]);
          draw.color('blue');
-         if (draw.text(cities[n][0], [x,y+r+.018,-z]) < .2) {
+         let p = [x,y+r+.018,-z];
+         draw.text(cities[n][0], p);
+         if (draw.distance(p) < .2) {
             draw.textHeight(.008);
-	    draw.text('pop. ' + cities[n][2], [x,y+r+.006,-z]);
+            draw.text('pop. ' + cities[n][2], [x,y+r+.006,-z]);
             draw.textHeight(.02);
-	 }
+         }
       }
    });
 

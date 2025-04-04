@@ -62,6 +62,8 @@
       return s;
    }
 
+   export let plateau = (a,b,c,d,t) => t<a || t>d ? 0 : t>b && t<c ? 1 : t<b ? (t-a)/(b-a) : (t-d)/(c-d);
+
    // Unpack a packed array. The lo, hi range must match the lo, hi range of the corresponding call to pack().
 
    export let unpack = (string, lo, hi) => {

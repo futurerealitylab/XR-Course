@@ -1,11 +1,13 @@
 import * as cg from "./cg.js";                                                   // Import the CG library.          //
 import { buttonState, controllerMatrix } from './controllerInput.js';            // Import the button state.        //
+import { jointMatrix } from "./handtrackingInput.js";                            // Import finger joint data        //
                                                                                  // Import the CG library.          //
 export function XRSharing(handle) {                                              //                                 //
    window.xrS = {};                                                              // Initialize shared state.        //
    server.init('xrI', {});                                                       // Initialize message passing.     //
    let lastSpeech = '', speakerID = -1, previousAudioVolume = 0;                 //                                 //
    let message = msg => { msg.id = clientID; server.send('xrI', msg); }          // Add clientID to each message.   //
+   let round = f => (1000 * f >> 0) / 1000;                                      // Round to nearest 1/1000         //
    this.setHandSharing = state => isHandSharing = cg.def(state, true);           // Toggle hand matrix sharing.     //
    let isHandSharing = false;                                                    // Default = no shared hand matrix //
    this.update = () => {                                                         //                                 //
@@ -27,9 +29,12 @@ export function XRSharing(handle) {                                             
                     if (msg.speaking) speakerID = msg.id;                        // Set the current speaker ID.     //
                else if (msg.speech) parseSpeech(model, msg.speech);              // Parse what was just said.       //
                else if (msg.head) xrS[msg.id].head = msg.head;                   // Set a user's head matrix.       //
-               else if (msg.hand)                                                // Controller events:              //
+               else if (msg.hand) {                                              // Controller events:              //
 	          msg.mat ? xrS[msg.id][msg.hand].mat = msg.mat                  //    Set controller matrix.       //
 		          : xrS[msg.id][msg.hand][msg.button] = msg.state;       //    Set controller button.       //
+                  if (msg.fingers)                                               // If handtracking:                //
+		     xrS[msg.id][msg.hand].fingers = msg.fingers;                //    Set fingertip positions      //
+               }                                                                 //                                 //
             }                                                                    //                                 //
       });                                                                        //                                 //
       for (let hand in { left: {}, right: {} })                                  //                                 //
@@ -47,14 +52,24 @@ export function XRSharing(handle) {                                             
                                    clay.root().inverseViewMatrix(1), .5));       // head position to all other      //
       if (hm[0]!=1 || hm[1]!=0 || hm[2]!=0) {                                    // users, to show this user's name //
          message({ head: cg.packMatrix(hm) });                                   // over each user's head.          //
-	 if (isHandSharing)
-            for (let hand in { left: {}, right: {} })
-               message({ hand: hand,
-	                 mat: cg.packMatrix(
-			      cg.mMultiply(clay.inverseRootMatrix,
-	                      cg.mMultiply(cg.mMultiply(controllerMatrix[hand],
-		              cg.mTranslate([0,-.05,-.08])),
-			      cg.mRotateX(-Math.PI/4)))) });
+	 if (isHandSharing)                                                      //                                 //
+            for (let hand in { left: {}, right: {} }) {                          // Optionally share hand data:     //
+	       let msg = { hand: hand };                                         //                                 //
+	       if (window.handtracking) {                                        // If handtracking, share both the //
+	          msg.mat = cg.packMatrix(jointMatrix[0]);                       // hand matrix and the positions   //
+	          msg.fingers = [];                                              // of the last joints of the five  //
+		  for (let f = 4 ; f < 25 ; f += 5)                              // fingers.                        //
+		     msg.fingers.push(round(jointMatrix[f].mat.slice(12,15)));   //                                 //
+	       }                                                                 //                                 //
+	       else {                                                            //                                 //
+	          msg.mat = cg.packMatrix(                                       // If not handtracking, just share //
+		            cg.mMultiply(clay.inverseRootMatrix,                 // the matrix of the controller.   //
+	                    cg.mMultiply(cg.mMultiply(controllerMatrix[hand],    //                                 //
+		            cg.mTranslate([0,-.049,-.079])),                     //                                 //
+			    cg.mRotateX(-Math.PI/4))));                          //                                 //
+	       }                                                                 //                                 //
+	       message(msg);                                                     //                                 //
+            }                                                                    //                                 //
          if (previousAudioVolume < .1 && audioVolume >= .1)                      // Whenever a user wearing an XR   //
             message({ speaking: true });                                         // headset starts to speak, send a //
          previousAudioVolume = audioVolume;                                      // message to indicate that.       //

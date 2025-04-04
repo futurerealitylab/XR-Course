@@ -1,27 +1,31 @@
 import * as cg from "../render/core/cg.js";
 import { G2} from "./g2.js";
+import { jointMatrix } from "../render/core/handtrackingInput.js";
+import { buttonState, controllerMatrix } from "../render/core/controllerInput.js";
 
 let pz = .75;
-let frameCount = 0;
 
 let Projected = function() {
-   let mp, mi, ex, ey, ez, mm;
-   this.getMatrix = () => mm;
-   this.getScale = p => .5 * pz / (pz - (mi[2]*p[0] + mi[6]*p[1] + mi[10]*p[2] + mi[14]));
+   let em, mf, ex, ey, ez, a,b,c, d,e,f, g,h,i, j,k,l, B, C;
+   this.getMatrix = () => mf;
+   this.getScale = p => .5 * pz / (pz - (c*p[0] + f*p[1] + i*p[2] + l));
    this.projectPoint = p => {
-      let X = ex-p[0], Y = ey-p[1], Z = ez-p[2];
-      let z = -(mi[2]*ex + mi[6]*ey + mi[10]*ez + mi[14]) / (mi[2]*X + mi[6]*Y + mi[10]*Z);
-      return z > 0 ? null : [z*(mi[0]*X+mi[4]*Y+mi[8]*Z), mi[1]*(z*X+ex)+mi[5]*(z*Y+ey)+mi[9]*(z*Z+ez)+mi[13], -z];
+      let X = p[0] - ex, Y = p[1] - ey, Z = p[2] - ez;
+      let z = -C / (c*X + f*Y + i*Z);
+      return z < 0 ? null : [z * (a*X + d*Y + g*Z), z * (b*X + e*Y + h*Z) + B, z];
    }
    this.update = view => {
-      let eyeMatrix = cg.mMultiply(clay.inverseRootMatrix, clay.root().inverseViewMatrix(view));
-      ex = eyeMatrix[12];
-      ey = eyeMatrix[13];
-      ez = eyeMatrix[14];
-      mp = cg.mMultiply(clay.root().inverseViewMatrix(view), cg.mTranslate([0,-.22,-pz]));
-      mi = cg.mInverse(mp);
-      mm = cg.mMultiply(clay.inverseRootMatrix, mp);
-      this.tilt = Math.atan2(mm[1], Math.sqrt(mm[0]*mm[0]+mm[2]*mm[2]));
+      em = cg.mMultiply(clay.inverseRootMatrix, clay.root().inverseViewMatrix(view));
+      this.tilt = Math.atan2(em[1], Math.sqrt(em[0]*em[0]+em[2]*em[2]));
+      ex = em[12];
+      ey = em[13];
+      ez = em[14];
+      mf = cg.mMultiply(em, cg.mTranslate([0,-.22,-pz]));
+      let m = cg.mInverse(mf);
+      a=m[0],b=m[1],c=m[2], d=m[4],e=m[5],f=m[6],g=m[8],h=m[9],i=m[10],j=m[12],k=m[13],l=m[14];
+      this.tilt = Math.atan2(d, Math.sqrt(a*a + g*g));
+      B = b * ex + e * ey + h * ez + k;
+      C = c * ex + f * ey + i * ez + l;
    }
 }
 
@@ -63,24 +67,19 @@ export let G3 = function(model, callback) {
       return true;
    }
 
-   let projectPath2D = (path,center,width) => {
+   let projectPath2D = (path,center) => {
       let p = projected.projectPoint(center);
       if (! p)
          return false;
 
-      let sin = Math.sin(projected.tilt);
-      let cos = Math.cos(projected.tilt);
-
       let scale = projected.getScale(center);
-      let size = cg.def(width, 1) * scale;
+      let sin = scale * Math.sin(projected.tilt);
+      let cos = scale * Math.cos(projected.tilt);
 
       let path2D = [];
-      for (let n = 0 ; n < path.length ; n++) {
-         let x = size * path[n][0];
-         let y = size * path[n][1];
-         path2D.push([ p[0] + cos * x + sin * y,
-                       p[1] - sin * x + cos * y ]);
-      }
+      for (let n = 0 ; n < path.length ; n++)
+         path2D.push([ p[0] + cos * path[n][0] + sin * path[n][1],
+                       p[1] - sin * path[n][0] + cos * path[n][1] ]);
 
       p_path  = path2D;
       p_z     = p[2];
@@ -89,6 +88,10 @@ export let G3 = function(model, callback) {
    }
 
    this.color = c => { color = c; return this; }
+   this.distance = p => {
+      p = projected.projectPoint(p);
+      return p ? distance(p[2]) : null;
+   }
    this.draw = path => {
       if (projectPath(path)) {
          let c = [0,0,0], np = path.length;
@@ -100,74 +103,68 @@ export let G3 = function(model, callback) {
          dl[0] = p_z;
          dl[1] = DRAW;
          dl[2] = color;
-         dl[3] = lineWidth * scale;
-         dl[4] = p_path;
-	 return distance(p_z);
+         dl[3] = p_path;
+         dl[4] = lineWidth * scale;
       }
-      return null;
+      return this;
    }
-   this.draw2D = (path,center,width) => {
-      if (projectPath2D(path, center, width)) {
+   this.draw2D = (path,center,) => {
+      if (projectPath2D(path, center)) {
 	 if (! displayList[nd]) displayList[nd] = []; let dl = displayList[nd++];
          dl[0] = p_z;
          dl[1] = DRAW;
          dl[2] = color;
          dl[3] = p_path;
          dl[4] = lineWidth * p_scale;
-	 return distance(p_z);
       }
-      return null;
+      return this;
    }
    this.fill = path => {
       if (projectPath(path)) {
-	 if (! displayList[nd]) displayList[nd] = []; let dl = displayList[nd];
-         dl[0] = p_z;
-         dl[1] = FILL;
-         dl[2] = color;
-         dl[3] = p_path;
-	 nd++;
-	 return distance(p_z);
-      }
-      return null;
-   }
-   this.fill2D = (path,center,width) => {
-      if (projectPath2D(path, center, width)) {
 	 if (! displayList[nd]) displayList[nd] = []; let dl = displayList[nd++];
          dl[0] = p_z;
          dl[1] = FILL;
          dl[2] = color;
          dl[3] = p_path;
-	 return distance(p_z);
       }
-      return null;
+      return this;
    }
-   this.font = f => font = f;
-   this.image = (image,center,width,height,sx,sy,sw,sh) => {
-      if ((width || height) && image.width) {
+   this.fill2D = (path,center) => {
+      if (projectPath2D(path, center)) {
+         if (! displayList[nd]) displayList[nd] = []; let dl = displayList[nd++];
+         dl[0] = p_z;
+         dl[1] = FILL;
+         dl[2] = color;
+         dl[3] = p_path;
+      }
+      return this;
+   }
+   this.font = f => { font = f; return this; }
+   this.image = (image,center,x,y,w,h,sx,sy,sw,sh) => {
+      if ((w || h) && image.width) {
          let p = projected.projectPoint(center);
          if (p) {
-            if (! height)
-               height = width * image.height / image.width;
-            else if (! width)
-               width = height * image.width / image.height;
+            if (! h)
+               h = w * image.height / image.width;
+            else if (! w)
+               w = h * image.width / image.height;
             let scale = projected.getScale(center);
 	    if (! displayList[nd]) displayList[nd] = []; let dl = displayList[nd++];
             dl[0] = p[2];
             dl[1] = IMAGE;
             dl[2] = image;
-            dl[3] = p[0];
-            dl[4] = p[1];
-            dl[5] = 2 * width * scale;
-            dl[6] = 2 * height * scale;
+            dl[3] = p[0] + x * scale;
+            dl[4] = p[1] + y * scale;
+            dl[5] = 2 * w * scale;
+            dl[6] = 2 * h * scale;
             dl[7] = -projected.tilt / (Math.PI/2);
             dl[8] = sx;
             dl[9] = sy;
             dl[10] = sw;
             dl[11] = sh;
-	    return distance(p[2]);
          }
       }
-      return null;
+      return this;
    }
    this.line = (a,b) => {
       let scale = projected.getScale([ (a[0]+b[0])/2, (a[1]+b[1])/2, (a[2]+b[2])/2 ]);
@@ -181,15 +178,16 @@ export let G3 = function(model, callback) {
          dl[3] = lineWidth * scale;
          dl[4] = a;
          dl[5] = b;
-         return distance((a[2] + b[2]) / 2);
       }
-      return null;
+      return this;
    }
    this.lineWidth = lw => { lineWidth = lw; return this; }
-   this.text = (text,center,alignment,rotation) => {
+   this.text = (text,center,alignment,x,y,rotation) => {
       let p = projected.projectPoint(center);
       if (p) {
          let scale = projected.getScale(center);
+         x = cg.def(x,0);
+         y = cg.def(y,0);
 	 if (! displayList[nd]) displayList[nd] = []; let dl = displayList[nd++];
          dl[0] = p[2];
          dl[1] = TEXT;
@@ -197,15 +195,22 @@ export let G3 = function(model, callback) {
          dl[3] = font;
          dl[4] = textHeight * scale;
          dl[5] = text;
-         dl[6] = p[0];
-         dl[7] = p[1];
+	 let cos = scale * Math.cos(projected.tilt);
+	 let sin = scale * Math.sin(projected.tilt);
+         dl[6] = p[0] + cos * x + sin * y;
+         dl[7] = p[1] - sin * x + cos * y;
          dl[8] = cg.def(alignment, 'center');
          dl[9] = cg.def(rotation,0) - projected.tilt / (Math.PI/2);
-	 return distance(p[2]);
       }
-      return null;
+      return this;
    }
    this.textHeight = th => { textHeight = th; return this; }
+
+   let F = {left:[], right:[]};
+   let P = {left:[], right:[]};
+
+   this.finger = (hand,i) => F[hand][cg.def(i,1)];
+   this.pinch  = (hand,i) => P[hand][cg.def(i,1)];
 
    this.update = () => {
       for (let view = 0 ; view <= 1 ; view++) {
@@ -214,6 +219,31 @@ export let G3 = function(model, callback) {
 
 	 nd = 0;
          g2[view].update();
+
+	 // IF HAND TRACKING, SHOW TIPS OF FINGERS. USE COLOR TO INDICATE PINCH.
+
+	 for (let hand in {left:0,right:0})
+	    if (window.handtracking) {
+	       let co = ['#0080f0','#ffffff','#ff0000','#ffff00','#008000'];
+	       let fw = [.021,.019,.018,.017,.015];
+	       let f = F[hand];
+	       let p = P[hand];
+	       for (let i = 0 ; i < 5 ; i++) {
+	          f[i] = jointMatrix[hand][5*i + 4].mat.slice(12,15);
+	          this.lineWidth(fw[i]+.002).color('black').line(f[i], f[i]);
+               }
+	       for (let i = 1 ; i < 5 ; i++)
+	          p[i] = cg.distance(f[0],f[i]) < .023;
+	       this.lineWidth(fw[0]).color(co[p[1]?1:p[2]?2:p[3]?3:p[4]?4:0]).line(f[0], f[0]); // SHOW THUMB
+	       for (let i = 1 ; i < 5 ; i++)
+	          this.lineWidth(fw[i]).color(p[i] ? co[i] : co[0]).line(f[i], f[i]); // SHOW FINGER
+	    }
+            else {
+	       F[hand][0] = F[hand][1] = cg.mMultiply(controllerMatrix[hand], cg.mTranslate(0,-.049,-.079)).slice(12,15);
+	       P[hand][1] = buttonState[hand][0].pressed;
+	       //this.lineWidth(.021).color('#000000').line(F[hand][1], F[hand][1]);
+	       //this.lineWidth(.019).color(P[hand][1] ? '#ffffff' : '#0080ff').line(F[hand][1], F[hand][1]);
+	    }
 
 	 let sortedDisplayList = [];
          for (let n = 0 ; n < nd ; n++)
@@ -225,8 +255,8 @@ export let G3 = function(model, callback) {
             switch (item[1]) {
             case DRAW:
                g2[view].setColor (item[2]);
-               g2[view].lineWidth(item[3]);
-               g2[view].drawPath (item[4]);
+               g2[view].drawPath (item[3]);
+               g2[view].lineWidth(item[4]);
                break;
             case FILL:
                g2[view].setColor(item[2]);
@@ -250,7 +280,6 @@ export let G3 = function(model, callback) {
             }
          }
       }
-      frameCount++;
    }
 }
 
