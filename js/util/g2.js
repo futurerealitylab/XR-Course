@@ -486,7 +486,7 @@ export function G2(do_not_animate_flag=false, canvasWidth=512, canvasHeight) {
          if (alignment == 'right')
 	    dx = -dx;
 
-         context.translate(x2c(x), y2c(y-dy/6));
+         context.translate(x2c(x), y2c(y-dy/4));
          if (rotation)
             context.rotate(-Math.PI/2 * rotation);
 

@@ -25,6 +25,7 @@ export default () => {
             { name: "cities"             , path: "./cities.js"             , public: true  },
             { name: "tale"               , path: "./tale.js"               , public: true  },
             { name: "art"                , path: "./art.js"                , public: true  },
+            { name: "pinch"              , path: "./pinch.js"              , public: true  },
 
             { name: "aiquery"            , path: "./demoAIQuery.js"        , public: true  },
             { name: "aiquery-console"    , path: "./demoAIQueryConsole.js" , public: true  },

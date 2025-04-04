@@ -232,8 +232,10 @@ export let G3 = function(model, callback) {
 	          f[i] = jointMatrix[hand][5*i + 4].mat.slice(12,15);
 	          this.lineWidth(fw[i]+.002).color('black').line(f[i], f[i]);
                }
-	       for (let i = 1 ; i < 5 ; i++)
-	          p[i] = cg.distance(f[0],f[i]) < .023;
+	       for (let i = 1 ; i < 5 ; i++) {
+	          let d = cg.distance(f[0],f[i]);
+	          p[i] = d > 0 && d < .023;
+               }
 	       this.lineWidth(fw[0]).color(co[p[1]?1:p[2]?2:p[3]?3:p[4]?4:0]).line(f[0], f[0]); // SHOW THUMB
 	       for (let i = 1 ; i < 5 ; i++)
 	          this.lineWidth(fw[i]).color(p[i] ? co[i] : co[0]).line(f[i], f[i]); // SHOW FINGER
@@ -241,8 +243,8 @@ export let G3 = function(model, callback) {
             else {
 	       F[hand][0] = F[hand][1] = cg.mMultiply(controllerMatrix[hand], cg.mTranslate(0,-.049,-.079)).slice(12,15);
 	       P[hand][1] = buttonState[hand][0].pressed;
-	       //this.lineWidth(.021).color('#000000').line(F[hand][1], F[hand][1]);
-	       //this.lineWidth(.019).color(P[hand][1] ? '#ffffff' : '#0080ff').line(F[hand][1], F[hand][1]);
+	       this.lineWidth(.021).color('#000000').line(F[hand][1], F[hand][1]);
+	       this.lineWidth(.019).color(P[hand][1] ? '#ffffff' : '#0080ff').line(F[hand][1], F[hand][1]);
 	    }
 
 	 let sortedDisplayList = [];
@@ -279,6 +281,13 @@ export let G3 = function(model, callback) {
                break;
             }
          }
+/*
+	 let x = .03 * (1 - 2 * view), y = .22;
+	 g2[view].setColor('#0080ff');
+	 g2[view].lineWidth(.001);
+	 g2[view].line([x-.01,y],[x+.01,y]);
+	 g2[view].line([x,y-.01],[x,y+.01]);
+*/
       }
    }
 }
