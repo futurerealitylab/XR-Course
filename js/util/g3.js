@@ -43,7 +43,8 @@ export let G3 = function(model, callback) {
        lineWidth = .01,
        nd = 0,
        screen = [],
-       textHeight = .1;
+       textHeight = .1,
+       view;
 
    for (let view = 0 ; view <= 1 ; view++) {
       g2[view] = new G2(false, 2040);
@@ -206,14 +207,16 @@ export let G3 = function(model, callback) {
    }
    this.textHeight = th => { textHeight = th; return this; }
 
-   let F = {left:[], right:[]};
-   let P = {left:[], right:[]};
+   let co = ['#0080f0','#ffffff','#ff0000','#ffff00','#008000'];
+   let F = {left:[0,0,0,0,0], right:[0,0,0,0,0]};
+   let P = {left:[0,0,0,0], right:[0,0,0,0]};
 
    this.finger = (hand,i) => F[hand][cg.def(i,1)];
    this.pinch  = (hand,i) => P[hand][cg.def(i,1)];
+   this.view   = ()       => view;
 
    this.update = () => {
-      for (let view = 0 ; view <= 1 ; view++) {
+      for (view = 0 ; view <= 1 ; view++) {
          projected.update(view);
          screen[view].setMatrix(projected.getMatrix());
 
@@ -224,12 +227,12 @@ export let G3 = function(model, callback) {
 
 	 for (let hand in {left:0,right:0})
 	    if (window.handtracking) {
-	       let co = ['#0080f0','#ffffff','#ff0000','#ffff00','#008000'];
 	       let fw = [.021,.019,.018,.017,.015];
 	       let f = F[hand];
 	       let p = P[hand];
 	       for (let i = 0 ; i < 5 ; i++) {
-	          f[i] = jointMatrix[hand][5*i + 4].mat.slice(12,15);
+		  let _f = jointMatrix[hand][5*i + 4].mat.slice(12,15);
+		  f[i] = f[i] ? cg.mix(f[i], _f, .5) : _f;
 	          this.lineWidth(fw[i]+.002).color('black').line(f[i], f[i]);
                }
 	       for (let i = 1 ; i < 5 ; i++) {
@@ -243,8 +246,10 @@ export let G3 = function(model, callback) {
             else {
 	       F[hand][0] = F[hand][1] = cg.mMultiply(controllerMatrix[hand], cg.mTranslate(0,-.049,-.079)).slice(12,15);
 	       P[hand][1] = buttonState[hand][0].pressed;
+	       if (buttonState[hand][1])
+	          P[hand][2] = buttonState[hand][1].pressed;
 	       this.lineWidth(.021).color('#000000').line(F[hand][1], F[hand][1]);
-	       this.lineWidth(.019).color(P[hand][1] ? '#ffffff' : '#0080ff').line(F[hand][1], F[hand][1]);
+	       this.lineWidth(.019).color(co[ P[hand][1] ? 1 : P[hand][2] ? 2 : 0 ]).line(F[hand][1], F[hand][1]);
 	    }
 
 	 let sortedDisplayList = [];

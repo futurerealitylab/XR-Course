@@ -15,10 +15,10 @@ export default () => {
 //          { name: "example2"           , path: "./example2.js"           , public: false },
 //          { name: "example3"           , path: "./example3.js"           , public: false },
 //          { name: "example4"           , path: "./example4.js"           , public: false },
-//          { name: "example5"           , path: "./example5.js"           , public: false },
-//          { name: "example6"           , path: "./example6.js"           , public: false },
-//          { name: "example7"           , path: "./example7.js"           , public: false },
-//          { name: "example8"           , path: "./example8.js"           , public: false },
+            { name: "example5"           , path: "./example5.js"           , public: false },
+            { name: "example6"           , path: "./example6.js"           , public: false },
+            { name: "example7"           , path: "./example7.js"           , public: false },
+            { name: "example8"           , path: "./example8.js"           , public: false },
 
             { name: "wordcloud7"         , path: "./wordcloud7.js"         , public: true  },
             { name: "stock"              , path: "./stock.js"              , public: true  },
@@ -26,6 +26,7 @@ export default () => {
             { name: "tale"               , path: "./tale.js"               , public: true  },
             { name: "art"                , path: "./art.js"                , public: true  },
             { name: "pinch"              , path: "./pinch.js"              , public: true  },
+            { name: "pinch2"             , path: "./pinch2.js"             , public: true  },
 
             { name: "aiquery"            , path: "./demoAIQuery.js"        , public: true  },
             { name: "aiquery-console"    , path: "./demoAIQueryConsole.js" , public: true  },
