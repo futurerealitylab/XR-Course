@@ -27,6 +27,7 @@ export default () => {
             { name: "art"                , path: "./art.js"                , public: true  },
             { name: "pinch"              , path: "./pinch.js"              , public: true  },
             { name: "pinch2"             , path: "./pinch2.js"             , public: true  },
+            { name: "pinch3"             , path: "./pinch3.js"             , public: true  },
 
             { name: "aiquery"            , path: "./demoAIQuery.js"        , public: true  },
             { name: "aiquery-console"    , path: "./demoAIQueryConsole.js" , public: true  },
