@@ -31,6 +31,7 @@ export default () => {
 
             { name: "red_ball"           , path: "./red_ball.js"           , public: true  },
             { name: "cube"               , path: "./cube.js"               , public: true  },
+            { name: "bouncing"           , path: "./bouncing.js"           , public: true  },
 
             { name: "aiquery"            , path: "./demoAIQuery.js"        , public: true  },
             { name: "aiquery-console"    , path: "./demoAIQueryConsole.js" , public: true  },
