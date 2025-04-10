@@ -231,7 +231,7 @@ export let G3 = function(model, callback) {
 	       let f = F[hand];
 	       let p = P[hand];
 	       for (let i = 0 ; i < 5 ; i++) {
-		  let _f = jointMatrix[hand][5*i + 4].mat.slice(12,15);
+  		  let _f = cg.mMultiply(clay.inverseRootMatrix, jointMatrix[hand][5*i + 4].mat).slice(12,15);
 		  f[i] = f[i] ? cg.mix(f[i], _f, .5) : _f;
 	          this.lineWidth(fw[i]+.002).color('black').line(f[i], f[i]);
                }
@@ -244,7 +244,9 @@ export let G3 = function(model, callback) {
 	          this.lineWidth(fw[i]).color(p[i] ? co[i] : co[0]).line(f[i], f[i]); // SHOW FINGER
 	    }
             else {
-	       F[hand][0] = F[hand][1] = cg.mMultiply(controllerMatrix[hand], cg.mTranslate(0,-.049,-.079)).slice(12,15);
+	       F[hand][0] = F[hand][1] = cg.mMultiply(clay.inverseRootMatrix,
+	                                              cg.mMultiply(controllerMatrix[hand],
+					                           cg.mTranslate(0,-.049,-.079))).slice(12,15);
 	       P[hand][1] = buttonState[hand][0].pressed;
 	       if (buttonState[hand][1])
 	          P[hand][2] = buttonState[hand][1].pressed;
