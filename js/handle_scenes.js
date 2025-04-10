@@ -130,7 +130,7 @@ window.showPrivateScenes = false;
 window.isMenuClosed = true;
 
 window.guideStates =[];
-guideStates.push(window.onlyScene ? '0,' + onlyScene : '0,tabletop');
+//guideStates.push(window.onlyScene ? '0,' + onlyScene : '0,tabletop');
 window.useGuide = true;
 
 const addDemoButtons = (demoNames, scenesInit) => {

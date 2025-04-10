@@ -35,15 +35,17 @@ export let G3 = function(model, callback) {
    const DRAW = 0, FILL = 1, IMAGE = 2, LINE = 3, TEXT = 4;
 
    let color = '#000000',
+       displayList = [],
        distance = z => 0.4 / z,
        draw = this,
-       displayList = [],
        font = 'Helvetica',
        g2 = [],
+       handP = [0,0,0],
        lineWidth = .01,
        nd = 0,
        screen = [],
-       textHeight = .1;
+       textHeight = .1,
+       view;
 
    for (let view = 0 ; view <= 1 ; view++) {
       g2[view] = new G2(false, 2040);
@@ -206,14 +208,18 @@ export let G3 = function(model, callback) {
    }
    this.textHeight = th => { textHeight = th; return this; }
 
-   let F = {left:[], right:[]};
-   let P = {left:[], right:[]};
+   let co = ['#0080f0','#ffffff','#ff0000','#ffff00','#008000'];
+   let F = {left:[0,0,0,0,0], right:[0,0,0,0,0]};
+   let P = {left:[0,0,0,0], right:[0,0,0,0]};
 
    this.finger = (hand,i) => F[hand][cg.def(i,1)];
    this.pinch  = (hand,i) => P[hand][cg.def(i,1)];
+   this.view   = ()       => view;
+
+   let isPurple = false, purple = '#ff00ff';
 
    this.update = () => {
-      for (let view = 0 ; view <= 1 ; view++) {
+      for (view = 0 ; view <= 1 ; view++) {
          projected.update(view);
          screen[view].setMatrix(projected.getMatrix());
 
@@ -222,28 +228,40 @@ export let G3 = function(model, callback) {
 
 	 // IF HAND TRACKING, SHOW TIPS OF FINGERS. USE COLOR TO INDICATE PINCH.
 
+	 let isTouching = (a,b) => { let d = cg.distance(a,b); return d > 0 && d < .025; }
+
 	 for (let hand in {left:0,right:0})
 	    if (window.handtracking) {
-	       let co = ['#0080f0','#ffffff','#ff0000','#ffff00','#008000'];
 	       let fw = [.021,.019,.018,.017,.015];
 	       let f = F[hand];
 	       let p = P[hand];
 	       for (let i = 0 ; i < 5 ; i++) {
-	          f[i] = jointMatrix[hand][5*i + 4].mat.slice(12,15);
+  		  let _f = cg.mTransform(cg.mMultiply(clay.inverseRootMatrix,
+		                                      cg.mMultiply(cg.mTranslate(handP),
+		                                                   jointMatrix[hand][5*i + 4].mat)), [0,.0,-.01]);
+		  f[i] = f[i] ? cg.mix(f[i], _f, .5) : _f;
 	          this.lineWidth(fw[i]+.002).color('black').line(f[i], f[i]);
                }
 	       for (let i = 1 ; i < 5 ; i++)
-	          p[i] = cg.distance(f[0],f[i]) < .023;
-	       this.lineWidth(fw[0]).color(co[p[1]?1:p[2]?2:p[3]?3:p[4]?4:0]).line(f[0], f[0]); // SHOW THUMB
+	          p[i] = isTouching(f[0], f[i]);
+	       this.lineWidth(fw[0]).color(isPurple?purple:co[p[1]?1:p[2]?2:p[3]?3:p[4]?4:0]).line(f[0], f[0]); // SHOW THUMB
 	       for (let i = 1 ; i < 5 ; i++)
-	          this.lineWidth(fw[i]).color(p[i] ? co[i] : co[0]).line(f[i], f[i]); // SHOW FINGER
+	          this.lineWidth(fw[i]).color(isPurple ? purple : p[i] ? co[i] : co[0]).line(f[i], f[i]); // SHOW FINGER
 	    }
             else {
-	       F[hand][0] = F[hand][1] = cg.mMultiply(controllerMatrix[hand], cg.mTranslate(0,-.049,-.079)).slice(12,15);
+	       F[hand][0] = F[hand][1] = cg.mMultiply(clay.inverseRootMatrix,
+	                                              cg.mMultiply(controllerMatrix[hand],
+					                           cg.mTranslate(0,-.049,-.079))).slice(12,15);
 	       P[hand][1] = buttonState[hand][0].pressed;
-	       //this.lineWidth(.021).color('#000000').line(F[hand][1], F[hand][1]);
-	       //this.lineWidth(.019).color(P[hand][1] ? '#ffffff' : '#0080ff').line(F[hand][1], F[hand][1]);
+	       if (buttonState[hand][1])
+	          P[hand][2] = buttonState[hand][1].pressed;
+	       this.lineWidth(.021).color('#000000').line(F[hand][1], F[hand][1]);
+	       this.lineWidth(.019).color(co[ P[hand][1] ? 1 : P[hand][2] ? 2 : 0 ]).line(F[hand][1], F[hand][1]);
 	    }
+
+         if (view == 0 && window.handtracking && isTouching(F.left[0],F.right[0]))
+	    handP = isTouching(F.left[2],F.right[2]) ? [0,0,0] :
+                    cg.scale(clay.root().inverseViewMatrix(view).slice(8,11), -20 * (cg.distance(F.left[2],F.right[2])-.025));
 
 	 let sortedDisplayList = [];
          for (let n = 0 ; n < nd ; n++)

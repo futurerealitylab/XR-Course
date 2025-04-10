@@ -5,8 +5,6 @@ import { texts } from "../util/texts.js";
 export const init = async model => {
    let g3 = new G3(model, draw => {
       let t = 4/3
-      //let s = [.1,.125,.155,.193,.24,.3];
-      //let s = [.15,.1875,.2325,.2895,.36,.45];
       let s = [.2,.25,.31,.386,.48,.6];
       let p = [0,1.5,0];
       draw.color('white').fill2D([[-.4,-.4],[.4,-.4],[.4,.4],[-.4,.4]], p);
