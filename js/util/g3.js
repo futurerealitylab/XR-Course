@@ -35,11 +35,12 @@ export let G3 = function(model, callback) {
    const DRAW = 0, FILL = 1, IMAGE = 2, LINE = 3, TEXT = 4;
 
    let color = '#000000',
+       displayList = [],
        distance = z => 0.4 / z,
        draw = this,
-       displayList = [],
        font = 'Helvetica',
        g2 = [],
+       handP = [0,0,0],
        lineWidth = .01,
        nd = 0,
        screen = [],
@@ -215,6 +216,8 @@ export let G3 = function(model, callback) {
    this.pinch  = (hand,i) => P[hand][cg.def(i,1)];
    this.view   = ()       => view;
 
+   let isPurple = false, purple = '#ff00ff';
+
    this.update = () => {
       for (view = 0 ; view <= 1 ; view++) {
          projected.update(view);
@@ -225,23 +228,25 @@ export let G3 = function(model, callback) {
 
 	 // IF HAND TRACKING, SHOW TIPS OF FINGERS. USE COLOR TO INDICATE PINCH.
 
+	 let isTouching = (a,b) => { let d = cg.distance(a,b); return d > 0 && d < .025; }
+
 	 for (let hand in {left:0,right:0})
 	    if (window.handtracking) {
 	       let fw = [.021,.019,.018,.017,.015];
 	       let f = F[hand];
 	       let p = P[hand];
 	       for (let i = 0 ; i < 5 ; i++) {
-  		  let _f = cg.mMultiply(clay.inverseRootMatrix, jointMatrix[hand][5*i + 4].mat).slice(12,15);
+  		  let _f = cg.mTransform(cg.mMultiply(clay.inverseRootMatrix,
+		                                      cg.mMultiply(cg.mTranslate(handP),
+		                                                   jointMatrix[hand][5*i + 4].mat)), [0,.0,-.01]);
 		  f[i] = f[i] ? cg.mix(f[i], _f, .5) : _f;
 	          this.lineWidth(fw[i]+.002).color('black').line(f[i], f[i]);
                }
-	       for (let i = 1 ; i < 5 ; i++) {
-	          let d = cg.distance(f[0],f[i]);
-	          p[i] = d > 0 && d < .023;
-               }
-	       this.lineWidth(fw[0]).color(co[p[1]?1:p[2]?2:p[3]?3:p[4]?4:0]).line(f[0], f[0]); // SHOW THUMB
 	       for (let i = 1 ; i < 5 ; i++)
-	          this.lineWidth(fw[i]).color(p[i] ? co[i] : co[0]).line(f[i], f[i]); // SHOW FINGER
+	          p[i] = isTouching(f[0], f[i]);
+	       this.lineWidth(fw[0]).color(isPurple?purple:co[p[1]?1:p[2]?2:p[3]?3:p[4]?4:0]).line(f[0], f[0]); // SHOW THUMB
+	       for (let i = 1 ; i < 5 ; i++)
+	          this.lineWidth(fw[i]).color(isPurple ? purple : p[i] ? co[i] : co[0]).line(f[i], f[i]); // SHOW FINGER
 	    }
             else {
 	       F[hand][0] = F[hand][1] = cg.mMultiply(clay.inverseRootMatrix,
@@ -253,6 +258,10 @@ export let G3 = function(model, callback) {
 	       this.lineWidth(.021).color('#000000').line(F[hand][1], F[hand][1]);
 	       this.lineWidth(.019).color(co[ P[hand][1] ? 1 : P[hand][2] ? 2 : 0 ]).line(F[hand][1], F[hand][1]);
 	    }
+
+         if (view == 0 && window.handtracking && isTouching(F.left[0],F.right[0]))
+	    handP = isTouching(F.left[2],F.right[2]) ? [0,0,0] :
+                    cg.scale(clay.root().inverseViewMatrix(view).slice(8,11), -20 * (cg.distance(F.left[2],F.right[2])-.025));
 
 	 let sortedDisplayList = [];
          for (let n = 0 ; n < nd ; n++)
@@ -288,13 +297,6 @@ export let G3 = function(model, callback) {
                break;
             }
          }
-/*
-	 let x = .03 * (1 - 2 * view), y = .22;
-	 g2[view].setColor('#0080ff');
-	 g2[view].lineWidth(.001);
-	 g2[view].line([x-.01,y],[x+.01,y]);
-	 g2[view].line([x,y-.01],[x,y+.01]);
-*/
       }
    }
 }
