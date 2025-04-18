@@ -54,8 +54,7 @@
 
    export let pack = (array, lo, hi) => {
       if (lo === undefined) { lo = 0; hi = 1; } else if (hi === undefined) { hi = lo ; lo = 0; }
-      let C = " !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~";
-      let pack = t => C[92 * t >> 0] + C[92 * (92 * t % 1) + .5 >> 0];
+      let pack = t => C92[92 * t >> 0] + C92[92 * (t % 1) + .5 >> 0];
       let s = '';
       for (let n = 0 ; n < array.length ; n++)
          s += pack((array[n] - lo) / (hi - lo));
@@ -68,11 +67,10 @@
 
    export let unpack = (string, lo, hi) => {
       if (lo === undefined) { lo = 0; hi = 1; } else if (hi === undefined) { hi = lo ; lo = 0; }
-      let C = " !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~";
-      let unpack = (a, b) => (C.indexOf(a) + C.indexOf(b) / 92) / 92;
+      let unpack = (a, b) => (C92.indexOf(a) + C92.indexOf(b) / 92) / 92;
       let a = [];
       for (let n = 0 ; n < string.length ; n += 2)
-         a.push(lo + (hi-lo) * unpack(string.charAt(n), string.charAt(n+1)));
+         a.push(lo + (hi - lo) * unpack(string.charAt(n), string.charAt(n+1)));
       return a;
    }
 

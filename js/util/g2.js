@@ -17,6 +17,7 @@ export function G2(do_not_animate_flag=false, canvasWidth=512, canvasHeight) {
    let context = txtrCanvas.getContext('2d');
    let width   = txtrCanvas.width;
    let height  = txtrCanvas.height;
+   txtrCanvas.context = context;
 
    let mouseZPrev = false;
    let mouseState = 'move';

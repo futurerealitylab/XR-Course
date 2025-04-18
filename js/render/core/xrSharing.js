@@ -17,7 +17,7 @@ export function XRSharing(handle) {                                             
             if (speakerID >= 0 && speech.indexOf(pre) == 0)                      //                                 //
                xrS[speakerID].name = speech.substring(pre.length+1);             //                                 //
             if (handle && handle.parseSpeech)                                    //   More optional speech parsing  //
-               handle.parseSpeech(speech);                                       //   can be defined by the caller. //
+               handle.parseSpeech(speech, speakerID);                            //   can be defined by the caller. //
          }                                                                       //                                 //
       }                                                                          //                                 //
       server.sync('xrI', msgs => {                                               // Respond to messages.            //
@@ -59,7 +59,8 @@ export function XRSharing(handle) {                                             
 	          msg.mat = cg.packMatrix(jointMatrix[0]);                       // hand matrix and the positions   //
 	          msg.fingers = [];                                              // of the last joints of the five  //
 		  for (let f = 4 ; f < 25 ; f += 5)                              // fingers.                        //
-		     msg.fingers.push(round(jointMatrix[f].mat.slice(12,15)));   //                                 //
+		     msg.fingers.push(round(cg.mMultiply(clay.inverseRootMatrix, //                                 //
+		                             jointMatrix[f].mat).slice(12,15))); //                                 //
 	       }                                                                 //                                 //
 	       else {                                                            //                                 //
 	          msg.mat = cg.packMatrix(                                       // If not handtracking, just share //

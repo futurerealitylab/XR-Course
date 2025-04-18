@@ -25,14 +25,24 @@ export default () => {
             { name: "cities"             , path: "./cities.js"             , public: true  },
             { name: "tale"               , path: "./tale.js"               , public: true  },
             { name: "art"                , path: "./art.js"                , public: true  },
-            { name: "pinch"              , path: "./pinch.js"              , public: true  },
+
+            { name: "pinch1"             , path: "./pinch1.js"             , public: true  },
             { name: "pinch2"             , path: "./pinch2.js"             , public: true  },
             { name: "pinch3"             , path: "./pinch3.js"             , public: true  },
 
             { name: "red_ball"           , path: "./red_ball.js"           , public: true  },
             { name: "cube"               , path: "./cube.js"               , public: true  },
-            { name: "bouncing"           , path: "./bouncing.js"           , public: true  },
+            { name: "cube2"              , path: "./cube2.js"              , public: true  },
+
+            { name: "bouncing1"          , path: "./bouncing1.js"          , public: true  },
             { name: "bouncing2"          , path: "./bouncing2.js"          , public: true  },
+            { name: "bouncing3"          , path: "./bouncing3.js"          , public: true  },
+            { name: "bouncing4"          , path: "./bouncing4.js"          , public: true  },
+            { name: "bouncing5"          , path: "./bouncing5.js"          , public: true  },
+
+            { name: "speech1"            , path: "./speech1.js"            , public: true  },
+            { name: "speech2"            , path: "./speech2.js"            , public: true  },
+            { name: "speech3"            , path: "./speech3.js"            , public: true  },
 
             { name: "aiquery"            , path: "./demoAIQuery.js"        , public: true  },
             { name: "aiquery-console"    , path: "./demoAIQueryConsole.js" , public: true  },

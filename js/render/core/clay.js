@@ -11,6 +11,7 @@ import { CodeEditor } from "./codeEditor.js";
 import * as keyboardInput from "../../util/input_keyboard.js";
 import { G2 } from "../../util/g2.js";
 import { videoHandTracker } from "./videoHandTracker.js";
+import { ClientStateSharing } from "./clientStateSharing.js";
 import * as glUtil from "./gl_util.js"
 import * as clayExtensions from "./clay_extensions.js";
 
@@ -51,12 +52,16 @@ export function MeshInfo() {
 
 let debug = false;
 
+let clientStateSharing;
+
 export function Clay(gl, canvas) {
    this.debug = state => debug = state;
 
    let clearTexture = new ImageData(textureCanvas.width, textureCanvas.height);
 
    let textureConfig  = new Map();
+
+   clientStateSharing = new ClientStateSharing();
 
    let clayPgm = function () {
       this.program = null;
@@ -1729,6 +1734,7 @@ let fl = 5;                                                          // CAMERA F
    this.controllerBallSize = 0.02;
 
    this.animate = view => {
+      clientStateSharing.update();
       window.timestamp++;
       window.needUpdateInput = true;
       window.mySharedObj = [];

@@ -70,6 +70,7 @@ window.chooseFlag = chooseFlag;
 export const onReloadDefault = async (thisScene, model, ctx, ctxForever) => {
    model.clear();
    global.gltfRoot.clearNodes();
+   delete window.onSpeech;
    window.customShader = '';
    window.clay.clayPgm.program = null;
    if (thisScene.init) {
@@ -162,7 +163,7 @@ const addDemoButtons = (demoNames, scenesInit) => {
       .move(-1,1.7+.3,-.7)
       .turnY(Math.PI/6)
       .scale(.4)
-      .textBox('FRL Tabletop System', .05);
+      .textBox('', .05);
    }
 
    if (window.onlyScene)
@@ -366,6 +367,7 @@ function runDemo(demo) {
       // might be useful to change this into something else if want to show more demos at once
       clay.model.clear();
       global.gltfRoot.clearNodes();
+      delete window.onSpeech;
       window.customShader = '';
       window.clay.clayPgm.program = null;
 
@@ -476,6 +478,7 @@ function stopDemo(demo) {
       }
       clay.model.clear();
       global.gltfRoot.clearNodes();
+      delete window.onSpeech;
       window.customShader = '';
       window.clay.clayPgm.program = null;
       currentDemo = null;

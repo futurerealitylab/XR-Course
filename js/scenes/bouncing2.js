@@ -2,6 +2,8 @@ import * as cg from "../render/core/cg.js";
 import { G3 } from "../util/g3.js";
 import { loadSound, playSoundAtPosition } from "../util/positional-audio.js";
 
+// Changes from bouncing1: You can hit a ball. When you do, it briefly lights up and a sound plays.
+
 let red_ball = new Image(); red_ball.src = 'media/textures/red_ball.png';
 let lit_ball = new Image(); lit_ball.src = 'media/textures/red_ball2.png';
 

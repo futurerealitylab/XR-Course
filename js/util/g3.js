@@ -1,5 +1,5 @@
 import * as cg from "../render/core/cg.js";
-import { G2} from "./g2.js";
+import { G2 } from "./g2.js";
 import { jointMatrix } from "../render/core/handtrackingInput.js";
 import { buttonState, controllerMatrix } from "../render/core/controllerInput.js";
 
@@ -40,7 +40,9 @@ export let G3 = function(model, callback) {
        draw = this,
        font = 'Helvetica',
        g2 = [],
+       handD = 0,
        handP = [0,0,0],
+       handY = {left:undefined,right:undefined},
        lineWidth = .01,
        nd = 0,
        screen = [],
@@ -208,6 +210,11 @@ export let G3 = function(model, callback) {
    }
    this.textHeight = th => { textHeight = th; return this; }
 
+   this.textWidth = text => {
+      g2[0].textHeight(textHeight);
+      return g2[0].getCanvas().context.measureText(text).width / 2040;
+   }
+
    let co = ['#0080f0','#ffffff','#ff0000','#ffff00','#008000'];
    let F = {left:[0,0,0,0,0], right:[0,0,0,0,0]};
    let P = {left:[0,0,0,0], right:[0,0,0,0]};
@@ -258,10 +265,6 @@ export let G3 = function(model, callback) {
 	       this.lineWidth(.021).color('#000000').line(F[hand][1], F[hand][1]);
 	       this.lineWidth(.019).color(co[ P[hand][1] ? 1 : P[hand][2] ? 2 : 0 ]).line(F[hand][1], F[hand][1]);
 	    }
-
-         if (view == 0 && window.handtracking && isTouching(F.left[0],F.right[0]))
-	    handP = isTouching(F.left[2],F.right[2]) ? [0,0,0] :
-                    cg.scale(clay.root().inverseViewMatrix(view).slice(8,11), -20 * (cg.distance(F.left[2],F.right[2])-.025));
 
 	 let sortedDisplayList = [];
          for (let n = 0 ; n < nd ; n++)
