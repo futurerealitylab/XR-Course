@@ -69,7 +69,7 @@ export function ClientStateSharing() {                                          
                   msg.mat                                                        // Hand or controller events:      //
                     ? clientData[msg.id][msg.hand].mat=cg.unpackMatrix(msg.mat)  //    Set matrix.                  //
                     : clientData[msg.id][msg.hand][msg.button]=msg.state;        //    Set a button state.          //
-                  if (msg.fingers)                                               //    If handtracking:             //
+                  if (msg.fingers && id != clientID)                             //    If handtracking:             //
                      clientData[msg.id][msg.hand].fingers = msg.fingers;         //       Set fingertip positions.  //
                }                                                                 //                                 //
             }                                                                    //                                 //
@@ -77,9 +77,9 @@ export function ClientStateSharing() {                                          
       for (let hand in { left: {}, right: {} })                                  //                                 //
          for (let b = 0 ; b < 6 ; b++) {                                         // Update up/down button states.   //
             if (! buttonState[hand][b]) continue;                                //                                 //
-            if (! (clientData[clientID] && clientData[clientID][hand][b]) && buttonState[hand][b].pressed)        //
+            if (! (clientData[clientID] && clientData[clientID][hand][b]) && buttonState[hand][b].pressed)          //
                message({ hand: hand, button: b, state: true });                  //                                 //
-            if ((clientData[clientID] && clientData[clientID][hand][b]) && ! buttonState[hand][b].pressed)        //
+            if ((clientData[clientID] && clientData[clientID][hand][b]) && ! buttonState[hand][b].pressed)          //
                message({ hand: hand, button: b, state: false });                 //                                 //
          }                                                                       // Optionally, also update left    //
       if (speech != lastSpeech)                                                  // Whenever the content of speech  //
@@ -99,6 +99,7 @@ export function ClientStateSharing() {                                          
                           cg.mMultiply(cg.mTranslate(handP),jointMatrix[hand][f].mat));                             //
                   msg.fingers.push(cg.roundVec(3, cg.mTransform(m, [0,0,-.01])));//                                 //
                }                                                                 //                                 //
+               clientData[clientID][msg.hand].fingers = msg.fingers;             // Set my own fingers immediately. //
             }                                                                    //                                 //
             else                                                                 //                                 //
                msg.mat = cg.packMatrix(                                          // If not handtracking, just share //

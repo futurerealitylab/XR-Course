@@ -116,7 +116,7 @@ export const init = async model => {
          let id = clients[n];                                        // BUT ONLY IF THOSE CLIENTS ARE
          if (id != clientID && clientState.isXR(id)) {               // IN IMMERSIVE MODE.
 	    let avatar = avatars.add();
-	    avatar.add('ringZ').setMatrix(clientState.head(id)).move(0,.02,0).scale(.1,.12,.4).opacity(.7);
+	    avatar.add('ringZ').setMatrix(clientState.head(id)).move(0,.01,0).scale(.1,.12,.4).opacity(.7);
 	    for (let hand in {left:0,right:0})
 	       for (let i = 0 ; i < 5 ; i++)
 	          avatar.add('sphere').move(clientState.finger(id,hand,i)).scale(.01).opacity(.7);
