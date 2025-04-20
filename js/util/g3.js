@@ -250,7 +250,7 @@ export let G3 = function(model, callback) {
             }
 	    for (let hand in {left:0,right:0})
 	       if (m = clientState.hand(id,hand))
-	          if (window.handtracking) {
+	          if (clientState.isHand(id)) {
 	             let f = [], p = [];
 	             for (let i = 0 ; i < 5 ; i++) f[i] = clientState.finger(id,hand,i);
 	             for (let i = 1 ; i < 5 ; i++) p[i] = clientState.pinch (id,hand,i);

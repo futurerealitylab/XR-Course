@@ -6,19 +6,20 @@ window.clientState = {
    button: (id,hand,i) => clientData[id] &&
                             clientData[id][hand]
                               ? clientData[id][hand][i] : null,
-   finger: (id,hand,i) => {
-      if (! clientData[id] || ! clientData[id][hand])
-         return null;
-      if (window.handtracking)
-         return clientData[id][hand].fingers
-                  ? clientData[id][hand].fingers[i] : null;
-      return clientData[id][hand].mat
-               ? clientData[id][hand].mat.slice(12,15) : null;
-   },
+   finger: (id,hand,i) => ! clientData[id] || ! clientData[id][hand]
+                          ? null
+                          : clientState.isHand(id)
+                            ? clientData[id][hand].fingers
+                              ? clientData[id][hand].fingers[i] : null
+                              : clientData[id][hand].mat
+                                ? clientData[id][hand].mat.slice(12,15) : null,
    hand  : (id,hand)   => clientData[id] &&
                             clientData[id][hand]
                               ? clientData[id][hand].mat : null,
    head  : id          => clientData[id] ? clientData[id].head : null,
+   isHand: id          => clientData[id] &&
+                            clientData[id].left &&
+                              clientData[id].left.fingers ? true : false,
    isXR  : id          => {
       let hm = clientState.head(id);
       return Array.isArray(hm) && (hm[0]!=1 || hm[1]!=0 || hm[2]!=0);
@@ -69,7 +70,7 @@ export function ClientStateSharing() {                                          
                   msg.mat                                                        // Hand or controller events:      //
                     ? clientData[msg.id][msg.hand].mat=cg.unpackMatrix(msg.mat)  //    Set matrix.                  //
                     : clientData[msg.id][msg.hand][msg.button]=msg.state;        //    Set a button state.          //
-                  if (msg.fingers && id != clientID)                             //    If handtracking:             //
+                  if (id != clientID)                                            //    If handtracking:             //
                      clientData[msg.id][msg.hand].fingers = msg.fingers;         //       Set fingertip positions.  //
                }                                                                 //                                 //
             }                                                                    //                                 //
@@ -99,14 +100,16 @@ export function ClientStateSharing() {                                          
                           cg.mMultiply(cg.mTranslate(handP),jointMatrix[hand][f].mat));                             //
                   msg.fingers.push(cg.roundVec(3, cg.mTransform(m, [0,0,-.01])));//                                 //
                }                                                                 //                                 //
-               clientData[clientID][msg.hand].fingers = msg.fingers;             // Set my own fingers immediately. //
             }                                                                    //                                 //
-            else                                                                 //                                 //
+            else {                                                               //                                 //
+	       msg.fingers = null;
                msg.mat = cg.packMatrix(                                          // If not handtracking, just share //
                            cg.mMultiply(clay.inverseRootMatrix,                  // the matrix of the controller,   //
                              cg.mMultiply(cg.mMultiply(controllerMatrix[hand],   // translated so that it centers   //
                                cg.mTranslate([0,-.049,-.079])),                  // on the virtual ping pong ball.  //
                                  cg.mRotateX(-Math.PI/4))));                     //                                 //
+            }
+            clientData[clientID][msg.hand].fingers = msg.fingers;                // Set my own fingers immediately. //
             message(msg);                                                        //                                 //
          }                                                                       //                                 //
          if (previousAudioVolume < .1 && audioVolume >= .1)                      // Whenever a user wearing an XR   //

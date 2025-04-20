@@ -1,5 +1,4 @@
 import * as cg from "../render/core/cg.js";
-import { G3Avatars } from "../render/core/g3Avatars.js";
 import { G3 } from "../util/g3.js";
 
 // This is an experience for two users:
@@ -36,7 +35,6 @@ export const init = async model => {
             if (draw.pinch(hand,1))
                server.send('p3I', { pinch: cg.roundVec(4, draw.finger(hand,1)), gender: myGender });
    });
-   let g3Avatars = new G3Avatars(g3);
    model.animate(() => {
       myGender = clientID == clients[0] ? 1 : 0;
       p3S = server.synchronize('p3S');            // SYNCHRONIZE THE PERSISTENT STATE OBJECT.
@@ -61,7 +59,6 @@ export const init = async model => {
          if (clientID == clients[0])              // THE FIRST CLIENT DETERMINES THE SHARED
             server.broadcastGlobal('p3S');        // STATE OF ALL CLIENTS.
       }
-      g3Avatars.update();
       g3.update();                                // UPDATE THE G3 SCENE.
    });
 }
