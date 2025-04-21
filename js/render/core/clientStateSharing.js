@@ -64,33 +64,41 @@ export function ClientStateSharing() {                                          
                   speakerID = msg.id;                                            // client, set the speakerID.      //
                else if (msg.speech)                                              // If message is actual speech,    //
                   parseSpeech(msg.speech, speakerID);                            // then parse what was just said.  //
-               else if (msg.head)                                                //                                 //
-                  clientData[msg.id].head = cg.unpackMatrix(msg.head);           // Set a user's head matrix.       //
+               else if (msg.head) {                                              //                                 //
+	          if (id != clientID)
+                     clientData[msg.id].head = cg.unpackMatrix(msg.head);        // Set a user's head matrix.       //
+               }
                else if (msg.hand) {                                              //                                 //
-                  msg.mat                                                        // Hand or controller events:      //
-                    ? clientData[msg.id][msg.hand].mat=cg.unpackMatrix(msg.mat)  //    Set matrix.                  //
-                    : clientData[msg.id][msg.hand][msg.button]=msg.state;        //    Set a button state.          //
-                  if (id != clientID)                                            //    If handtracking:             //
-                     clientData[msg.id][msg.hand].fingers = msg.fingers;         //       Set fingertip positions.  //
+	          if (id != clientID) {                                          //                                 //
+                     msg.mat ? clientData[msg.id][msg.hand].mat=cg.unpackMatrix(msg.mat) // Set matrix.             //
+                             : clientData[msg.id][msg.hand][msg.button]=msg.state;       // Set a button state.     //
+                     clientData[msg.id][msg.hand].fingers = msg.fingers;                 // Set fingertips.         //
+                  }                                                              //                                 //
                }                                                                 //                                 //
             }                                                                    //                                 //
       });                                                                        //                                 //
       for (let hand in { left: {}, right: {} })                                  //                                 //
          for (let b = 0 ; b < 6 ; b++) {                                         // Update up/down button states.   //
             if (! buttonState[hand][b]) continue;                                //                                 //
+	    let state = null;
             if (! (clientData[clientID] && clientData[clientID][hand][b]) && buttonState[hand][b].pressed)          //
-               message({ hand: hand, button: b, state: true });                  //                                 //
+	       state = true;
             if ((clientData[clientID] && clientData[clientID][hand][b]) && ! buttonState[hand][b].pressed)          //
-               message({ hand: hand, button: b, state: false });                 //                                 //
+	       state = false;
+            if (state != null) {
+               message({ hand: hand, button: b, state: state });                 //                                 //
+               clientData[clientID][hand][b] = state;                            // Set my own button state.        //
+            }
          }                                                                       // Optionally, also update left    //
       if (speech != lastSpeech)                                                  // Whenever the content of speech  //
          message({ speech: (lastSpeech = speech).trim() });                      // changes, send the new speech.   //
       let hm = cg.mMultiply(clay.inverseRootMatrix,                              // If a user is wearing an XR      //
                             cg.mix(clay.root().inverseViewMatrix(0),             // headset, then broadcast their   //
-                                   clay.root().inverseViewMatrix(1), .5));       // head position to all other      //
-      if (hm[0]!=1 || hm[1]!=0 || hm[2]!=0) {                                    // users, to show this user's name //
-         message({ head: cg.packMatrix(hm) });                                   // over each user's head.          //
-         for (let hand in { left: {}, right: {} }) {                             // Optionally share hand data:     //
+                                   clay.root().inverseViewMatrix(1), .5));       // head and hand data to all other //
+      if (hm[0]!=1 || hm[1]!=0 || hm[2]!=0) {                                    // users.                          //
+         message({ head: cg.packMatrix(hm) });                                   //                                 //
+         clientData[clientID].head = hm;                                         //                                 //
+         for (let hand in { left: {}, right: {} }) {                             //                                 //
             let msg = { hand: hand };                                            //                                 //
             if (window.handtracking) {                                           // If handtracking, share both the //
                msg.mat = cg.packMatrix(jointMatrix[hand][0].mat);                // hand matrix and the positions   //
@@ -102,14 +110,15 @@ export function ClientStateSharing() {                                          
                }                                                                 //                                 //
             }                                                                    //                                 //
             else {                                                               //                                 //
-	       msg.fingers = null;
+	       msg.fingers = null;                                               //                                 //
                msg.mat = cg.packMatrix(                                          // If not handtracking, just share //
                            cg.mMultiply(clay.inverseRootMatrix,                  // the matrix of the controller,   //
                              cg.mMultiply(cg.mMultiply(controllerMatrix[hand],   // translated so that it centers   //
                                cg.mTranslate([0,-.049,-.079])),                  // on the virtual ping pong ball.  //
                                  cg.mRotateX(-Math.PI/4))));                     //                                 //
-            }
-            clientData[clientID][msg.hand].fingers = msg.fingers;                // Set my own fingers immediately. //
+            }                                                                    //                                 //
+            clientData[clientID][hand].mat = cg.unpackMatrix(msg.mat);           // Set my own matrix immediately.  //
+            clientData[clientID][hand].fingers = msg.fingers;                    // Set my own fingers immediately. //
             message(msg);                                                        //                                 //
          }                                                                       //                                 //
          if (previousAudioVolume < .1 && audioVolume >= .1)                      // Whenever a user wearing an XR   //

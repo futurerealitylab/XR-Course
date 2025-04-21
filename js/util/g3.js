@@ -221,7 +221,7 @@ export let G3 = function(model, callback) {
    this.pinch  = (hand,i) => clientState.pinch (clientID, hand, i);
    this.view   = ()       => view;
 
-   const co = ['#0080f0','#ffffff','#ff0000','#ffff00','#008000'];
+   const co = '#0080f0,#ffffff,#ffff00,#ff00ff,#008000,#0000ff,#ff0000'.split(',');
    const fw = [.021,.019,.018,.017,.015];
    const faceX = [-.04, .04, .09,.1 ,.05,-.05,-.1 ,-.09];
    const faceY = [-.11,-.11,-.05,.08,.13, .13, .08,-.05];
@@ -262,7 +262,11 @@ export let G3 = function(model, callback) {
 	             let p = m.slice(12,15);
 	             this.lineWidth(.031).color('black').line(p,p);
 	             this.lineWidth(.029).color(co[ clientState.button(id,hand,0) ? 1 :
-		                                    clientState.button(id,hand,1) ? 2 : 0 ]).line(p,p);
+		                                    clientState.button(id,hand,1) ? 2 :
+		                                    clientState.button(id,hand,2) ? 3 :
+		                                    clientState.button(id,hand,3) ? 4 :
+		                                    clientState.button(id,hand,4) ? 5 :
+		                                    clientState.button(id,hand,5) ? 6 : 0 ]).line(p,p);
 	          }
          }
 
