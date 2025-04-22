@@ -29,7 +29,7 @@ window.clientState = {
 	    return false;
          if (i == 5 || i == 6) {
 	    let p = clientState.point(id,hand);
-	    return i == 5 ? p >= .5 && p < 1.5 : p >= 1.5;
+	    return p && (i == 5 ? p[0] < .5 : p[0] >= .5);
 	 }
 	 let thumb  = clientState.finger(id,hand,0);
          let finger = clientState.finger(id,hand,i);
@@ -43,19 +43,21 @@ window.clientState = {
    },
    point : (id,hand) => {
       if (! clientState.isHand(id))
-         return 0;
+         return null;
       let mat = clientState.hand(id,hand);
       if (! mat)
-         return 0;
+         return null;
       let h = cg.mTransform(mat, [0,0,0]), f = [], d = [];
       for (let i = 0 ; i < 5 ; i++) {
          f.push(clientState.finger(id,hand,i));
 	 d.push(cg.distance(h,f[i]));
       }
       if (d[0] == 0 || d[1] < 2 * d[2])
-         return 0;
-      let t = cg.subtract(f[0], h);
-      return (100 + 100 * t[1] / cg.norm(t) >> 0) / 100;
+         return null;
+      let a = cg.subtract(f[0], h);
+      let b = cg.subtract(f[1], h);
+      return [ (100 * a[1] / cg.norm(a) >> 0) / 100,
+               (100 * b[1] / cg.norm(b) >> 0) / 100 ];
    },
 }
 window.clientData = {};
