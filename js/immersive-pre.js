@@ -470,6 +470,9 @@ function initGL() {
     
 }
 
+let isXRMode = false;
+window.isXR = () => isXRMode;
+
 function onRequestSession() {
     return navigator.xr
         .requestSession("immersive-ar", {
@@ -477,6 +480,7 @@ function onRequestSession() {
             optionalFeatures: ["hand-tracking", "layers", "mesh-detection", "depth-sensing"],
         })
         .then((session) => {
+	    isXRMode = true;
             xrButton.setSession(session);
             session.isImmersive = true;
             onSessionStarted(session);
@@ -487,7 +491,6 @@ function onRequestSession() {
 window.xrRefSpace = null;
 let xrSession = null;
 
-let isImmersive_ = false;
 let xrGLFactory = null;
 
 let xrLayers = [];//0:glLayer, 1+: xrLayers
@@ -620,6 +623,7 @@ async function onSessionStarted(session) {
 
 function onEndSession(session) {
     session.end();
+    isXRMode = false;
 }
 
 function onSessionEnded(event) {

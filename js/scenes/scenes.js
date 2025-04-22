@@ -29,7 +29,6 @@ export default () => {
             { name: "pinch1"             , path: "./pinch1.js"             , public: true  },
             { name: "pinch2"             , path: "./pinch2.js"             , public: true  },
             { name: "pinch3"             , path: "./pinch3.js"             , public: true  },
-            { name: "pinch4"             , path: "./pinch4.js"             , public: true  },
 
             { name: "red_ball"           , path: "./red_ball.js"           , public: true  },
             { name: "cube"               , path: "./cube.js"               , public: true  },

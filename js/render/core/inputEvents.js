@@ -102,9 +102,7 @@ export function InputEvents() {
          else
             this.onMove(hand);
 
-      // IF ONE HAND IS ALT-PRESSING, ADJUST WORLD Y COORDINATE
-
-      // WHILE BOTH HANDS ARE ALT-PRESSING, ADJUST WORLD COORDINATES
+      // IF ONLY ONE HAND IS ALT-PRESSING, DRAG THE WORLD ORIGIN
 
       let isAltL = handInfo.left.altPressTime > 0;
       let isAltR = handInfo.right.altPressTime > 0;
@@ -132,6 +130,8 @@ export function InputEvents() {
       }
 
       prevIsHoldingBothAlts = isAltL && isAltR;
+
+      // WHILE BOTH HANDS ARE ALT-PRESSING, ADJUST WORLD COORDINATES
 
       if (isAltL && isAltR && !window.handtracking) {
          altPressed = true;
@@ -172,6 +172,35 @@ export function InputEvents() {
          inverseWorldCoords = cg.mInverse(worldCoords);
          clay.inverseRootMatrix = inverseWorldCoords;
       }
+
+      // CHECK FOR SPATIAL SYNC FROM ANOTHER CLIENT.
+
+      if ( clientState.button(clientID, 'left' , 4) &&
+           clientState.button(clientID, 'right', 4) )
+         for (let n = 0 ; n < clients.length ; n++) {
+	    let id = clients[n];
+	    if (id != clientID && clientState.button(id, 'left' , 5) &&
+                                  clientState.button(id, 'right', 5)) {
+
+               let L0 = clientState.finger(clientID, 'left' , 1);
+               let R0 = clientState.finger(clientID, 'right', 1);
+               let L1 = clientState.finger(      id, 'left' , 1);
+               let R1 = clientState.finger(      id, 'right', 1);
+
+	       let T0 = cg.mix(L0,R0,.5);
+	       let T1 = cg.mix(R1,L1,.5);
+	       let X0 = cg.normalize([ R0[0]-L0[0] , 0 , R0[2]-L0[2] ]);
+	       let X1 = cg.normalize([ L1[0]-R1[0] , 0 , L1[2]-R1[2] ]);
+	       let Z0 = cg.cross(X0,[0,1,0]);
+	       let Z1 = cg.cross(X1,[0,1,0]);
+
+	       let M0 = [X0[0],0,X0[2],0, 0,1,0,0, Z0[0],0,Z0[2],0, T0[0],T0[1],T0[2],1];
+	       let M1 = [X1[0],0,X1[2],0, 0,1,0,0, Z1[0],0,Z1[2],0, T1[0],T1[1],T1[2],1];
+	       let DM = cg.mMultiply(M1, cg.mInverse(M0));
+
+	       worldCoords = cg.mMultiply(DM, worldCoords);
+            }
+	 }
    }
 
    let P, y, pos = {};
