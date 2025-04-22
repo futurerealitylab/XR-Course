@@ -50,6 +50,7 @@ export default () => {
             { name: "testAvatar"         , path: "./testAvatar.js"         , public: false  },
             { name: "testIK"             , path: "./testIKBody.js"         , public: true  },
             { name: "spider"             , path: "./spider.js"             , public: true  },
+            { name: "ikHumanoid"         , path: "./ikHumanoid.js"         , public: true  },
 
 //          { name: "pinscreen"          , path: "./pinscreen.js"          , public: true  },
 //          { name: "share_ball"         , path: "./share_ball.js"         , public: false },
