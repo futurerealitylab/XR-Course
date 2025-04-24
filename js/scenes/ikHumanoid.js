@@ -16,41 +16,26 @@ export const init = async model => {
    npcSystem.initRender(model);
    npcSystem.getRootNode().move(0,.5,-.5).scale(.1).move(-8,0,-8);
 
-   /* Get Terrain Object for further use */
-   let terrainObj = npcSystem.getTerrain();
 
-   /* Robot1 with default rendering initialization */
-   let robot1 = npcSystem.addNPC("octopod", "robot1");
-
-   /* Do not initialize default rendering for Robot2 */
-   let robot2 = npcSystem.addNPC("quadruped", "robot2", false);
+   let human = npcSystem.addNPC("humanoid", "human");
    
-   /* Custom Rendering for Robot2 */
    let n_rootNPCs = npcSystem.getNPCsRootNode();
-   let m_robot2_body = n_rootNPCs.add("sphere12").scale(0);
-   let arr_m_robot2_leg1 = [];
-   let arr_m_robot2_leg2 = [];
-   let arr_m_robot2_knee = [];
-   let arr_m_robot2_foot = [];
-   for (let i=0; i<4; i++) {
-      arr_m_robot2_leg1.push(n_rootNPCs.add("tubeZ8").scale(0).color(0,0,1));
-      arr_m_robot2_leg2.push(n_rootNPCs.add("tubeZ8").scale(0).color(0,1,.3));
-      arr_m_robot2_knee.push(n_rootNPCs.add("sphere12").scale(0));
-      arr_m_robot2_foot.push(n_rootNPCs.add("sphere12").scale(0));
-   }
    
    let hitPosL = model.add("square").color(1,0,0);
    let hitPosR = model.add("square").color(0,0,1);
 
+   let targetFootL = model.add("sphere12").color(0,0,1).opacity(.5).scale(.1,.1,.1);
+   let targetFootR = model.add("sphere12").color(0,1,0).opacity(.5).scale(.1,.1,.1);
+
    /* Object in this list will shape the terrain system */
    let listObject = [];
    listObject.push(
-      model.add("sphere12").color(0,1,0).opacity(.5).move(0,.5,0).scale(.1).move(-4,0,-4).scale(2),
-      model.add("tube12"  ).color(0,1,0).opacity(.5).move(0,.5,0).scale(.1).move(0,0,.1).scale(2),
-      model.add("cube"    ).color(0,1,0).opacity(.5).move(0,.5,0).scale(.1).move(5,0,-6).scale(2,1,2).turnY(1),
+      model.add("sphere12").color(1,.3,0).opacity(.5).move(0,.4,0).scale(.1).move(-4,0,-4).scale(2),
+      // model.add("tube12"  ).color(0,1,0).opacity(.5).move(0,.5,0).scale(.1).move(0,0,.1).scale(2),
+      model.add("cube"    ).color(1,.3,0).opacity(.5).move(0,.5,0).scale(.1).move(5,0,-6).scale(2,1,2).turnY(1),
    );
 
-   n_rootNPCs.add("square").color(.4,.4,.4).scale(8,1,8).move(1,-.01,1).turnX(-TAU/4);
+   n_rootNPCs.add("square").color(.1,.1,.1).scale(8,1,8).move(1,-.01,1).turnX(-TAU/4);
 
    /* Update the terrain to adapt to the meshes */
    npcSystem.adaptTerrainToMeshes(listObject);
@@ -62,55 +47,45 @@ export const init = async model => {
    model.animate(() => {
       hudFPS.update();
 
-      if (buttonState.right[4].pressed - lastButtonState.right[4].pressed == 1 && getTransProg()>= 1) {
+      if (buttonState.right[4].pressed - lastButtonState.right[4].pressed == 1
+          && getTransProg()>= 1) {
          npcSystem.setTerrainVisibility(!npcSystem.terrainVisible);
-      }
-
-      /* Custom Rendering for Robot2 */
-      m_robot2_body.identity().move(robot2.getBodyPos()).scale(.4);
-      for (let i=0; i<4; i++) {
-         let data = robot2.getLegPartsPos(i);
-         let posRoot = data.root;
-         let posKnee = data.knee;
-         let posFoot = data.foot;
-         arr_m_robot2_knee[i].identity().move(posKnee).scale(.2);
-         arr_m_robot2_foot[i].identity().move(posFoot).scale(.2);
-         arr_m_robot2_leg1[i].identity().move(cg.mix(posRoot,posKnee,.5)).aimZ(cg.subtract(posRoot,posKnee)).scale(.1,.1,cg.distance(posRoot,posKnee)/2);
-         arr_m_robot2_leg2[i].identity().move(cg.mix(posKnee,posFoot,.5)).aimZ(cg.subtract(posKnee,posFoot)).scale(.1,.1,cg.distance(posKnee,posFoot)/2);
       }
 
       hitPosL.scale(0);
       hitPosR.scale(0);
+      
+      let leftHitPosLocal = null;
 
-      /* Robot1 is controlled by pointing to the terrain and hold left trigger */
-      let v1 = [0,0,0];
       if (buttonState.left[0].pressed) {
          getIntersect(npcSystem.n_rootTerrain, "_NPCTerrain", L, lcb);
          if (L.isHit) {
             hitPosL.identity().move(L.globalPositionHit).move(0,.01,0).scale(.01).turnX(-TAU/4);
-            let localPos = robot1.getBodyPos();
-            v1 = ([L.positionHit[0]-localPos[0], 0, L.positionHit[2]-localPos[2]]);
-            let d = cg.norm(v1);
-            v1 = d >  2 ? cg.scale(v1,  1/d)
-               : d > .5 ? cg.scale(v1, .5/d) : [0,0,0];
+            leftHitPosLocal = L.positionHit;
          } 
       }
-      npcSystem.setNPCMoveVec("robot1", v1);
 
-      /* Robot2 is controlled by pointing to the terrain and hold right trigger */
-      let v2 = [0,0,0];
+      /* Humanoid is controlled by pointing to the terrain and hold right trigger */
+      let moveVec = [0,0,0];
       if (buttonState.right[0].pressed) {
          getIntersect(npcSystem.n_rootTerrain, "_NPCTerrain", R, rcb);
          if (R.isHit) {
             hitPosR.identity().move(R.globalPositionHit).move(0,.01,0).scale(.01).turnX(-TAU/4);
-            let localPos = robot2.getBodyPos();
-            v2 = ([R.positionHit[0]-localPos[0], 0, R.positionHit[2]-localPos[2]]);
-            let d = cg.norm(v2);
-            v2 = d >  2 ? cg.scale(v2,  1/d)
-               : d > .5 ? cg.scale(v2, .5/d) : [0,0,0];
+            let localPos = human.center;
+            moveVec = [R.positionHit[0]-localPos[0], 0, R.positionHit[2]-localPos[2]];
+            let d = cg.norm(moveVec);
+            moveVec = d > .1 ? cg.scale(moveVec,  1/d) : [0,0,0];
          } 
       }
-      npcSystem.setNPCMoveVec("robot2", v2);
+      let lookVec = leftHitPosLocal 
+               ? [leftHitPosLocal[0]-human.center[0], 0, 
+                  leftHitPosLocal[2]-human.center[2]] : null;
+      npcSystem.setNPCMoveVec("human", moveVec);
+      npcSystem.setNPCLookVec("human", lookVec);
+
+
+      targetFootL.setMatrix(n_rootNPCs.getGlobalMatrix()).move(human.targetPosFootL).scale(.2,.2,.2);
+      targetFootR.setMatrix(n_rootNPCs.getGlobalMatrix()).move(human.targetPosFootR).scale(.2,.2,.2);
 
       /* After set all NPCs' moving vector, call update() */
       npcSystem.update();

@@ -1,6 +1,7 @@
 import * as cg from "./cg.js";
 import { controllerMatrix } from "./controllerInput.js";
 import { Vector3 } from "./ikbody/vector3.js";
+import { Quaternion } from "./ikbody/quaternion.js";
 
 window.avatarData = {};
 export let avatars = [];
@@ -47,6 +48,10 @@ export function Avatar(model) {
    let ShoulderR = root.add(); let posShoulderR = new Vector3();
    let ElbowL    = root.add(); 
    let ElbowR    = root.add(); 
+   let FootL     = root.add(); let objFootL = new Foot();
+   let FootR     = root.add(); let objFootR = new Foot();
+   let FootLBound = root.add();  FootLBound.add("tubeY").color(1,0,0).opacity(.5).scale(objFootL.radMoveFoot).scale(1,.05,1);
+   let FootRBound = root.add();  FootRBound.add("tubeY").color(0,0,1).opacity(.5).scale(objFootL.radMoveFoot).scale(1,.05,1);
    let linkHC    = root.add(); let lengthHC  = 0.12;
    let linkCSL   = root.add(); let lengthCSL = 0.16;
    let linkCSR   = root.add(); let lengthCSR = 0.16;
@@ -57,6 +62,10 @@ export function Avatar(model) {
                                let WristMaxDist = 0.85;
 
    let radLnk = .04;
+
+   let yFloor = 0;
+
+   let posOnGround = [0,0,0];
 
    head.add('sphere').scale(.06).scale(1.2).flag('uAvatarHead');
 /*
@@ -78,6 +87,8 @@ export function Avatar(model) {
    ShoulderR.add('sphere').color(1,1,1).dull().flag('uAvatarBody');
    ElbowL   .add('sphere').color(1,1,1).dull().flag('uAvatarBody');
    ElbowR   .add('sphere').color(1,1,1).dull().flag('uAvatarBody');
+   FootL    .add('cube').color(1,1,1).dull().flag('uAvatarBody').move(0,1,0);  FootL.add("cube").color(1,0,0).dull().move(0,1,-2).scale(.1,.1,2);
+   FootR    .add('cube').color(1,1,1).dull().flag('uAvatarBody').move(0,1,0);  FootR.add("cube").color(0,0,1).dull().move(0,1,-2).scale(.1,.1,2);
    linkHC .add('tubeZ').color(1,1,1).dull().flag('uAvatarBody');
    linkCSL.add('tubeZ').color(1,1,1).dull().flag('uAvatarBody');
    linkCSR.add('tubeZ').color(1,1,1).dull().flag('uAvatarBody');
@@ -170,12 +181,38 @@ export function Avatar(model) {
       if (thetaR < 0 && distSWR < 0.25) showArmR = false;
       if (thetaL < 0 && distSWL < 0.25) showArmL = false;
 
+      /* Update Feet */
+      posOnGround = [matrixHead[12], yFloor, matrixHead[14]];
+      objFootL.updateTargetPos(matrixHead, yFloor, quaternionHead, 0);
+      objFootR.updateTargetPos(matrixHead, yFloor, quaternionHead, 1);
+      if (objFootL.getState() == -1 && objFootR.getState() == -1) {
+         objFootL.setState(0);
+      }
+      if (objFootL.getState() == 0 && objFootL.checkIfOutOfBound() && objFootR.getState() != 1) {
+         objFootL.setState(1);
+         objFootL.updateStartMovePos();
+      }
+      if (objFootR.getState() == 0 && objFootR.checkIfOutOfBound() && objFootL.getState() != 1) {
+         objFootR.setState(1);
+         objFootR.updateStartMovePos();
+      }
+      if (objFootL.getState() == 1) {objFootR.setState(0)}
+      if (objFootR.getState() == 1) {objFootL.setState(0)}
+      // console.log(objFootL.getState(), objFootR.getState())
+      objFootL.update(model.deltaTime);
+      objFootR.update(model.deltaTime);
+      let arrPosFootL = objFootL.getCurrentPos();
+      let arrPosFootR = objFootR.getCurrentPos();
 
       Chest    .identity().move(arrPosChest    ).scale(radLnk).scale(_showIK);
       ShoulderL.identity().move(arrPosShoulderL).scale(radLnk).scale(_showIK);
       ShoulderR.identity().move(arrPosShoulderR).scale(radLnk).scale(_showIK);
       ElbowL   .identity().move(arrPosElbowL   ).scale(radLnk).scale(_showIK).scale(showArmL?1:0);
       ElbowR   .identity().move(arrPosElbowR   ).scale(radLnk).scale(_showIK).scale(showArmR?1:0);
+      FootL    .identity().move(arrPosFootL).turnY(objFootL.yRot).scale(.05).scale(_showIK);
+      FootR    .identity().move(arrPosFootR).turnY(objFootR.yRot).scale(.05).scale(_showIK);
+      FootLBound.identity().move(objFootL.getTargetPos()).scale(_showIK);
+      FootRBound.identity().move(objFootR.getTargetPos()).scale(_showIK);
 
       linkHC .identity().move(cg.mix(arrPosHeadReal ,arrPosChest    , .5)).aimZ(cg.subtract(arrPosChest    ,arrPosHeadReal ))
             .scale(radLnk,radLnk,cg.distance(arrPosHeadReal ,arrPosChest    )/2).scale(_showIK).scale(0);
@@ -215,5 +252,51 @@ export function Avatar(model) {
    this.getMatShoulderR = () => ShoulderR.getMatrix();
    this.getMatElbowL    = () => ElbowL.getMatrix();
    this.getMatElbowR    = () => ElbowR.getMatrix();
+}
+
+function Foot () {
+   this.radMoveFoot = .2;
+   let speedMove = 1;
+   let durationResetFoot = 2;
+   let targetPos = [0,0,0];
+   let currentPos = [0,0,0];
+   let startMovePos = [0,0,0];
+   this.yRot = 0;
+   let state = 0; /* 0 = ready, 1 = moving, -1 = end moving */
+   let v3TargetPos = new Vector3();
+
+   this.updateTargetPos = (matrixHead, yFloor, qHead, isRight) => {
+      let [qHx, qHy, qHz, qHw] = [qHead.x, qHead.y, qHead.z, qHead.w];
+      this.yRot = Math.atan2(2 * (qHw * qHy + qHx * qHz),
+                              1 - 2 * (qHx * qHx + qHy * qHy));
+      let quaternionHeadYRot = new Quaternion(0, Math.sin(this.yRot / 2), 0, Math.cos(this.yRot / 2));
+      v3TargetPos.set(matrixHead[12], yFloor, matrixHead[14]).offset(isRight?.1:-.1,0,0,quaternionHeadYRot);
+      targetPos = v3TargetPos.toArray();
+   }
+   this.setTargetPos = pos => targetPos = pos;
+   this.getTargetPos = () => targetPos;
+   this.getCurrentPos = () => currentPos;
+   this.setState = s => state = s;
+   this.getState = () => state;
+   this.checkIfOutOfBound = () => cg.distance(currentPos, targetPos) > this.radMoveFoot;
+   this.updateStartMovePos = () => startMovePos = currentPos;
+   this.update = (dt) => {
+      if (state == 1) {
+         let vec = cg.subtract(targetPos, currentPos);
+         let dist = cg.norm(vec);
+         if (dist > 0.05) {
+            currentPos = cg.add(currentPos, cg.scale(cg.normalize(vec), speedMove*dt));
+            let progress = cg.distance(currentPos, startMovePos) / cg.distance(startMovePos, targetPos);
+            if (progress < 0.8) {
+               let height = 0.05 * progress * 2;
+               currentPos[1] = height + targetPos[1];
+            }
+         }
+         else {
+            currentPos = targetPos;
+            state = -1;
+         }
+      }
+   }
 }
 
