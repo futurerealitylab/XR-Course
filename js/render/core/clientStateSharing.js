@@ -10,9 +10,11 @@ window.clientState = {
                           ? null
                           : clientState.isHand(id)
                             ? clientData[id][hand].fingers
-                              ? clientData[id][hand].fingers[i] : null
-                              : clientData[id][hand].mat
-                                ? clientData[id][hand].mat.slice(12,15) : null,
+                              ? clientData[id][hand].fingers[i]
+			      : null
+                            : clientData[id][hand].mat
+                              ? clientData[id][hand].mat.slice(12,15)
+			      : null,
    hand  : (id,hand)   => clientData[id] &&
                             clientData[id][hand]
                               ? clientData[id][hand].mat : null,
@@ -20,12 +22,15 @@ window.clientState = {
    isHand: id          => clientData[id] &&
                             clientData[id].left &&
                               clientData[id].left.fingers ? true : false,
-   isXR  : id          => {
-      let hm = clientState.head(id);
-      return Array.isArray(hm) && (hm[0]!=1 || hm[1]!=0 || hm[2]!=0);
-   },
+   isXR  : id          => Array.isArray(clientState.head(id)),
    pinch : (id,hand,i) => {
       if (window.handtracking) {
+         if (i < 1 || i > 6)
+	    return false;
+         if (i == 5 || i == 6) {
+	    let p = clientState.point(id,hand);
+	    return p && (i == 5 ? p[0] < .5 : p[0] >= .5);
+	 }
 	 let thumb  = clientState.finger(id,hand,0);
          let finger = clientState.finger(id,hand,i);
 	 if (! thumb || ! finger)
@@ -35,6 +40,24 @@ window.clientState = {
       }
       else
          return clientState.button(id,hand,i<1?0:i-1);
+   },
+   point : (id,hand) => {
+      if (! clientState.isHand(id))
+         return null;
+      let mat = clientState.hand(id,hand);
+      if (! mat)
+         return null;
+      let h = cg.mTransform(mat, [0,0,0]), f = [], d = [];
+      for (let i = 0 ; i < 5 ; i++) {
+         f.push(clientState.finger(id,hand,i));
+	 d.push(cg.distance(h,f[i]));
+      }
+      if (d[0] == 0 || d[1] < 2 * d[2])
+         return null;
+      let a = cg.subtract(f[0], h);
+      let b = cg.subtract(f[1], h);
+      return [ (100 * a[1] / cg.norm(a) >> 0) / 100,
+               (100 * b[1] / cg.norm(b) >> 0) / 100 ];
    },
 }
 window.clientData = {};
@@ -77,25 +100,28 @@ export function ClientStateSharing() {                                          
                }                                                                 //                                 //
             }                                                                    //                                 //
       });                                                                        //                                 //
+      if (! clientData[clientID])
+         clientData[clientID] = {};
       for (let hand in { left: {}, right: {} })                                  //                                 //
-         for (let b = 0 ; b < 6 ; b++) {                                         // Update up/down button states.   //
-            if (! buttonState[hand][b]) continue;                                //                                 //
-	    let state = null;
-            if (! (clientData[clientID] && clientData[clientID][hand][b]) && buttonState[hand][b].pressed)          //
-	       state = true;
-            if ((clientData[clientID] && clientData[clientID][hand][b]) && ! buttonState[hand][b].pressed)          //
-	       state = false;
-            if (state != null) {
-               message({ hand: hand, button: b, state: state });                 //                                 //
-               clientData[clientID][hand][b] = state;                            // Set my own button state.        //
-            }
-         }                                                                       // Optionally, also update left    //
+         for (let b = 0 ; b < 7 ; b++)                                           // Update up/down button states.   //
+            if (buttonState[hand][b]) {                                          //                                 //
+	       let isPressed = buttonState[hand][b].pressed;
+	       let wasPressed = clientData[clientID] &&
+	                          clientData[clientID][hand] &&
+			            clientData[clientID][hand][b];
+               if (wasPressed && ! isPressed || isPressed && ! wasPressed) {
+                  message({ hand: hand, button: b, state: isPressed });
+	          if (! clientData[clientID][hand])
+	             clientData[clientID][hand] = {};
+                  clientData[clientID][hand][b] = isPressed;                     // Set my own button state.        //
+               }                                                                 //                                 //
+            }                                                                    // Optionally, also update left    //
       if (speech != lastSpeech)                                                  // Whenever the content of speech  //
          message({ speech: (lastSpeech = speech).trim() });                      // changes, send the new speech.   //
       let hm = cg.mMultiply(clay.inverseRootMatrix,                              // If a user is wearing an XR      //
                             cg.mix(clay.root().inverseViewMatrix(0),             // headset, then broadcast their   //
                                    clay.root().inverseViewMatrix(1), .5));       // head and hand data to all other //
-      if (hm[0]!=1 || hm[1]!=0 || hm[2]!=0) {                                    // users.                          //
+      if (window.isXR()) {                                                       // users.                          //
          message({ head: cg.packMatrix(hm) });                                   //                                 //
          clientData[clientID].head = hm;                                         //                                 //
          for (let hand in { left: {}, right: {} }) {                             //                                 //
@@ -117,6 +143,8 @@ export function ClientStateSharing() {                                          
                                cg.mTranslate([0,-.049,-.079])),                  // on the virtual ping pong ball.  //
                                  cg.mRotateX(-Math.PI/4))));                     //                                 //
             }                                                                    //                                 //
+	    if (! clientData[clientID][hand])
+	       clientData[clientID][hand] = {};
             clientData[clientID][hand].mat = cg.unpackMatrix(msg.mat);           // Set my own matrix immediately.  //
             clientData[clientID][hand].fingers = msg.fingers;                    // Set my own fingers immediately. //
             message(msg);                                                        //                                 //

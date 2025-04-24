@@ -32,8 +32,11 @@ export const init = async model => {
          }
       if (draw.view() == 0)                       // WHILE EITHER HAND IS PINCHING, SEND THE PINCH
          for (let hand in {left:{}, right:{}})    // POSITION AND MY GENDER TO ALL CLIENTS.
-            if (draw.pinch(hand,1))
-               server.send('p3I', { pinch: cg.roundVec(4, draw.finger(hand,1)), gender: myGender });
+            if (draw.pinch(hand,1)) {
+	       let f = draw.finger(hand,1);
+	       if (f)
+                  server.send('p3I', { pinch: cg.roundVec(4, f), gender: myGender });
+            }
    });
    model.animate(() => {
       myGender = clientID == clients[0] ? 1 : 0;
