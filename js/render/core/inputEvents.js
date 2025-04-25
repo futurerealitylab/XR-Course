@@ -193,7 +193,7 @@ export function InputEvents() {
                let matrixFromTwoPoints = (L,R) => {
 	          let T = cg.mix(L,R,.5);
 	          let X = cg.normalize([ R[0]-L[0], 0, R[2]-L[2] ]);
-	          let Z = cg.cross(X0,[0,1,0]);
+	          let Z = cg.cross(X,[0,1,0]);
 	          return [ X[0],0,X[2],0, 0,1,0,0, Z[0],0,Z[2],0, T[0],T[1],T[2],1 ];
 	       }
 
