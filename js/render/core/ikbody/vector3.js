@@ -99,5 +99,7 @@ export function Vector3(x,y,z) {
       this.z -= v.z;
       return this;
    }
+
+   this.toArray = () => [this.x, this.y, this.z];
 }
 
