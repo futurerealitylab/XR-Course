@@ -175,32 +175,41 @@ export function InputEvents() {
 
       // CHECK FOR SPATIAL SYNC FROM ANOTHER CLIENT.
 
+      // If I am holding down the X and A buttons
+
       if ( clientState.button(clientID, 'left' , 4) &&
            clientState.button(clientID, 'right', 4) )
          for (let n = 0 ; n < clients.length ; n++) {
 	    let id = clients[n];
+
+	    // See whether any other client is holding down the Y and B buttons.
+
 	    if (id != clientID && clientState.button(id, 'left' , 5) &&
                                   clientState.button(id, 'right', 5)) {
 
-               let L0 = clientState.finger(clientID, 'left' , 1);
-               let R0 = clientState.finger(clientID, 'right', 1);
-               let L1 = clientState.finger(      id, 'left' , 1);
-               let R1 = clientState.finger(      id, 'right', 1);
+               let matrixFromTwoPoints = (L,R) => {
+	          let T = cg.mix(L,R,.5);
+	          let X = cg.normalize([ R[0]-L[0], 0, R[2]-L[2] ]);
+	          let Z = cg.cross(X0,[0,1,0]);
+	          return [ X[0],0,X[2],0, 0,1,0,0, Z[0],0,Z[2],0, T[0],T[1],T[2],1 ];
+	       }
 
-	       let T0 = cg.mix(L0,R0,.5);
-	       let T1 = cg.mix(R1,L1,.5);
-	       let X0 = cg.normalize([ R0[0]-L0[0] , 0 , R0[2]-L0[2] ]);
-	       let X1 = cg.normalize([ L1[0]-R1[0] , 0 , L1[2]-R1[2] ]);
-	       let Z0 = cg.cross(X0,[0,1,0]);
-	       let Z1 = cg.cross(X1,[0,1,0]);
+               // If so, create coordinate system M0 from my two controllers,
 
-	       let M0 = [X0[0],0,X0[2],0, 0,1,0,0, Z0[0],0,Z0[2],0, T0[0],T0[1],T0[2],1];
-	       let M1 = [X1[0],0,X1[2],0, 0,1,0,0, Z1[0],0,Z1[2],0, T1[0],T1[1],T1[2],1];
+	       let M0 = matrixFromTwoPoints(clientState.finger(clientID, 'left' , 1),
+                                            clientState.finger(clientID, 'right', 1));
+
+               // and coordinate system M1 facing the other way from their two controllers.
+
+               let M1 = matrixFromTwoPoints(clientState.finger(id, 'right', 1),
+                                            clientState.finger(id, 'left' , 1));
+
+               // Transform my world coords by the difference between M0 and M1.
+
 	       let DM = cg.mMultiply(M1, cg.mInverse(M0));
-
 	       worldCoords = cg.mMultiply(DM, worldCoords);
             }
-	 }
+      }
    }
 
    let P, y, pos = {};
