@@ -2,20 +2,29 @@
 
 // MISCELLANEOUS METHODS
 
+   // Bezier interpolation in one dimension
+
+   export let bezier = (t,a,b,c,d) => (1-t)*(1-t)*(1-t)*a + 3*(1-t)*(1-t)*t*b + 3*(1-t)*t*t*c + t*t*t*d;
+
+   // Clamp a numeric value to a range.
+
+   export let clamp = (t, lo=0, hi=1) => Math.max(lo, Math.min(hi, t));
+
    // If a value is undefined, give it a default value.
 
    export let def = (v, d) => v !== undefined ? v : d !== undefined ? d : 0;
+
+   // Hermite interpolation in one dimension
+
+   export let hermite = (t, a, b, da, db) => a * ( 2 * t*t*t - 3 * t*t + 1) +
+                                             b * (-2 * t*t*t + 3 * t*t    ) +
+                                            da * (     t*t*t - 2 * t*t + t) +
+                                            db * (     t*t*t -     t*t    ) ;
 
    // Provide a unique random integer ID.
 
    export let uniqueID = () => 1000 * Math.floor(Math.random() * 1000000) + (Date.now() % 1000);
 
-   // Hermite interpolation in one dimension
-
-   export let hermite = (t, a, b, da, db) => a * ( 2 * t*t*t - 3 * t*t     + 1) +
-                                             b * (-2 * t*t*t + 3 * t*t        ) +
-                                            da * (     t*t*t - 2 * t*t + t    ) +
-                                            db * (     t*t*t -     t*t        ) ;
 
    // Two link inverse kinematics
 

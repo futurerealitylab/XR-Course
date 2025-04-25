@@ -37,6 +37,18 @@ export function InputEvents() {
 
    let prevIsHoldingBothAlts = false;
 
+   let P, y, pos = {}, inverseWorldCoords;
+
+   let setWorldCoords = m => {
+      worldCoords = m;
+      global.gltfRoot.matrix = worldCoords;
+      inverseWorldCoords = cg.mInverse(worldCoords);
+      if (window.clay) {
+         clay.root().setMatrix(worldCoords);
+         clay.inverseRootMatrix = inverseWorldCoords;
+      }
+   }
+
    this.update = () => {
       let press = hand => {
          let currentTime = now();
@@ -114,10 +126,7 @@ export function InputEvents() {
             for (let i = 0 ; i < 3 ; i++)
                worldCoords[12+i] += Math.max(-0.05, Math.min(T[i] - P[i], 0.05));
          P = T.slice();
-         clay.root().setMatrix(worldCoords);
-         global.gltfRoot.matrix = worldCoords;
-         inverseWorldCoords = cg.mInverse(worldCoords);
-         clay.inverseRootMatrix = inverseWorldCoords;
+	 setWorldCoords(worldCoords);
       }
       else
          P = undefined;
@@ -148,10 +157,7 @@ export function InputEvents() {
          if (y !== undefined)
             worldCoords[13] += Math.max(-0.05, Math.min(T[1] - y, 0.05));
          y = T[1];
-         clay.root().setMatrix(worldCoords);
-         global.gltfRoot.matrix = worldCoords;
-         inverseWorldCoords = cg.mInverse(worldCoords);
-         clay.inverseRootMatrix = inverseWorldCoords;
+	 setWorldCoords(worldCoords);
       }
       else
          y = undefined;
@@ -167,10 +173,7 @@ export function InputEvents() {
             sync.syncBound();
          }
 
-         clay.root().setMatrix(worldCoords);
-         global.gltfRoot.matrix = worldCoords;
-         inverseWorldCoords = cg.mInverse(worldCoords);
-         clay.inverseRootMatrix = inverseWorldCoords;
+	 setWorldCoords(worldCoords);
       }
 
       // CHECK FOR SPATIAL SYNC FROM ANOTHER CLIENT.
@@ -179,11 +182,11 @@ export function InputEvents() {
 
       if ( clientState.button(clientID, 'left' , 4) &&
            clientState.button(clientID, 'right', 4) )
+
+	 // See whether any other client is holding down the Y and B buttons.
+
          for (let n = 0 ; n < clients.length ; n++) {
 	    let id = clients[n];
-
-	    // See whether any other client is holding down the Y and B buttons.
-
 	    if (id != clientID && clientState.button(id, 'left' , 5) &&
                                   clientState.button(id, 'right', 5)) {
 
@@ -206,15 +209,13 @@ export function InputEvents() {
 
                // Transform my world coords by the difference between M0 and M1.
 
-	       let DM = cg.mMultiply(M1, cg.mInverse(M0));
-	       worldCoords = cg.mMultiply(DM, worldCoords);
+	       setWorldCoords(cg.mMultiply(cg.mMultiply(M1, cg.mInverse(M0)), worldCoords));
             }
       }
    }
 
-   let P, y, pos = {};
-   global.gltfRoot.matrix = worldCoords;
-   let inverseWorldCoords = cg.mInverse(worldCoords);
+   setWorldCoords(worldCoords);
+
    this.pos = hand => cg.mTransform(inverseWorldCoords, pos[hand]);
 }
 
