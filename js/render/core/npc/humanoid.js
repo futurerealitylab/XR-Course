@@ -1,0 +1,220 @@
+import * as cg from "../cg.js";
+import { NPC } from "./npc.js";
+import { IKBody } from "../ikbody/ikbody.js";
+import { Quaternion } from "../ikbody/quaternion.js";
+import { Vector3 } from "../ikbody/vector3.js";
+
+let PI  = Math.PI;
+let TAU = Math.PI * 2;
+let sin = Math.sin;
+let cos = Math.cos;
+
+export class Humanoid extends NPC {
+   headHeight = 1.7;
+   ikbody = null;
+   bodyLinks = [];
+   links = [0,5, 1,6, 5,10, 10,16, 6,11, 11,16, 16,15, 15,14, 14,9, 2,7, 7,12, 12,9, 3,8, 8,13, 13,9, 9,4];
+   isMoving = false;
+   movVec = [0,0,0];
+   speed = 0;
+   speedEase = 0;
+   rotationYRadian = 0;
+   lookAtRotationYRadianDiffEase = 0;
+   headMaxAngleDegree = 135;
+   DURATION_STEP = 1;
+   isMovingFootState = 0; /* 0: both stationary, 1: left moving, 2: right moving */
+   targetPosFootL     = [0,0,0]; targetPosFootR     = [0,0,0];
+   actualPosFootL     = [0,0,0]; actualPosFootR     = [0,0,0];
+   animStartTimeFootL = 0;       animStartTimeFootR = 0;
+   animStartPosFootL  = [0,0,0]; animStartPosFootR  = [0,0,0];
+   animEndPosFootL    = [0,0,0]; animEndPosFootR    = [0,0,0];
+   cycle = 0;
+   constructor(terrainObj) {
+      super(terrainObj);
+      this.ikbody = new IKBody();
+
+      this.ikbody.nodeData = this.ikbody.computeNodeData(this.center[0], this.headHeight, this.center[2]);
+      this.ikbody.pos      = this.ikbody.computeNodeData(this.center[0], this.headHeight, this.center[2]);
+
+      this.ikbody.initGraph();
+      
+      this.actualPosFootL = [...this.ikbody.pos[IK.ANKLE_L].toArray()];
+      this.actualPosFootR = [...this.ikbody.pos[IK.ANKLE_R].toArray()];
+   }
+
+   update(time, delta, movVec, lookVec) {
+      this.movVec = movVec;
+      this.speed = cg.norm(movVec);
+      this.isMoving = this.speed > .1;
+      if (this.isMoving) {
+         this.rotationYRadian = Math.atan2(movVec[0], movVec[2]) - Math.PI;
+         this.ikbody.quaBODY.set(
+            0, Math.sin(this.rotationYRadian/2), 
+            0, Math.cos(this.rotationYRadian/2)
+         );
+      }
+
+      /* Check if new center is too high or too low */
+      let deltaMove = cg.scale(this.movVec, 1.5 * delta);
+      let newCenter = cg.add(this.center, deltaMove);
+      let newY = this.terrainObj.getHeight(newCenter[0], newCenter[2]);
+      if (Math.abs(this.center[1] - newY) > 0.6) {
+         /* Keep stationary when altitude changes too much */
+         this.movVec = [0,0,0];
+         this.speed = 0;
+         this.isMoving = false;
+      } else {
+         /* Update desired center */
+         this.center = [newCenter[0], newY, newCenter[2]];
+      }
+
+      /* Update Feet Position */
+      this.targetPosFootL = cg.add(this.center, [-0.1*cos(-this.rotationYRadian), .05, -0.1*sin(-this.rotationYRadian)]);
+      this.targetPosFootR = cg.add(this.center, [+0.1*cos(-this.rotationYRadian), .05, +0.1*sin(-this.rotationYRadian)]);
+
+      let isFootLOOB = cg.distance(this.targetPosFootL, this.actualPosFootL) > .2;  /* Left foot out of bound */
+      let isFootROOB = cg.distance(this.targetPosFootR, this.actualPosFootR) > .2;  /* Right foot out of bound */
+
+      if (this.isMovingFootState == 0) {
+         if (isFootLOOB) {
+            this.isMovingFootState = 1;
+            this.animStartTimeFootL = time;
+            this.animStartPosFootL = [...this.actualPosFootL];
+         } else if (isFootROOB) {
+            this.isMovingFootState = 2;
+            this.animStartTimeFootR = time;
+            this.animStartPosFootR = [...this.actualPosFootR];
+         }
+      }
+
+      let progress = 0;
+      if (this.isMovingFootState == 1) {
+         this.animEndPosFootL = [...this.targetPosFootL];
+         progress = (time-this.animStartTimeFootL)/.5;
+         this.actualPosFootL = cg.mix(this.animStartPosFootL, this.animEndPosFootL, progress);
+         this.actualPosFootL[1] += sin(progress*PI)*.2;
+         if (progress >= 1) {
+            this.isMovingFootState = 0;
+         }
+      }
+
+      if (this.isMovingFootState == 2) {
+         this.animEndPosFootR = [...this.targetPosFootR];
+         progress = (time-this.animStartTimeFootR)/.5;
+         this.actualPosFootR = cg.mix(this.animStartPosFootR, this.animEndPosFootR, progress);
+         this.actualPosFootR[1] += sin(progress*PI)*.2;
+         if (progress >= 1) {
+            this.isMovingFootState = 0;
+         }
+      }
+      
+      this.ikbody.pos[IK.ANKLE_L].set(...this.actualPosFootL);
+      this.ikbody.pos[IK.ANKLE_R].set(...this.actualPosFootR);
+
+      
+      /* Update Head Position */
+      let minYOfTwoFeet = Math.min(this.actualPosFootL[1], this.actualPosFootR[1]);
+      this.ikbody.pos[IK.HEAD].x = cg.mixf(this.ikbody.pos[IK.HEAD].x, this.center[0], 5.*delta);
+      this.ikbody.pos[IK.HEAD].y = cg.mixf(this.ikbody.pos[IK.HEAD].y, minYOfTwoFeet+this.headHeight, 5.*delta);
+      this.ikbody.pos[IK.HEAD].z = cg.mixf(this.ikbody.pos[IK.HEAD].z, this.center[2], 5.*delta);
+
+      /* Update Head Rotation */
+      let lookAtRotationYRadian = lookVec && cg.norm(lookVec) > 0 
+         ? Math.atan2(lookVec[0], lookVec[2]) - Math.PI 
+         : this.rotationYRadian;
+      let lookAtRotationYRadianDiff = lookAtRotationYRadian - this.rotationYRadian;
+      /* Clamp lookAtRotationYRadianDiff to [-PI, PI] */
+      if (lookAtRotationYRadianDiff > +Math.PI) lookAtRotationYRadianDiff -= TAU;
+      if (lookAtRotationYRadianDiff < -Math.PI) lookAtRotationYRadianDiff += TAU;
+      let neckMaxAngleRad = this.headMaxAngleDegree * PI/180;
+      lookAtRotationYRadianDiff = clamp(lookAtRotationYRadianDiff, -neckMaxAngleRad, neckMaxAngleRad);
+      lookAtRotationYRadianDiff = Math.min(Math.max(lookAtRotationYRadianDiff, -neckMaxAngleRad), neckMaxAngleRad);
+      
+      this.lookAtRotationYRadianDiffEase = cg.mixf(this.lookAtRotationYRadianDiffEase, lookAtRotationYRadianDiff, 5.*delta);
+
+      /* Update Hands */
+      this.cycle = this.isMovingFootState == 1 ? progress*.5 : this.isMovingFootState == 2 ? progress*.5+.5 : this.cycle;
+      let posWL = [-.25, .8-.02*Math.cos(Math.cos(this.cycle*TAU)*TAU/2), -.25*Math.cos(this.cycle*TAU)];
+      let posWR = [+.25, .8-.02*Math.cos(Math.cos(this.cycle*TAU)*TAU/2), +.25*Math.cos(this.cycle*TAU)];
+
+      this.speedEase = cg.mixf(this.speedEase, this.speed, 5.*delta);
+
+      posWL = cg.mix([-.25, .80, 0], posWL, this.speedEase);
+      posWR = cg.mix([+.25, .80, 0], posWR, this.speedEase);
+
+      /* Rotate hand swing direction to the mix of head & feet */
+      let handSwingRotY = cg.mixf(this.lookAtRotationYRadianDiffEase, 0, .5) + this.rotationYRadian;
+      let qHandSwing = new Quaternion(0, Math.sin(handSwingRotY/2), 0, Math.cos(handSwingRotY/2));
+
+      let averageCenter = cg.mix(this.actualPosFootL, this.actualPosFootR, .5);
+      averageCenter[1] = minYOfTwoFeet;
+      let Vec3AverageCenter = new Vector3(...averageCenter);
+      this.ikbody.pos[IK.WRIST_L].set(...posWL).applyQuaternion(qHandSwing).add(Vec3AverageCenter);
+      this.ikbody.pos[IK.WRIST_R].set(...posWR).applyQuaternion(qHandSwing).add(Vec3AverageCenter);
+
+      /* Update ikbody */
+      this.ikbody.update(this.lookAtRotationYRadianDiffEase);
+   }
+
+   r_node = null;
+   m_human_root = null;
+   m_bodyNodes = [];
+   m_bodyLinks = [];
+   initRender(node) {
+      if (!node) {
+         console.warn("usage: .initRender(node)");
+      }
+      this.r_node = node;
+      this.m_human_root = this.r_node.add();
+      for (let i = 0; i < 17; ++i) {
+         if (i < 5) {
+            this.m_bodyNodes.push(this.m_human_root.add('sphere').color(.8,.8,.8)); 
+         } else {
+            this.m_bodyNodes.push(this.m_human_root.add('sphere').color(1,1,1));
+         }
+      }
+      this.m_bodyNodes[IK.HEAD   ].add('tubeZ').move(0,0,-1.5).scale(.1,.1,1.5).color(1,0,0);
+      this.m_bodyNodes[IK.ANKLE_L].add('tubeZ').move(0,0,-1.5).scale(.1,.1,1.5).color(0,0,1);
+      this.m_bodyNodes[IK.ANKLE_R].add('tubeZ').move(0,0,-1.5).scale(.1,.1,1.5).color(0,1,0);
+      this.m_bodyNodes[IK.WRIST_L].add('tubeZ').move(0,0,-1.5).scale(.1,.1,1.5).color(0,0,1);
+      this.m_bodyNodes[IK.WRIST_R].add('tubeZ').move(0,0,-1.5).scale(.1,.1,1.5).color(0,1,0);
+      this.m_bodyNodes[IK.HEAD   ].add('coneZ').move(0,0,-3).scale(.4).turnY(Math.PI).color(1,0,0);
+      this.m_bodyNodes[IK.ANKLE_L].add('coneZ').move(0,0,-3).scale(.4).turnY(Math.PI).color(0,0,1);
+      this.m_bodyNodes[IK.ANKLE_R].add('coneZ').move(0,0,-3).scale(.4).turnY(Math.PI).color(0,1,0);
+      this.m_bodyNodes[IK.WRIST_L].add('coneZ').move(0,0,-3).scale(.4).turnY(Math.PI).color(0,0,1);
+      this.m_bodyNodes[IK.WRIST_R].add('coneZ').move(0,0,-3).scale(.4).turnY(Math.PI).color(0,1,0);
+      for (let i = 0 ; i < this.links.length ; i += 2) {
+         this.m_bodyLinks.push(this.m_human_root.add('tubeZ').color(1,1,1));
+      }
+   }
+
+   render() {
+      if (!this.r_node) return;
+      let gnodes = this.ikbody.graph.nodes;
+      for (let n = 0; n < 5; ++n) {
+         let p = this.ikbody.getP(n);
+         let q = this.ikbody.getQ(n);
+         this.m_bodyNodes[n].identity().move(p.x, p.y, p.z).setMatrix(
+            cg.mMultiply(this.m_bodyNodes[n].getMatrix(), q.toMatrix())).scale(.08);
+      }
+      for (let n = 5; n < gnodes.length; ++n) {
+         let p = gnodes[n].p;
+         this.m_bodyNodes[n].identity().move(p.x, p.y, p.z).scale(.04);
+      }
+
+      let getP = n => n < 5 ? this.ikbody.pos[n] : gnodes[n].p;
+      for (let i = 0; i < this.links.length; i += 2) {
+         let A = getP(this.links[i  ]), a = [A.x,A.y,A.z];
+         let B = getP(this.links[i+1]), b = [B.x,B.y,B.z];
+         this.m_bodyLinks[i/2].identity().move(cg.mix(a,b,.5))
+            .aimZ(cg.subtract(b,a)).scale(.03,.03,cg.distance(a,b)/2);
+      }
+   }
+
+   getBodyNodes() { return this.ikbody.graph.nodes; }
+
+}
+
+function clamp(x, min = 0, max = 1) {
+   return Math.min(max, Math.max(min, x));
+}

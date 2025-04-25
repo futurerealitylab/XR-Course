@@ -1,5 +1,5 @@
 import { buttonState, controllerMatrix, joyStickState } from "../render/core/controllerInput.js";
-import { NPCSystem } from "../render/core/npc.js";
+import { NPCSystem } from "../render/core/npc/npcSystem.js";
 import * as cg from "../render/core/cg.js";
 import { lcb, rcb } from '../handle_scenes.js';
 
