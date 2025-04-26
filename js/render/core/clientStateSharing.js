@@ -6,6 +6,7 @@ window.clientState = {
    button: (id,hand,i) => clientData[id] &&
                             clientData[id][hand]
                               ? clientData[id][hand][i] : null,
+   coords: id          => clientData[id] ? clientData[id].coords : null,
    finger: (id,hand,i) => ! clientData[id] || ! clientData[id][hand]
                           ? null
                           : clientState.isHand(id)
@@ -91,6 +92,10 @@ export function ClientStateSharing() {                                          
 	          if (id != clientID)
                      clientData[msg.id].head = cg.unpackMatrix(msg.head);        // Set a user's head matrix.       //
                }
+               else if (msg.coords) {                                            //                                 //
+	          if (id != clientID)
+                     clientData[msg.id].coords = cg.unpackMatrix(msg.coords);    // Set a user's head matrix.       //
+	       }
                else if (msg.hand) {                                              //                                 //
 	          if (id != clientID) {                                          //                                 //
                      msg.mat ? clientData[msg.id][msg.hand].mat=cg.unpackMatrix(msg.mat) // Set matrix.             //
@@ -118,12 +123,14 @@ export function ClientStateSharing() {                                          
             }                                                                    // Optionally, also update left    //
       if (speech != lastSpeech)                                                  // Whenever the content of speech  //
          message({ speech: (lastSpeech = speech).trim() });                      // changes, send the new speech.   //
-      let hm = cg.mMultiply(clay.inverseRootMatrix,                              // If a user is wearing an XR      //
+      if (window.isXR()) {                                                       // users.                          //
+         let headMatrix = cg.mMultiply(clay.inverseRootMatrix,                   // If a user is wearing an XR      //
                             cg.mix(clay.root().inverseViewMatrix(0),             // headset, then broadcast their   //
                                    clay.root().inverseViewMatrix(1), .5));       // head and hand data to all other //
-      if (window.isXR()) {                                                       // users.                          //
-         message({ head: cg.packMatrix(hm) });                                   //                                 //
-         clientData[clientID].head = hm;                                         //                                 //
+         clientData[clientID].head = headMatrix;                                 //                                 //
+         clientData[clientID].coords = worldCoords;                              //                                 //
+         message({ head  : cg.packMatrix(headMatrix),                            //                                 //
+	           coords: cg.packMatrix(worldCoords) });                        //                                 //
          for (let hand in { left: {}, right: {} }) {                             //                                 //
             let msg = { hand: hand };                                            //                                 //
             if (window.handtracking) {                                           // If handtracking, share both the //

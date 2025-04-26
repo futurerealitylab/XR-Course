@@ -176,41 +176,36 @@ export function InputEvents() {
 	 setWorldCoords(worldCoords);
       }
 
-      // CHECK FOR SPATIAL SYNC FROM ANOTHER CLIENT.
+      // SPATIAL SYNCHRONIZATION FROM ANOTHER CLIENT
 
-      // If I am holding down the X and A buttons
+      // When I press my X and A buttons while another client presses their Y and B buttons:
+      // 1) Create two coordinate systems from my two controllers and their two controllers.
+      // 2) Use that info to transform my controller coords to face their controller coords.
 
-      if ( clientState.button(clientID, 'left' , 4) &&
-           clientState.button(clientID, 'right', 4) )
+      let matrixFromLR = (L,R) => {
+	 let T = cg.mix(L,R,.5);
+	 let X = cg.normalize([ R[0]-L[0], 0, R[2]-L[2] ]);
+	 let Z = cg.cross(X,[0,1,0]);
+	 return [ X[0],0,X[2],0, 0,1,0,0, Z[0],0,Z[2],0, T[0],T[1],T[2],1 ];
+      }
+      let button = (id,hand,b) => clientState.button(id,hand,b);
+      let finger = (id,hand  ) => cg.mTransform(clientState.coords(id),
+                                                clientState.finger(id,hand,1));
 
-	 // See whether any other client is holding down the Y and B buttons.
-
+      if (button(clientID,'left',4) && button(clientID,'right',4)) {
+/*
+	 let A = matrixFromLR(finger(clientID,'left'), finger(clientID,'right'));
+         let B = matrixFromLR([-1,1.5,0], [1,1.5,0]);
+	 setWorldCoords(cg.mMultiply(cg.mInverse(B), A));
+*/
          for (let n = 0 ; n < clients.length ; n++) {
-	    let id = clients[n];
-	    if (id != clientID && clientState.button(id, 'left' , 5) &&
-                                  clientState.button(id, 'right', 5)) {
-
-               let matrixFromTwoPoints = (L,R) => {
-	          let T = cg.mix(L,R,.5);
-	          let X = cg.normalize([ R[0]-L[0], 0, R[2]-L[2] ]);
-	          let Z = cg.cross(X,[0,1,0]);
-	          return [ X[0],0,X[2],0, 0,1,0,0, Z[0],0,Z[2],0, T[0],T[1],T[2],1 ];
-	       }
-
-               // If so, create coordinate system M0 from my two controllers,
-
-	       let M0 = matrixFromTwoPoints(clientState.finger(clientID, 'left' , 1),
-                                            clientState.finger(clientID, 'right', 1));
-
-               // and coordinate system M1 facing the other way from their two controllers.
-
-               let M1 = matrixFromTwoPoints(clientState.finger(id, 'right', 1),
-                                            clientState.finger(id, 'left' , 1));
-
-               // Transform my world coords by the difference between M0 and M1.
-
-	       setWorldCoords(cg.mMultiply(cg.mMultiply(M1, cg.mInverse(M0)), worldCoords));
+	    let senderID = clients[n];
+	    if (button(senderID,'left',5) && button(senderID,'right',5)) {
+	       let A = matrixFromLR(finger(clientID, 'left' ), finger(clientID, 'right'));
+               let B = matrixFromLR(finger(senderID, 'right'), finger(senderID, 'left' ));
+	       setWorldCoords(cg.mMultiply(cg.mInverse(B), A));
             }
+         }
       }
    }
 
