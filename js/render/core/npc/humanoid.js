@@ -195,7 +195,7 @@ export class Humanoid extends NPC {
          let p = this.ikbody.getP(n);
          let q = this.ikbody.getQ(n);
          this.m_bodyNodes[n].identity().move(p.x, p.y, p.z).setMatrix(
-            cg.mMultiply(this.m_bodyNodes[n].getMatrix(), q.toMatrix())).scale(.08);
+            cg.mMultiply(this.m_bodyNodes[n].getMatrix(), q.toMatrix())).scale(n==4 ? [.11,.14,.11] : .08);
       }
       for (let n = 5; n < gnodes.length; ++n) {
          let p = gnodes[n].p;
@@ -204,8 +204,14 @@ export class Humanoid extends NPC {
 
       let getP = n => n < 5 ? this.ikbody.pos[n] : gnodes[n].p;
       for (let i = 0; i < this.links.length; i += 2) {
-         let A = getP(this.links[i  ]), a = [A.x,A.y,A.z];
-         let B = getP(this.links[i+1]), b = [B.x,B.y,B.z];
+         let l0 = this.links[i];
+         let l1 = this.links[i+1];
+         let A = getP(l0), a = [A.x,A.y,A.z];
+         let B = getP(l1), b = [B.x,B.y,B.z];
+	 if ((l0 == 12 || l0 == 13) && l1 == 9) {
+            let C = getP(14), c = [C.x,C.y,C.z];
+	    b = cg.mix(b, c, .4);
+	 }
          this.m_bodyLinks[i/2].identity().move(cg.mix(a,b,.5))
             .aimZ(cg.subtract(b,a)).scale(.03,.03,cg.distance(a,b)/2);
       }
