@@ -772,6 +772,8 @@ let buildTubeZMesh     = n => createMesh(n, 2, uvToTube);
 let buildCylinderZMesh = n => glueMeshes(glueMeshes(buildTubeZMesh(n),
                                                     createMesh(n, 2, uvToDisk, -1)),
                                                     createMesh(n, 2, uvToDisk,  1));
+let buildCanZMesh = n => glueMeshes(buildTubeZMesh(n),
+                                    createMesh(n, 2, uvToDisk, -1));
 
 let torusZMesh    = createMesh(32, 16, uvToTorus, .37);
 let torusXMesh    = permuteCoords(torusZMesh);
@@ -1220,7 +1222,9 @@ function Blobs() {
    setFormMesh('sphere6' , createMesh( 6, 3, uvToSphere));
    setFormMesh('sphere3' , createMesh( 3, 2, uvToSphere));
    setFormMesh('tube12'  , createMesh(12, 2, uvToTube));
+   setFormMesh('can12'   , buildCanZMesh(12));
    setFormMesh('tube6'   , createMesh( 6, 2, uvToTube));
+   setFormMesh('disk12'  , createMesh(12, 2, uvToDisk));
 
    setFormMesh('ringZ', createMesh(32, 16, uvToTorus, .01));
    setFormMesh('ringX', permuteCoords(formMesh.ringZ));
@@ -1748,12 +1752,16 @@ let fl = 5;                                                          // CAMERA F
       for (let hand in this.controllerWidgets)
          if (window.handtracking)
             this.controllerWidgets[hand].scale(0);
-         else
+         else {
+            let i = 0;
+            for (let b = 0 ; b < 7 ; b++)
+	       if (clientState.button(clientID, hand, b))
+	          i = b + 1;
             this.controllerWidgets[hand].setMatrix(cg.mInverse(root.getMatrix()))
                                         .move(this.controllerOrigin(hand))
                                         .scale(this.controllerBallSize)
-                                        .color(buttonState[hand][0].pressed
-                                               ? cg.scale(controllerLightColor[hand], 20) : [.48,.36,.27]);
+                                        .color(clientState.color(i));
+         }
 
       if (window.clay) scenes();
 

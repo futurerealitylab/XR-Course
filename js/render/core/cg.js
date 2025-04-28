@@ -149,6 +149,14 @@
                                    h2f(hex.substring(3,5)),
 				   h2f(hex.substring(5,7)),
                                    hex.length > 8 ? h2f(hex.substring(7,9)) : 1 ];
+   let f2h = f => {
+      const c = '0123456789abcdef';
+      f = clamp(f,0,.999);
+      let hi = 16 * f >> 0;
+      let lo = 16 * (16 * f - hi) >> 0;
+      return c[hi] + c[lo];
+   }
+   export let rgbToHex = rgb => '#' + f2h(rgb[0]) + f2h(rgb[1]) + f2h(rgb[2]);
 
 // VECTOR METHODS
 

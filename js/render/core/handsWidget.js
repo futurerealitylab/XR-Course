@@ -6,6 +6,9 @@ import * as cg from "./cg.js";
 export function HandsWidget(widgets) {
     const THUMB = 0, INDEX = 1, MIDDLE = 2, RING = 3, PINKY = 4;
 
+    let isVisible = false;
+    this.setVisible = isTrue => hands.opacity(isVisible = isTrue ? 1 : .01);
+
     this.visible = (hand, t) => { }
     this.point = { left: 0, right: 0 };
     this.pinch = { left: 0, right: 0 };
@@ -15,7 +18,8 @@ export function HandsWidget(widgets) {
     this.setFingerColor = () => {};
     this.getMatrix = (hand, finger, joint) => jointMatrix[hand][5 * finger + joint].mat;
 
-    let hands = widgets.add().opacity(.01);
+    let hands = widgets.add().color(clientState.color(0)).dull();
+    this.setVisible(isVisible);
 
     let L_joints = hands.add();
     let R_joints = hands.add();
@@ -29,8 +33,8 @@ export function HandsWidget(widgets) {
           R_joints.add(finger+i==0 ? 'sphere' : 'sphere12').scale(0);
        }
        for (let i = 0 ; i < 4 ; i++) {
-          L_links.add('tube12').scale(0);
-          R_links.add('tube12').scale(0);
+          L_links.add(i==1 || finger==0 && i==2 ? 'can12' : 'tube12').scale(0);
+          R_links.add(i==1 || finger==0 && i==2 ? 'can12' : 'tube12').scale(0);
        }
     }
 
@@ -52,39 +56,44 @@ export function HandsWidget(widgets) {
            handSize[hand] = cg.distance(lo, hi);
         }
 
-        let th = [.014,.012,.012,.012,.01];
+        let th = [.013,.011,.011,.011,.01];
         if(window.handtracking && handSize.left < 1 && handSize.right < 1) {
+
+            let P = {left:[], right:[]};
+	    for (let hand in P)
+               for (let finger = 0 ; finger < 5 ; finger++)
+                  for (let i = 0 ; i < 5 ; i++)
+	             P[hand].push(jointMatrix[hand][5*finger+i].mat.slice(12,15));
+
             hands.setMatrix(clay.inverseRootMatrix);
+
             for (let finger = 0 ; finger < 5 ; finger++) {
-
-               let j3 = 5 * finger + 3;
-               let j4 = 5 * finger + 4;
-               let L3 = jointMatrix.left[j3].mat;
-               let L4 = jointMatrix.left[j4].mat;
-               let R3 = jointMatrix.right[j3].mat;
-               let R4 = jointMatrix.right[j4].mat;
-               for (let k = 12 ; k < 15 ; k++) {
-                  L4[k] += .5 * (L4[k] - L3[k]);
-                  R4[k] += .5 * (R4[k] - R3[k]);
-               }
-
-               let aim = (link,A,B) => {
-                  let a = A.slice(12,15);
-                  let b = B.slice(12,15);
+	       let t = th[finger] + (isVisible ? 0 : .02);
+               let aim = (link,a,b) => {
                   let c = cg.mix(a,b,.5,.5);
                   let d = cg.mix(a,b,-.5,.5);
-                  link.identity().move(c).aimZ(d).scale(th[finger],th[finger],cg.norm(d));
+                  link.identity().move(c).aimZ(d).scale(t,t,cg.norm(d));
                }
                for (let i = 0 ; i < 5 ; i++) {
                   let nj = 5 * finger + i;
-                  L_joints.child(nj).setMatrix(jointMatrix.left [nj].mat).scale(th[finger]);
-                  R_joints.child(nj).setMatrix(jointMatrix.right[nj].mat).scale(th[finger]);
+                  L_joints.child(nj).identity().move(P.left [nj]).scale(t);
+                  R_joints.child(nj).identity().move(P.right[nj]).scale(t);
+
+		  if (i <= 1 || finger == 0 && i <= 2) {
+                     L_joints.child(nj).scale(0);
+                     R_joints.child(nj).scale(0);
+                  }
                }
                for (let i = 0 ; i < 4 ; i++) {
                   let nj = 5 * finger + i;
                   let nl = 4 * finger + i;
-                  aim(L_links.child(nl), jointMatrix.left [nj].mat, jointMatrix.left [nj+1].mat);
-                  aim(R_links.child(nl), jointMatrix.right[nj].mat, jointMatrix.right[nj+1].mat);
+                  aim(L_links.child(nl), P.left [nj], P.left [nj+1]);
+                  aim(R_links.child(nl), P.right[nj], P.right[nj+1]);
+
+		  if (i == 0 || finger == 0 && i == 1) {
+                     L_links.child(nl).scale(0);
+                     R_links.child(nl).scale(0);
+                  }
                }
             }
             L_joints.child(0).scale(0);
@@ -105,11 +114,11 @@ export function HandsWidget(widgets) {
                return 1 - cg.dot(a,b);
             }
 
-            let touchState = joints => {
-               let a = joints.child(4).getMatrix().slice(12,15);
+            let touchState = hand => {
+               let a = P[hand][4];
                if (a[0]!=0 || a[1]!=0 || a[2]!=0)
                   for (let finger = 1 ; finger < 5 ; finger++) {
-                     let b = joints.child(5*finger + 4).getMatrix().slice(12,15);
+                     let b = P[hand][5*finger + 4];
                      let d = cg.mix(a,b,-.5,.5);
                      if (cg.norm(d) < .012)
                         return finger;
@@ -120,26 +129,14 @@ export function HandsWidget(widgets) {
             this.matrix.left  = jointMatrix.left [0].mat;
             this.matrix.right = jointMatrix.right[0].mat;
 
-            this.pinch.left  = touchState(L_joints);
-            this.pinch.right = touchState(R_joints);
+            this.pinch.left  = touchState('left' );
+            this.pinch.right = touchState('right');
 
-/*
-            let s = 1;
-            let a = L_joints.child(4).getMatrix().slice(12,15);
-            if (a[0]!=0 || a[1]!=0 || a[2]!=0) {
-               let b = L_joints.child(5 + 4).getMatrix().slice(12,15);
-               let d = cg.mix(a,b,-.5,.5);
-               s = cg.norm(d);
-            }
-            console.log(this.pinch.left, (1000 * s >> 0) / 1000);
-*/
-
-      for (let hand in this.point) {
+            for (let hand in this.point) {
                if (this.pinch[hand] > 1) {
                   this.point[hand] = false;
                   continue;
                }
-
                 
                let b01 = this.fingerBend(hand, 0, 1);
                let b02 = this.fingerBend(hand, 0, 2);

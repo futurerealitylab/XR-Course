@@ -2,10 +2,13 @@ import * as cg from "./cg.js";                                                  
 import { buttonState, controllerMatrix } from './controllerInput.js';            // Import the button state.        //
 import { jointMatrix } from "./handtrackingInput.js";                            // Import finger joint data        //
                                                                                  // Import the CG library.          //
+let color = [[.48,.36,.27],[1,1,1],[1,.19,0],[1,1,0],[0,.88,0],[0,0,1],[1,0,0]]; //                                 //
+                                                                                 //                                 //
 window.clientState = {                                                           //                                 //
    button: (id,hand,b) => clientData[id] &&                                      // The global clientState object   //
                             clientData[id][hand]                                 // is the user's access point for  //
                               ? clientData[id][hand][b] : null,                  // obtaining the input data of all //
+   color : i           => color[i],
    coords: id          => clientData[id] ? clientData[id].coords : null,         // clients.                        //
    finger: (id,hand,i) => ! clientData[id] || ! clientData[id][hand]             //                                 //
                           ? null                                                 // button returns true or false    //
@@ -139,7 +142,8 @@ export function ClientStateSharing() {                                          
                for (let f = 4 ; f < 25 ; f += 5) {                               //                                 //
                   let m = cg.mMultiply(clay.inverseRootMatrix,                   //                                 //
                           cg.mMultiply(cg.mTranslate(handP),jointMatrix[hand][f].mat));                             //
-                  msg.fingers.push(cg.roundVec(3, cg.mTransform(m, [0,0,-.01])));//                                 //
+                //msg.fingers.push(cg.roundVec(3, cg.mTransform(m, [0,0,-.01])));//                                 //
+                  msg.fingers.push(cg.roundVec(3, m.slice(12,15)));              //                                 //
                }                                                                 //                                 //
             }                                                                    //                                 //
             else {                                                               //                                 //
