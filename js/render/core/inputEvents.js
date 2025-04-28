@@ -192,21 +192,15 @@ export function InputEvents() {
       let finger = (id,hand  ) => cg.mTransform(clientState.coords(id),
                                                 clientState.finger(id,hand,1));
 
-      if (button(clientID,'left',4) && button(clientID,'right',4)) {
-/*
-	 let A = matrixFromLR(finger(clientID,'left'), finger(clientID,'right'));
-         let B = matrixFromLR([-1,1.5,0], [1,1.5,0]);
-	 setWorldCoords(cg.mMultiply(cg.mInverse(B), A));
-*/
+      if (button(clientID,'left',4) && button(clientID,'right',4))
          for (let n = 0 ; n < clients.length ; n++) {
 	    let senderID = clients[n];
 	    if (button(senderID,'left',5) && button(senderID,'right',5)) {
 	       let A = matrixFromLR(finger(clientID, 'left' ), finger(clientID, 'right'));
                let B = matrixFromLR(finger(senderID, 'right'), finger(senderID, 'left' ));
-	       setWorldCoords(cg.mMultiply(cg.mInverse(B), A));
+	       setWorldCoords(cg.mMultiply(A, cg.mInverse(B)));
             }
          }
-      }
    }
 
    setWorldCoords(worldCoords);
