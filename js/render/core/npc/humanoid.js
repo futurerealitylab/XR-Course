@@ -13,13 +13,15 @@ export class Humanoid extends NPC {
    headHeight = 1.7;
    ikbody = null;
    bodyLinks = [];
+   //    0       1      2       3       4    5      6      7       8       9    10    11     12         13        14    15     16
+   // ANKLE_L ANKLE_R WRIST_R WRIST_L HEAD KNEE_L KNEE_R ELBOW_R ELBOW_L CHEST HIP_L HIP_R SHOULDER_R SHOULDER_L BELLY WAIST PELVIS
    links = [0,5, 1,6, 5,10, 10,16, 6,11, 11,16, 16,15, 15,14, 14,9, 2,7, 7,12, 12,9, 3,8, 8,13, 13,9, 9,4];
    isMoving = false;
    movVec = [0,0,0];
    speed = 0;
    speedEase = 0;
-   rotationYRadian = 0;
-   lookAtRotationYRadianDiffEase = 0;
+   movRotYRadian = 0; // Moving vector's rotation in Y axis in Radian
+   lookAtRotYRadian = 0; // Head rotation in Y axis in Radian
    headMaxAngleDegree = 135;
    DURATION_STEP = 1;
    isMovingFootState = 0; /* 0: both stationary, 1: left moving, 2: right moving */
@@ -32,6 +34,11 @@ export class Humanoid extends NPC {
    constructor(terrainObj) {
       super(terrainObj);
       this.ikbody = new IKBody();
+
+      // this.ikbody.offsets[IK.CHEST     ] = [0, 0, .24];
+      // this.ikbody.offsets[IK.BELLY     ] = [0, 0, .13];
+      // this.ikbody.offsets[IK.WAIST     ] = [0, 0, .13];
+      // this.ikbody.offsets[IK.PELVIS    ] = [0, 0, .13];
 
       this.ikbody.nodeData = this.ikbody.computeNodeData(this.center[0], this.headHeight, this.center[2]);
       this.ikbody.pos      = this.ikbody.computeNodeData(this.center[0], this.headHeight, this.center[2]);
@@ -47,10 +54,16 @@ export class Humanoid extends NPC {
       this.speed = cg.norm(movVec);
       this.isMoving = this.speed > .1;
       if (this.isMoving) {
-         this.rotationYRadian = Math.atan2(movVec[0], movVec[2]) - Math.PI;
+         let movRotYRadianTarget = Math.atan2(movVec[0], movVec[2]) + PI;
+         /* Ease the movRotYRadian to the target */
+         let angleDiff = movRotYRadianTarget - this.movRotYRadian;
+         if (angleDiff > +PI) angleDiff -= TAU;
+         if (angleDiff < -PI) angleDiff += TAU;
+         this.movRotYRadian += cg.mixf(0, angleDiff, 5.*delta);
+         /* Update body rotation */
          this.ikbody.quaBODY.set(
-            0, Math.sin(this.rotationYRadian/2), 
-            0, Math.cos(this.rotationYRadian/2)
+            0, Math.sin(this.movRotYRadian/2), 
+            0, Math.cos(this.movRotYRadian/2)
          );
       }
 
@@ -68,9 +81,11 @@ export class Humanoid extends NPC {
          this.center = [newCenter[0], newY, newCenter[2]];
       }
 
+      let matMovDir = cg.mRotateY(this.movRotYRadian);
+
       /* Update Feet Position */
-      this.targetPosFootL = cg.add(this.center, [-0.1*cos(-this.rotationYRadian), .05, -0.1*sin(-this.rotationYRadian)]);
-      this.targetPosFootR = cg.add(this.center, [+0.1*cos(-this.rotationYRadian), .05, +0.1*sin(-this.rotationYRadian)]);
+      this.targetPosFootL = cg.add(this.center, cg.mTransform(matMovDir, [-0.1, .05, 0]));
+      this.targetPosFootR = cg.add(this.center, cg.mTransform(matMovDir, [+0.1, .05, 0]));
 
       let isFootLOOB = cg.distance(this.targetPosFootL, this.actualPosFootL) > .2;  /* Left foot out of bound */
       let isFootROOB = cg.distance(this.targetPosFootR, this.actualPosFootR) > .2;  /* Right foot out of bound */
@@ -119,41 +134,43 @@ export class Humanoid extends NPC {
       this.ikbody.pos[IK.HEAD].z = cg.mixf(this.ikbody.pos[IK.HEAD].z, this.center[2], 5.*delta);
 
       /* Update Head Rotation */
-      let lookAtRotationYRadian = lookVec && cg.norm(lookVec) > 0 
-         ? Math.atan2(lookVec[0], lookVec[2]) - Math.PI 
-         : this.rotationYRadian;
-      let lookAtRotationYRadianDiff = lookAtRotationYRadian - this.rotationYRadian;
-      /* Clamp lookAtRotationYRadianDiff to [-PI, PI] */
-      if (lookAtRotationYRadianDiff > +Math.PI) lookAtRotationYRadianDiff -= TAU;
-      if (lookAtRotationYRadianDiff < -Math.PI) lookAtRotationYRadianDiff += TAU;
+      let lookAtRotYRadianTarget = lookVec && cg.norm(lookVec) > 0 
+         ? Math.atan2(lookVec[0], lookVec[2]) + PI 
+         : this.movRotYRadian;
+      let lookAtRotYRadianDiff = lookAtRotYRadianTarget - this.movRotYRadian;
+      /* Clamp lookAtRotYRadianDiff to [-PI, PI] */
+      if (lookAtRotYRadianDiff > +PI) lookAtRotYRadianDiff -= TAU;
+      if (lookAtRotYRadianDiff < -PI) lookAtRotYRadianDiff += TAU;
       let neckMaxAngleRad = this.headMaxAngleDegree * PI/180;
-      lookAtRotationYRadianDiff = clamp(lookAtRotationYRadianDiff, -neckMaxAngleRad, neckMaxAngleRad);
-      lookAtRotationYRadianDiff = Math.min(Math.max(lookAtRotationYRadianDiff, -neckMaxAngleRad), neckMaxAngleRad);
+      lookAtRotYRadianDiff = clamp(lookAtRotYRadianDiff, -neckMaxAngleRad, neckMaxAngleRad);
+      lookAtRotYRadianDiff = Math.min(Math.max(lookAtRotYRadianDiff, -neckMaxAngleRad), neckMaxAngleRad);
       
-      this.lookAtRotationYRadianDiffEase = cg.mixf(this.lookAtRotationYRadianDiffEase, lookAtRotationYRadianDiff, 5.*delta);
+      this.lookAtRotYRadian = cg.mixf(this.lookAtRotYRadian, lookAtRotYRadianDiff, 5.*delta);
 
       /* Update Hands */
+      let handY = .8;
       this.cycle = this.isMovingFootState == 1 ? progress*.5 : this.isMovingFootState == 2 ? progress*.5+.5 : this.cycle;
-      let posWL = [-.25, .8-.02*Math.cos(Math.cos(this.cycle*TAU)*TAU/2), -.25*Math.cos(this.cycle*TAU)];
-      let posWR = [+.25, .8-.02*Math.cos(Math.cos(this.cycle*TAU)*TAU/2), +.25*Math.cos(this.cycle*TAU)];
+      let posWL = [-.25, handY-.02*Math.cos(Math.cos(this.cycle*TAU)*TAU/2), -.25*Math.cos(this.cycle*TAU)];
+      let posWR = [+.25, handY-.02*Math.cos(Math.cos(this.cycle*TAU)*TAU/2), +.25*Math.cos(this.cycle*TAU)];
 
       this.speedEase = cg.mixf(this.speedEase, this.speed, 5.*delta);
 
-      posWL = cg.mix([-.25, .80, 0], posWL, this.speedEase);
-      posWR = cg.mix([+.25, .80, 0], posWR, this.speedEase);
+      posWL = cg.mix([-.25, handY, 0], posWL, this.speedEase);
+      posWR = cg.mix([+.25, handY, 0], posWR, this.speedEase);
 
       /* Rotate hand swing direction to the mix of head & feet */
-      let handSwingRotY = cg.mixf(this.lookAtRotationYRadianDiffEase, 0, .5) + this.rotationYRadian;
+      let handSwingRotY = cg.mixf(this.lookAtRotYRadian, 0, .5) + this.movRotYRadian;
       let qHandSwing = new Quaternion(0, Math.sin(handSwingRotY/2), 0, Math.cos(handSwingRotY/2));
 
       let averageCenter = cg.mix(this.actualPosFootL, this.actualPosFootR, .5);
+      averageCenter = cg.add(averageCenter, cg.mTransform(matMovDir, [0,0,0]));
       averageCenter[1] = minYOfTwoFeet;
       let Vec3AverageCenter = new Vector3(...averageCenter);
       this.ikbody.pos[IK.WRIST_L].set(...posWL).applyQuaternion(qHandSwing).add(Vec3AverageCenter);
       this.ikbody.pos[IK.WRIST_R].set(...posWR).applyQuaternion(qHandSwing).add(Vec3AverageCenter);
 
       /* Update ikbody */
-      this.ikbody.update(this.lookAtRotationYRadianDiffEase);
+      this.ikbody.update(this.lookAtRotYRadian);
    }
 
    r_node = null;
@@ -170,7 +187,7 @@ export class Humanoid extends NPC {
          if (i < 5) {
             this.m_bodyNodes.push(this.m_human_root.add('sphere').color(.8,.8,.8)); 
          } else {
-            this.m_bodyNodes.push(this.m_human_root.add('sphere').color(1,1,1));
+            this.m_bodyNodes.push(this.m_human_root.add('sphere').color(i==9?[0,1,1]:[1,1,1])); // DEBUG: highlight chest node
          }
       }
       this.m_bodyNodes[IK.HEAD   ].add('tubeZ').move(0,0,-1.5).scale(.1,.1,1.5).color(1,0,0);
@@ -178,11 +195,11 @@ export class Humanoid extends NPC {
       this.m_bodyNodes[IK.ANKLE_R].add('tubeZ').move(0,0,-1.5).scale(.1,.1,1.5).color(0,1,0);
       this.m_bodyNodes[IK.WRIST_L].add('tubeZ').move(0,0,-1.5).scale(.1,.1,1.5).color(0,0,1);
       this.m_bodyNodes[IK.WRIST_R].add('tubeZ').move(0,0,-1.5).scale(.1,.1,1.5).color(0,1,0);
-      this.m_bodyNodes[IK.HEAD   ].add('coneZ').move(0,0,-3).scale(.4).turnY(Math.PI).color(1,0,0);
-      this.m_bodyNodes[IK.ANKLE_L].add('coneZ').move(0,0,-3).scale(.4).turnY(Math.PI).color(0,0,1);
-      this.m_bodyNodes[IK.ANKLE_R].add('coneZ').move(0,0,-3).scale(.4).turnY(Math.PI).color(0,1,0);
-      this.m_bodyNodes[IK.WRIST_L].add('coneZ').move(0,0,-3).scale(.4).turnY(Math.PI).color(0,0,1);
-      this.m_bodyNodes[IK.WRIST_R].add('coneZ').move(0,0,-3).scale(.4).turnY(Math.PI).color(0,1,0);
+      this.m_bodyNodes[IK.HEAD   ].add('coneZ').move(0,0,-3).scale(.4).turnY(PI).color(1,0,0);
+      this.m_bodyNodes[IK.ANKLE_L].add('coneZ').move(0,0,-3).scale(.4).turnY(PI).color(0,0,1);
+      this.m_bodyNodes[IK.ANKLE_R].add('coneZ').move(0,0,-3).scale(.4).turnY(PI).color(0,1,0);
+      this.m_bodyNodes[IK.WRIST_L].add('coneZ').move(0,0,-3).scale(.4).turnY(PI).color(0,0,1);
+      this.m_bodyNodes[IK.WRIST_R].add('coneZ').move(0,0,-3).scale(.4).turnY(PI).color(0,1,0);
       for (let i = 0 ; i < this.links.length ; i += 2) {
          this.m_bodyLinks.push(this.m_human_root.add('tubeZ').color(1,1,1));
       }
@@ -202,16 +219,16 @@ export class Humanoid extends NPC {
          this.m_bodyNodes[n].identity().move(p.x, p.y, p.z).scale(.04);
       }
 
-      let getP = n => n < 5 ? this.ikbody.pos[n] : gnodes[n].p;
+      let getP = n => n < 5 ? this.ikbody.getP(n) : gnodes[n].p;
       for (let i = 0; i < this.links.length; i += 2) {
          let l0 = this.links[i];
          let l1 = this.links[i+1];
          let A = getP(l0), a = [A.x,A.y,A.z];
          let B = getP(l1), b = [B.x,B.y,B.z];
-	 if ((l0 == 12 || l0 == 13) && l1 == 9) {
+         if ((l0 == 12 || l0 == 13) && l1 == 9) {
             let C = getP(14), c = [C.x,C.y,C.z];
-	    b = cg.mix(b, c, .4);
-	 }
+            b = cg.mix(b, c, .4);
+         }
          this.m_bodyLinks[i/2].identity().move(cg.mix(a,b,.5))
             .aimZ(cg.subtract(b,a)).scale(.03,.03,cg.distance(a,b)/2);
       }

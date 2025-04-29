@@ -5,6 +5,8 @@ import { Graph, GraphResponder } from "./graph.js";
 import { add, distance, scale, subtract } from "../cg.js";
 
 // VISUALIZE AN IK BODY
+//    0       1      2       3       4    5      6      7       8       9    10    11     12         13        14    15     16
+// ANKLE_L ANKLE_R WRIST_R WRIST_L HEAD KNEE_L KNEE_R ELBOW_R ELBOW_L CHEST HIP_L HIP_R SHOULDER_R SHOULDER_L BELLY WAIST PELVIS
 
 (function() {
    var p = 'ANKLE_L ANKLE_R WRIST_R WRIST_L HEAD KNEE_L KNEE_R ELBOW_R ELBOW_L CHEST HIP_L HIP_R SHOULDER_R SHOULDER_L BELLY WAIST PELVIS'.split(' ');
@@ -14,7 +16,7 @@ import { add, distance, scale, subtract } from "../cg.js";
 })();
 
 export function IKBody() {
-   this.nodeData = this.computeNodeData();
+   this.nodeData;
    this.pos = [];
    this.qua = [];
    for (let i = 0; i < 17; ++i) {
@@ -24,6 +26,24 @@ export function IKBody() {
    this.quaBODY = new Quaternion();
    this.graph;
    this.responder;
+
+   this.offsets = [];
+   this.offsets[IK.CHEST]      = [0, -.24, 0];
+   this.offsets[IK.BELLY]      = [0, -.13, 0];
+   this.offsets[IK.WAIST]      = [0, -.13, 0];
+   this.offsets[IK.PELVIS]     = [0, -.13, 0];
+   this.offsets[IK.HIP_R]      = [+0.1, 0, 0];
+   this.offsets[IK.KNEE_R]     = [0, -.36, 0];
+   this.offsets[IK.ANKLE_R]    = [0, -.34, 0];
+   this.offsets[IK.HIP_L]      = [-0.1, 0, 0];
+   this.offsets[IK.KNEE_L]     = [0, -.36, 0];
+   this.offsets[IK.ANKLE_L]    = [0, -.34, 0];
+   this.offsets[IK.SHOULDER_R] = [+.16, 0, 0];
+   this.offsets[IK.ELBOW_R]    = [+.22, 0, 0];
+   this.offsets[IK.WRIST_R]    = [+.20, 0, 0];
+   this.offsets[IK.SHOULDER_L] = [-.16, 0, 0];
+   this.offsets[IK.ELBOW_L]    = [-.22, 0, 0];
+   this.offsets[IK.WRIST_L]    = [-.20, 0, 0];
 }
 
 IKBody.prototype = {
@@ -35,26 +55,26 @@ IKBody.prototype = {
       var nodeP = [];
       nodeP[IK.HEAD      ] = new Vector3(headX, headY, headZ);
 
-      nodeP[IK.CHEST     ] = relVec(IK.HEAD      , 0   , -0.13, 0);
-      nodeP[IK.BELLY     ] = relVec(IK.CHEST     , 0   , -0.13, 0);
-      nodeP[IK.WAIST     ] = relVec(IK.BELLY     , 0   , -0.13, 0);
-      nodeP[IK.PELVIS    ] = relVec(IK.WAIST     , 0   , -0.13, 0);
+      nodeP[IK.CHEST     ] = relVec(IK.HEAD      ,...this.offsets[IK.CHEST     ]);
+      nodeP[IK.BELLY     ] = relVec(IK.CHEST     ,...this.offsets[IK.BELLY     ]);
+      nodeP[IK.WAIST     ] = relVec(IK.BELLY     ,...this.offsets[IK.WAIST     ]);
+      nodeP[IK.PELVIS    ] = relVec(IK.WAIST     ,...this.offsets[IK.PELVIS    ]);
 
-      nodeP[IK.HIP_R     ] = relVec(IK.PELVIS    , 0.1 ,  0   , 0);
-      nodeP[IK.KNEE_R    ] = relVec(IK.HIP_R     , 0   , -0.36, 0);
-      nodeP[IK.ANKLE_R   ] = relVec(IK.KNEE_R    , 0   , -0.34, 0);
+      nodeP[IK.HIP_R     ] = relVec(IK.PELVIS    ,...this.offsets[IK.HIP_R     ]);
+      nodeP[IK.KNEE_R    ] = relVec(IK.HIP_R     ,...this.offsets[IK.KNEE_R    ]);
+      nodeP[IK.ANKLE_R   ] = relVec(IK.KNEE_R    ,...this.offsets[IK.ANKLE_R   ]);
 
-      nodeP[IK.HIP_L     ] = relVec(IK.PELVIS    ,-0.1 ,  0   , 0);
-      nodeP[IK.KNEE_L    ] = relVec(IK.HIP_L     , 0   , -0.36, 0);
-      nodeP[IK.ANKLE_L   ] = relVec(IK.KNEE_L    , 0   , -0.34, 0);
+      nodeP[IK.HIP_L     ] = relVec(IK.PELVIS    ,...this.offsets[IK.HIP_L     ]);
+      nodeP[IK.KNEE_L    ] = relVec(IK.HIP_L     ,...this.offsets[IK.KNEE_L    ]);
+      nodeP[IK.ANKLE_L   ] = relVec(IK.KNEE_L    ,...this.offsets[IK.ANKLE_L   ]);
 
-      nodeP[IK.SHOULDER_R] = relVec(IK.CHEST     , 0.16,  0   , 0);
-      nodeP[IK.ELBOW_R   ] = relVec(IK.SHOULDER_R, 0.22,  0   , 0);
-      nodeP[IK.WRIST_R   ] = relVec(IK.ELBOW_R   , 0.20,  0   , 0);
+      nodeP[IK.SHOULDER_R] = relVec(IK.CHEST     ,...this.offsets[IK.SHOULDER_R]);
+      nodeP[IK.ELBOW_R   ] = relVec(IK.SHOULDER_R,...this.offsets[IK.ELBOW_R   ]);
+      nodeP[IK.WRIST_R   ] = relVec(IK.ELBOW_R   ,...this.offsets[IK.WRIST_R   ]);
 
-      nodeP[IK.SHOULDER_L] = relVec(IK.CHEST     ,-0.16,  0   , 0);
-      nodeP[IK.ELBOW_L   ] = relVec(IK.SHOULDER_L,-0.22,  0   , 0);
-      nodeP[IK.WRIST_L   ] = relVec(IK.ELBOW_L   ,-0.20,  0   , 0);
+      nodeP[IK.SHOULDER_L] = relVec(IK.CHEST     ,...this.offsets[IK.SHOULDER_L]);
+      nodeP[IK.ELBOW_L   ] = relVec(IK.SHOULDER_L,...this.offsets[IK.ELBOW_L   ]);
+      nodeP[IK.WRIST_L   ] = relVec(IK.ELBOW_L   ,...this.offsets[IK.WRIST_L   ]);
 
       return nodeP;
    },

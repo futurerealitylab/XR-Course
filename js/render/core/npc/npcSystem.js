@@ -71,6 +71,14 @@ export class NPCSystem {
       console.warn("NPC not found: "+id);
       return null;
    }
+   update() {
+      Object.entries(this.dictNPC).forEach(([id, NPCObj]) => {
+         let moveVec = this.NPCMoveVec[id] || [0,0,0];
+         let lookVec = this.NPCLookVec[id];
+         NPCObj.update(this.r_model.time, this.r_model.deltaTime, moveVec, lookVec);
+         NPCObj.render();
+      })
+   }
    setNPCMoveVec(id, moveVec) {
       if (id in this.dictNPC) {
          this.NPCMoveVec[id] = moveVec;
@@ -84,13 +92,5 @@ export class NPCSystem {
       } else {
          console.warn("NPC not found: "+id);
       }
-   }
-   update() {
-      Object.entries(this.dictNPC).forEach(([id, NPCObj]) => {
-         let moveVec = this.NPCMoveVec[id] ? this.NPCMoveVec[id] : [0,0,0];
-         let lookVec = this.NPCLookVec[id];
-         NPCObj.update(this.r_model.time, this.r_model.deltaTime, moveVec, lookVec);
-         NPCObj.render();
-      })
    }
 }
