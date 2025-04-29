@@ -76,9 +76,7 @@ export function InputEvents() {
 
       pos = {};
       for (let hand in handInfo)
-         pos[hand] = window.handtracking ? cg.mix(clay.handsWidget.getMatrix(hand,0,4).slice(12,15),
-                                                  clay.handsWidget.getMatrix(hand,1,4).slice(12,15),.5)
-                                         : clay.controllerOrigin(hand);
+         pos[hand] = clientState.finger(clientID, hand, 1);
 
       if(window.handtracking != prevIsHandtracking){
          handInfo.left.altPressTime = -1;
@@ -132,8 +130,8 @@ export function InputEvents() {
          P = undefined;
 
       if(isAltL && isAltR != prevIsHoldingBothAlts){
-         let L = pos.left;
-         let R = pos.right;
+         let L = cg.mTransform(worldCoords, pos.left );
+         let R = cg.mTransform(worldCoords, pos.right);
          let T = cg.mix(L, R, .5);
          y = T[1];
       }
@@ -144,8 +142,8 @@ export function InputEvents() {
 
       if (isAltL && isAltR && !window.handtracking) {
          altPressed = true;
-         let L = pos.left;
-         let R = pos.right;
+         let L = cg.mTransform(worldCoords, pos.left );
+         let R = cg.mTransform(worldCoords, pos.right);
          let X = cg.subtract(R, L);
          if (isFlipped)
             X = cg.scale(X, -1);
@@ -204,8 +202,7 @@ export function InputEvents() {
    }
 
    setWorldCoords(worldCoords);
-
-   this.pos = hand => cg.mTransform(inverseWorldCoords, pos[hand]);
+   this.pos = hand => pos[hand];
 }
 
 window.worldCoords = cg.mIdentity();

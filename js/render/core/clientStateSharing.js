@@ -1,31 +1,33 @@
 import * as cg from "./cg.js";                                                   // Import the CG library.          //
 import { buttonState, controllerMatrix } from './controllerInput.js';            // Import the button state.        //
 import { jointMatrix } from "./handtrackingInput.js";                            // Import finger joint data        //
-                                                                                 // Import the CG library.          //
-let color = [[.48,.36,.27],[1,1,1],[1,.19,0],[1,1,0],[0,.88,0],[0,0,1],[1,0,0]]; //                                 //
                                                                                  //                                 //
-window.clientState = {                                                           //                                 //
-   button: (id,hand,b) => clientData[id] &&                                      // The global clientState object   //
-                            clientData[id][hand]                                 // is the user's access point for  //
-                              ? clientData[id][hand][b] : null,                  // obtaining the input data of all //
-   color : i           => color[i],
-   coords: id          => clientData[id] ? clientData[id].coords : null,         // clients.                        //
-   finger: (id,hand,i) => ! clientData[id] || ! clientData[id][hand]             //                                 //
-                          ? null                                                 // button returns true or false    //
-                          : clientState.isHand(id)                               // depending on whether button     //
-                            ? clientData[id][hand].fingers                       // b = 0,1,2,3,4 or 5 is pressed.  //
+// Finger color      0        1        2        3        4        5       6      // Fingertips show a color when    //
+// Button color  unpressed    0        1        2        3        4       5      // pinched, and controller buttons //
+let color = [[.48,.36,.27],[1,1,1],[1,.19,0],[1,1,0],[0,.88,0],[0,0,1],[1,0,0]]; // show a color when pressed.      //
+                                                                                 //                                 //
+window.clientState = {                                                           // The global clientState object   //
+   button: (id,hand,b) => clientData[id] &&                                      // contains methods that let any   //
+                            clientData[id][hand]                                 // client get the current state    //
+                              ? clientData[id][hand][b] : null,                  // of every other client.          //
+   color : i           => color[i],                                              //                                 //
+   coords: id          => clientData[id] ? clientData[id].coords : null,         // button() returns true or false  //
+   finger: (id,hand,i) => ! clientData[id] || ! clientData[id][hand]             // depending on whether button     //
+                          ? null                                                 // b = 0,1,2,3,4,5 is pressed.     //
+                          : clientState.isHand(id)                               //                                 //
+                            ? clientData[id][hand].fingers                       // color(): standard button colors //
                               ? clientData[id][hand].fingers[i]                  //                                 //
-			      : null                                             // coords -- world xform of client //
+			      : null                                             // coords(): world xform of client //
                             : clientData[id][hand].mat                           //                                 //
-                              ? clientData[id][hand].mat.slice(12,15)            // finger -- xyz of fingertip      //
+                              ? clientData[id][hand].mat.slice(12,15)            // finger(): xyz of fingertip      //
 			      : null,                                            //                                 //
-   hand  : (id,hand)   => clientData[id] &&                                      // hand -- xform of client's hand  //
+   hand  : (id,hand)   => clientData[id] &&                                      // hand(): xform of client's hand  //
                             clientData[id][hand]                                 //                                 //
-                              ? clientData[id][hand].mat : null,                 // head -- xform of client's head  //
+                              ? clientData[id][hand].mat : null,                 // head(): xform of client's head  //
    head  : id          => clientData[id] ? clientData[id].head : null,           //                                 //
-   isHand: id          => clientData[id] &&                                      // isHand -- is client handtracked //
+   isHand: id          => clientData[id] &&                                      // isHand(): is client handtracked //
                             clientData[id].left &&                               //                                 //
-                              clientData[id].left.fingers ? true : false,        // isXR -- is client immersive     //
+                              clientData[id].left.fingers ? true : false,        // isXR(): is client immersive     //
    isXR  : id          => Array.isArray(clientState.head(id)),                   //                                 //
    pinch : (id,hand,i) => {                                                      // Pinch is when the thumb is      //
       if (window.handtracking) {                                                 // touches by another finger, when //
@@ -63,14 +65,18 @@ window.clientState = {                                                          
       return [ (100 * a[1] / cg.norm(a) >> 0) / 100,                             //                                 //
                (100 * b[1] / cg.norm(b) >> 0) / 100 ];                           //                                 //
    },                                                                            //                                 //
+   teleport: (hand,f) => cg.mMultiply(clay.inverseRootMatrix,                    // Position of a finger in the     //
+                         cg.mMultiply(cg.mTranslate(handP),                      // world, after teleport offset    // 
+	                              jointMatrix[hand][f].mat)),                // has been added in.              //
 }                                                                                //                                 //
-window.clientData = {};                                                          // clientData is the internally    //
-                                                                                 // stored shared state object.     //
+window.clientData = {};                                                          // Internal shared state storage   //
+                                                                                 //                                 //
+let handP = [0,0,0];                                                             // Optional hand position offset   //
+                                                                                 //                                 //
 export function ClientStateSharing() {                                           //                                 //
    server.init('clientDataMessages', {});                                        // Initialize message passing.     //
    let lastSpeech = '', speakerID = -1, previousAudioVolume = 0;                 //                                 //
    let message = msg => {msg.id=clientID;server.send('clientDataMessages',msg);} // Add clientID to each message.   //
-   let handP = [0,0,0];                                                          // Optional hand position offset   //
    this.update = () => {                                                         //                                 //
       let parseSpeech = speech => {                                              // The first client parses speech. //
          if (clientID == clients[0]) {                                           //                                 //
@@ -124,42 +130,49 @@ export function ClientStateSharing() {                                          
                   clientData[clientID][hand][b] = isPressed;                     // Set my own button state.        //
                }                                                                 //                                 //
             }                                                                    // Optionally, also update left    //
-      if (speech != lastSpeech)                                                  // Whenever the content of speech  //
-         message({ speech: (lastSpeech = speech).trim() });                      // changes, send the new speech.   //
-      if (window.isXR()) {                                                       // users.                          //
-         let headMatrix = cg.mMultiply(clay.inverseRootMatrix,                   // If a user is wearing an XR      //
-                            cg.mix(clay.root().inverseViewMatrix(0),             // headset, then broadcast their   //
-                                   clay.root().inverseViewMatrix(1), .5));       // head and hand data to all other //
-         clientData[clientID].head = headMatrix;                                 //                                 //
-         clientData[clientID].coords = worldCoords;                              //                                 //
+      if (speech != lastSpeech)                                                  // Whenever speech content changes //
+         message({ speech: (lastSpeech = speech).trim() });                      // send new speech to all users.   //
+      if (window.isXR()) {                                                       //                                 //
+         let headMatrix = cg.mMultiply(clay.inverseRootMatrix,                   // If a user is immersive, then    //
+                            cg.mix(clay.root().inverseViewMatrix(0),             // broadcast their input data.     //
+                                   clay.root().inverseViewMatrix(1), .5));       //                                 //
+         clientData[clientID].head = headMatrix;                                 // Set my head matrix immediately. //
+         clientData[clientID].coords = worldCoords;                              // Set my own coords immediately.  //
          message({ head  : cg.packMatrix(headMatrix),                            //                                 //
 	           coords: cg.packMatrix(worldCoords) });                        //                                 //
          for (let hand in { left: {}, right: {} }) {                             //                                 //
             let msg = { hand: hand };                                            //                                 //
-            if (window.handtracking) {                                           // If handtracking, share both the //
-               msg.mat = cg.packMatrix(jointMatrix[hand][0].mat);                // hand matrix and the positions   //
-               msg.fingers = [];                                                 // of the hand's five fingertips.  //
-               for (let f = 4 ; f < 25 ; f += 5) {                               //                                 //
-                  let m = cg.mMultiply(clay.inverseRootMatrix,                   //                                 //
-                          cg.mMultiply(cg.mTranslate(handP),jointMatrix[hand][f].mat));                             //
-                //msg.fingers.push(cg.roundVec(3, cg.mTransform(m, [0,0,-.01])));//                                 //
-                  msg.fingers.push(cg.roundVec(3, m.slice(12,15)));              //                                 //
-               }                                                                 //                                 //
+            if (window.handtracking) {                                           // If handtracking, share fingers. //
+               msg.mat = cg.packMatrix(clientState.teleport(hand,0));            //                                 //
+               msg.fingers = [];                                                 // If the hands are teleporting,   //
+               for (let f = 4 ; f < 25 ; f += 5)                                 // offset the hand and fingers.    //
+                  msg.fingers.push(cg.roundVec(3,                                //                                 //
+		     clientState.teleport(hand,f).slice(12,15)));                //                                 //
             }                                                                    //                                 //
             else {                                                               //                                 //
 	       msg.fingers = null;                                               //                                 //
                msg.mat = cg.packMatrix(                                          // If not handtracking, just share //
                            cg.mMultiply(clay.inverseRootMatrix,                  // the matrix of the controller,   //
-                             cg.mMultiply(cg.mMultiply(controllerMatrix[hand],   // translated so that it centers   //
-                               cg.mTranslate([0,-.049,-.079])),                  // on the virtual ping pong ball.  //
-                                 cg.mRotateX(-Math.PI/4))));                     //                                 //
+                           cg.mMultiply(cg.mTranslate(handP),                    // translated so that it centers   //
+                           cg.mMultiply(controllerMatrix[hand],                  // on its virtual ping pong ball.  //
+                           cg.mMultiply(cg.mTranslate([0,-.049,-.079]),          //                                 //
+                                        cg.mRotateX(-Math.PI/4))))));            //                                 //
             }                                                                    //                                 //
 	    if (! clientData[clientID][hand])                                    //                                 //
 	       clientData[clientID][hand] = {};                                  //                                 //
-            clientData[clientID][hand].mat = cg.unpackMatrix(msg.mat);           // Set my own matrix immediately.  //
-            clientData[clientID][hand].fingers = msg.fingers;                    // Set my own fingers immediately. //
+            clientData[clientID][hand].mat = cg.unpackMatrix(msg.mat);           // Set my hand matrix immediately. //
+            clientData[clientID][hand].fingers = msg.fingers;                    // Set my finger data immediately. //
             message(msg);                                                        //                                 //
          }                                                                       //                                 //
+                                                                                 //                                 //
+         if (clientState.pinch(clientID, 'left' , 2) &&                          // If a client does a pinch(2)     //
+             clientState.pinch(clientID, 'right', 2)) {                          // gesture with both hands, then   //
+            let d = cg.distance(clientState.finger(clientID, 'left' , 1),        // teleport their hands or their   //
+                                clientState.finger(clientID, 'right', 1));       // controllers away from their     //
+            let m = cg.mMultiply(worldCoords, headMatrix);                       // body by the distance between    //
+            handP = cg.scale(m.slice(8,11), -5 * Math.max(d - .02, 0));          // their two forefingers or their  //
+         }                                                                       // two virtual ping pong balls.    //
+                                                                                 //                                 //
          if (previousAudioVolume < .1 && audioVolume >= .1)                      // Whenever a user wearing an XR   //
             message({ speaking: true });                                         // headset starts to speak, send a //
          previousAudioVolume = audioVolume;                                      // message to indicate that.       //
