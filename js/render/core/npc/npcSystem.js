@@ -1,6 +1,7 @@
 import { NPCTerrain } from "./npcTerrain.js";
 import { Humanoid } from "./humanoid.js";
 import { RobotMultiLegs } from "./robotMultiLegs.js";
+import { Tetrapod } from "./tetrapod.js";
 
 export class NPCSystem {
    r_model = null; /* Reference to model */
@@ -53,18 +54,19 @@ export class NPCSystem {
       let npc;
       if (type in this.legNum) {
          npc = new RobotMultiLegs(this.terrain, this.legNum[type]);
-         this.dictNPC[id ? id : "_"+npc.id] = npc;
-         if (render) npc.initRender(this.n_rootNPCs);
-         return npc;
-      }
-      if (type == "humanoid") {
+      } else if (type === "humanoid") {
          npc = new Humanoid(this.terrain);
-         this.dictNPC[id ? id : "_"+npc.id] = npc;
-         if (render) npc.initRender(this.n_rootNPCs);
-         return npc;
+      } else if (type === "tetrapod") {
+         npc = new Tetrapod(this.terrain);
+      } else {
+         console.warn("NPC type not found: " + type);
+         return null;
       }
-      console.warn("NPC type not found: "+type);
-      return null;
+
+      const npcId = id ? id : "_" + npc.id;
+      this.dictNPC[npcId] = npc;
+      if (render) npc.initRender(this.n_rootNPCs);
+      return npc;
    }
    getNPC(id) {
       if (id in this.dictNPC) return this.dictNPC[id];
