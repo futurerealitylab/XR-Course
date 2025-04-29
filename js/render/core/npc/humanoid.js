@@ -17,7 +17,9 @@ export class Humanoid extends NPC {
    // ANKLE_L ANKLE_R WRIST_R WRIST_L HEAD KNEE_L KNEE_R ELBOW_R ELBOW_L CHEST HIP_L HIP_R SHOULDER_R SHOULDER_L BELLY WAIST PELVIS
    links = [0,5, 1,6, 5,10, 10,16, 6,11, 11,16, 16,15, 15,14, 14,9, 2,7, 7,12, 12,9, 3,8, 8,13, 13,9, 9,4];
    isMoving = false;
-   movVec = [0,0,0];
+   movVec = [0,0,0];  // Target moving vector
+   lookVec = [0,0,0]; // Target looking-at vector
+   progress = 0;      // Limbs swing progress
    speed = 0;
    speedEase = 0;
    movRotYRadian = 0; // Moving vector's rotation in Y axis in Radian
@@ -35,10 +37,7 @@ export class Humanoid extends NPC {
       super(terrainObj);
       this.ikbody = new IKBody();
 
-      // this.ikbody.offsets[IK.CHEST     ] = [0, 0, .24];
-      // this.ikbody.offsets[IK.BELLY     ] = [0, 0, .13];
-      // this.ikbody.offsets[IK.WAIST     ] = [0, 0, .13];
-      // this.ikbody.offsets[IK.PELVIS    ] = [0, 0, .13];
+      this.initIKOffset();
 
       this.ikbody.nodeData = this.ikbody.computeNodeData(this.center[0], this.headHeight, this.center[2]);
       this.ikbody.pos      = this.ikbody.computeNodeData(this.center[0], this.headHeight, this.center[2]);
@@ -49,8 +48,11 @@ export class Humanoid extends NPC {
       this.actualPosFootR = [...this.ikbody.pos[IK.ANKLE_R].toArray()];
    }
 
+   initIKOffset() {}
+
    update(time, delta, movVec, lookVec) {
       this.movVec = movVec;
+      this.lookVec = lookVec;
       this.speed = cg.norm(movVec);
       this.isMoving = this.speed > .1;
       if (this.isMoving) {
@@ -81,9 +83,16 @@ export class Humanoid extends NPC {
          this.center = [newCenter[0], newY, newCenter[2]];
       }
 
-      let matMovDir = cg.mRotateY(this.movRotYRadian);
+      this.updateFeet(time, delta);
+      this.updateHead(time, delta);
+      this.updateHands(time, delta);
 
-      /* Update Feet Position */
+      /* Update ikbody */
+      this.ikbody.update(this.lookAtRotYRadian);
+   }
+
+   updateFeet(time, delta) {
+      let matMovDir = cg.mRotateY(this.movRotYRadian);
       this.targetPosFootL = cg.add(this.center, cg.mTransform(matMovDir, [-0.1, .05, 0]));
       this.targetPosFootR = cg.add(this.center, cg.mTransform(matMovDir, [+0.1, .05, 0]));
 
@@ -102,38 +111,39 @@ export class Humanoid extends NPC {
          }
       }
 
-      let progress = 0;
+      this.progress = 0;
       if (this.isMovingFootState == 1) {
          this.animEndPosFootL = [...this.targetPosFootL];
-         progress = (time-this.animStartTimeFootL)/.5;
-         this.actualPosFootL = cg.mix(this.animStartPosFootL, this.animEndPosFootL, progress);
-         this.actualPosFootL[1] += sin(progress*PI)*.2;
-         if (progress >= 1) {
+         this.progress = (time-this.animStartTimeFootL)/.5;
+         this.actualPosFootL = cg.mix(this.animStartPosFootL, this.animEndPosFootL, this.progress);
+         this.actualPosFootL[1] += sin(this.progress*PI)*.2;
+         if (this.progress >= 1) {
             this.isMovingFootState = 0;
          }
       }
 
       if (this.isMovingFootState == 2) {
          this.animEndPosFootR = [...this.targetPosFootR];
-         progress = (time-this.animStartTimeFootR)/.5;
-         this.actualPosFootR = cg.mix(this.animStartPosFootR, this.animEndPosFootR, progress);
-         this.actualPosFootR[1] += sin(progress*PI)*.2;
-         if (progress >= 1) {
+         this.progress = (time-this.animStartTimeFootR)/.5;
+         this.actualPosFootR = cg.mix(this.animStartPosFootR, this.animEndPosFootR, this.progress);
+         this.actualPosFootR[1] += sin(this.progress*PI)*.2;
+         if (this.progress >= 1) {
             this.isMovingFootState = 0;
          }
       }
       
       this.ikbody.pos[IK.ANKLE_L].set(...this.actualPosFootL);
       this.ikbody.pos[IK.ANKLE_R].set(...this.actualPosFootR);
+   }
 
-      
-      /* Update Head Position */
+   updateHead(time, delta) {
       let minYOfTwoFeet = Math.min(this.actualPosFootL[1], this.actualPosFootR[1]);
       this.ikbody.pos[IK.HEAD].x = cg.mixf(this.ikbody.pos[IK.HEAD].x, this.center[0], 5.*delta);
       this.ikbody.pos[IK.HEAD].y = cg.mixf(this.ikbody.pos[IK.HEAD].y, minYOfTwoFeet+this.headHeight, 5.*delta);
       this.ikbody.pos[IK.HEAD].z = cg.mixf(this.ikbody.pos[IK.HEAD].z, this.center[2], 5.*delta);
 
       /* Update Head Rotation */
+      let lookVec = this.lookVec;
       let lookAtRotYRadianTarget = lookVec && cg.norm(lookVec) > 0 
          ? Math.atan2(lookVec[0], lookVec[2]) + PI 
          : this.movRotYRadian;
@@ -146,10 +156,11 @@ export class Humanoid extends NPC {
       lookAtRotYRadianDiff = Math.min(Math.max(lookAtRotYRadianDiff, -neckMaxAngleRad), neckMaxAngleRad);
       
       this.lookAtRotYRadian = cg.mixf(this.lookAtRotYRadian, lookAtRotYRadianDiff, 5.*delta);
+   }
 
-      /* Update Hands */
+   updateHands(time, delta) {
       let handY = .8;
-      this.cycle = this.isMovingFootState == 1 ? progress*.5 : this.isMovingFootState == 2 ? progress*.5+.5 : this.cycle;
+      this.cycle = this.isMovingFootState == 1 ? this.progress*.5 : this.isMovingFootState == 2 ? this.progress*.5+.5 : this.cycle;
       let posWL = [-.25, handY-.02*Math.cos(Math.cos(this.cycle*TAU)*TAU/2), -.25*Math.cos(this.cycle*TAU)];
       let posWR = [+.25, handY-.02*Math.cos(Math.cos(this.cycle*TAU)*TAU/2), +.25*Math.cos(this.cycle*TAU)];
 
@@ -163,14 +174,13 @@ export class Humanoid extends NPC {
       let qHandSwing = new Quaternion(0, Math.sin(handSwingRotY/2), 0, Math.cos(handSwingRotY/2));
 
       let averageCenter = cg.mix(this.actualPosFootL, this.actualPosFootR, .5);
+      let minYOfTwoFeet = Math.min(this.actualPosFootL[1], this.actualPosFootR[1]);
+      let matMovDir = cg.mRotateY(this.movRotYRadian);
       averageCenter = cg.add(averageCenter, cg.mTransform(matMovDir, [0,0,0]));
       averageCenter[1] = minYOfTwoFeet;
       let Vec3AverageCenter = new Vector3(...averageCenter);
       this.ikbody.pos[IK.WRIST_L].set(...posWL).applyQuaternion(qHandSwing).add(Vec3AverageCenter);
       this.ikbody.pos[IK.WRIST_R].set(...posWR).applyQuaternion(qHandSwing).add(Vec3AverageCenter);
-
-      /* Update ikbody */
-      this.ikbody.update(this.lookAtRotYRadian);
    }
 
    r_node = null;
