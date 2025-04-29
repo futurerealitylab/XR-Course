@@ -11,6 +11,8 @@ let cos = Math.cos;
 
 export class Humanoid extends NPC {
    headHeight = 1.7;
+   restPosFootL = [-0.1, .05, 0];
+   restPosFootR = [+0.1, .05, 0];
    ikbody = null;
    bodyLinks = [];
    //    0       1      2       3       4    5      6      7       8       9    10    11     12         13        14    15     16
@@ -19,7 +21,7 @@ export class Humanoid extends NPC {
    isMoving = false;
    movVec = [0,0,0];  // Target moving vector
    lookVec = [0,0,0]; // Target looking-at vector
-   progress = 0;      // Limbs swing progress
+   progress = 0;      // Animation progress [0-1]
    speed = 0;
    speedEase = 0;
    movRotYRadian = 0; // Moving vector's rotation in Y axis in Radian
@@ -44,8 +46,8 @@ export class Humanoid extends NPC {
 
       this.ikbody.initGraph();
       
-      this.actualPosFootL = [...this.ikbody.pos[IK.ANKLE_L].toArray()];
-      this.actualPosFootR = [...this.ikbody.pos[IK.ANKLE_R].toArray()];
+      this.actualPosFootL = this.ikbody.pos[IK.ANKLE_L].toArray();
+      this.actualPosFootR = this.ikbody.pos[IK.ANKLE_R].toArray();
    }
 
    initIKOffset() {}
@@ -83,6 +85,7 @@ export class Humanoid extends NPC {
          this.center = [newCenter[0], newY, newCenter[2]];
       }
 
+      /* Update order is strict */
       this.updateFeet(time, delta);
       this.updateHead(time, delta);
       this.updateHands(time, delta);
@@ -91,38 +94,46 @@ export class Humanoid extends NPC {
       this.ikbody.update(this.lookAtRotYRadian);
    }
 
+   updateAnimStartPos(LorR) {
+      if (LorR == "left") {
+         this.animStartPosFootL = [...this.actualPosFootL];
+      } else {
+         this.animStartPosFootR = [...this.actualPosFootR];
+      }
+   }
+
    updateFeet(time, delta) {
       let matMovDir = cg.mRotateY(this.movRotYRadian);
-      this.targetPosFootL = cg.add(this.center, cg.mTransform(matMovDir, [-0.1, .05, 0]));
-      this.targetPosFootR = cg.add(this.center, cg.mTransform(matMovDir, [+0.1, .05, 0]));
+      this.targetPosFootL = cg.add(this.center, cg.mTransform(matMovDir, this.restPosFootL));
+      this.targetPosFootR = cg.add(this.center, cg.mTransform(matMovDir, this.restPosFootR));
 
       let isFootLOOB = cg.distance(this.targetPosFootL, this.actualPosFootL) > .2;  /* Left foot out of bound */
       let isFootROOB = cg.distance(this.targetPosFootR, this.actualPosFootR) > .2;  /* Right foot out of bound */
 
       if (this.isMovingFootState == 0) {
          if (isFootLOOB) {
-            this.isMovingFootState = 1;
-            this.animStartTimeFootL = time;
-            this.animStartPosFootL = [...this.actualPosFootL];
+            this.isMovingFootState = 1;         /* Set foot moving state */
+            this.animStartTimeFootL = time;     /* Set animation start time */
+            this.updateAnimStartPos("left");    /* Set animation start position */
          } else if (isFootROOB) {
             this.isMovingFootState = 2;
             this.animStartTimeFootR = time;
-            this.animStartPosFootR = [...this.actualPosFootR];
+            this.updateAnimStartPos("right");
          }
       }
 
       this.progress = 0;
-      if (this.isMovingFootState == 1) {
-         this.animEndPosFootL = [...this.targetPosFootL];
-         this.progress = (time-this.animStartTimeFootL)/.5;
+      if (this.isMovingFootState == 1) {                       /* Left foot moving */
+         this.animEndPosFootL = [...this.targetPosFootL];      /* Set animation end position */
+         this.progress = (time-this.animStartTimeFootL)/.5;    /* .5 is the animation duration */
          this.actualPosFootL = cg.mix(this.animStartPosFootL, this.animEndPosFootL, this.progress);
-         this.actualPosFootL[1] += sin(this.progress*PI)*.2;
-         if (this.progress >= 1) {
+         this.actualPosFootL[1] += sin(this.progress*PI)*.2;   /* Elevating during animation */
+         if (this.progress >= 1) {                             /* Animation finished */
             this.isMovingFootState = 0;
          }
       }
 
-      if (this.isMovingFootState == 2) {
+      if (this.isMovingFootState == 2) {                       /* Right foot moving */
          this.animEndPosFootR = [...this.targetPosFootR];
          this.progress = (time-this.animStartTimeFootR)/.5;
          this.actualPosFootR = cg.mix(this.animStartPosFootR, this.animEndPosFootR, this.progress);
