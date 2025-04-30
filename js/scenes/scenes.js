@@ -20,6 +20,8 @@ export default () => {
             { name: "example7"           , path: "./example7.js"           , public: false },
             { name: "example8"           , path: "./example8.js"           , public: false },
 
+            { name: "test2"              , path: "./test2.js"              , public: true  },
+
             { name: "wordcloud7"         , path: "./wordcloud7.js"         , public: true  },
             { name: "stock"              , path: "./stock.js"              , public: true  },
             { name: "cities"             , path: "./cities.js"             , public: true  },

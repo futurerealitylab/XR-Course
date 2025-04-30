@@ -1757,8 +1757,7 @@ let fl = 5;                                                          // CAMERA F
             for (let b = 0 ; b < 7 ; b++)
 	       if (clientState.button(clientID, hand, b))
 	          i = b + 1;
-            this.controllerWidgets[hand].setMatrix(cg.mInverse(root.getMatrix()))
-                                        .move(this.controllerOrigin(hand))
+            this.controllerWidgets[hand].setMatrix(clientState.hand(clientID, hand))
                                         .scale(this.controllerBallSize)
                                         .color(clientState.color(i));
          }
