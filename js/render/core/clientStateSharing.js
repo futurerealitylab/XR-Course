@@ -17,10 +17,10 @@ window.clientState = {                                                          
                           : clientState.isHand(id)                               //                                 //
                             ? clientData[id][hand].fingers                       // color(): standard button colors //
                               ? clientData[id][hand].fingers[i]                  //                                 //
-			      : null                                             // coords(): world xform of client //
+                              : null                                             // coords(): world xform of client //
                             : clientData[id][hand].mat                           //                                 //
                               ? clientData[id][hand].mat.slice(12,15)            // finger(): xyz of fingertip      //
-			      : null,                                            //                                 //
+                              : null,                                            //                                 //
    hand  : (id,hand)   => clientData[id] &&                                      // hand(): xform of client's hand  //
                             clientData[id][hand]                                 //                                 //
                               ? clientData[id][hand].mat : null,                 // head(): xform of client's head  //
@@ -30,17 +30,17 @@ window.clientState = {                                                          
                               clientData[id].left.fingers ? true : false,        // isXR(): is client immersive     //
    isXR  : id          => Array.isArray(clientState.head(id)),                   //                                 //
    pinch : (id,hand,i) => {                                                      // Pinch is when the thumb is      //
-      if (window.handtracking) {                                                 // touches by another finger, when //
+      if (clientState.isHand(id)) {                                              // touches by another finger, when //
          if (i < 1 || i > 6)                                                     // i has values 1,2,3,4.           //
-	    return false;                                                        // If the hand is pointing with    //
+            return false;                                                        // If the hand is pointing with    //
          if (i == 5 || i == 6) {                                                 // the thumb pointed to the sky,   //
-	    let p = clientState.point(id,hand);                                  // pinch returns true when i==5.   //
-	    return p && (i == 5 ? p[0] < .5 : p[0] >= .5);                       // If the hand is pointing with    //
-	 }                                                                       // the thumb to the side, pinch    //
-	 let thumb  = clientState.finger(id,hand,0);                             // returns true when i==6.         //
+            let p = clientState.point(id,hand);                                  // pinch returns true when i==5.   //
+            return p && (i == 5 ? p[0] < .5 : p[0] >= .5);                       // If the hand is pointing with    //
+         }                                                                       // the thumb to the side, pinch    //
+         let thumb  = clientState.finger(id,hand,0);                             // returns true when i==6.         //
          let finger = clientState.finger(id,hand,i);                             //                                 //
-	 if (! thumb || ! finger)                                                // If not handtracking, then pinch //
-	    return false;                                                        // returns button i-1. For example //
+         if (! thumb || ! finger)                                                // If not handtracking, then pinch //
+            return false;                                                        // returns button i-1. For example //
          let d = cg.distance(thumb, finger);                                     // if i==1 and not handtracking,   //
          return d > 0 && d < 0.025;                                              // pinch will return true when     //
       }                                                                          // button 0 (the trigger on the    //
@@ -56,7 +56,7 @@ window.clientState = {                                                          
       let h = cg.mTransform(mat, [0,0,0]), f = [], d = [];                       //                                 //
       for (let i = 0 ; i < 5 ; i++) {                                            // If a handtracked hand is making //
          f.push(clientState.finger(id,hand,i));                                  // a pointing gesture, point will  //
-	 d.push(cg.distance(h,f[i]));                                            // return an array [u,v], where    //
+         d.push(cg.distance(h,f[i]));                                            // return an array [u,v], where    //
       }                                                                          // u indicates how much the thumb  //
       if (d[0] == 0 || d[1] < 2 * d[2])                                          // is facing upward (-1 <= u <= 1) //
          return null;                                                            // and v indicates how much the    //
@@ -67,7 +67,7 @@ window.clientState = {                                                          
    },                                                                            //                                 //
    teleport: (hand,f) => cg.mMultiply(clay.inverseRootMatrix,                    // Position of a finger in the     //
                          cg.mMultiply(cg.mTranslate(handP),                      // world, after teleport offset    // 
-	                              jointMatrix[hand][f].mat)),                // has been added in.              //
+                                      jointMatrix[hand][f].mat)),                // has been added in.              //
 }                                                                                //                                 //
 window.clientData = {};                                                          // Internal shared state storage   //
                                                                                  //                                 //
@@ -98,15 +98,15 @@ export function ClientStateSharing() {                                          
                else if (msg.speech)                                              // If message is actual speech,    //
                   parseSpeech(msg.speech, speakerID);                            // then parse what was just said.  //
                else if (msg.head) {                                              //                                 //
-	          if (id != clientID)                                            //                                 //
+                  if (id != clientID)                                            //                                 //
                      clientData[msg.id].head = cg.unpackMatrix(msg.head);        // Set a user's head matrix.       //
                }                                                                 //                                 //
                else if (msg.coords) {                                            //                                 //
-	          if (id != clientID)                                            //                                 //
+                  if (id != clientID)                                            //                                 //
                      clientData[msg.id].coords = cg.unpackMatrix(msg.coords);    // Set a user's head matrix.       //
-	       }                                                                 //                                 //
+               }                                                                 //                                 //
                else if (msg.hand) {                                              //                                 //
-	          if (id != clientID) {                                          //                                 //
+                  if (id != clientID) {                                          //                                 //
                      msg.mat ? clientData[msg.id][msg.hand].mat=cg.unpackMatrix(msg.mat) // Set matrix.             //
                              : clientData[msg.id][msg.hand][msg.button]=msg.state;       // Set a button state.     //
                      clientData[msg.id][msg.hand].fingers = msg.fingers;                 // Set fingertips.         //
@@ -119,14 +119,14 @@ export function ClientStateSharing() {                                          
       for (let hand in { left: {}, right: {} })                                  //                                 //
          for (let b = 0 ; b < 7 ; b++)                                           // Update up/down button states.   //
             if (buttonState[hand][b]) {                                          //                                 //
-	       let isPressed = buttonState[hand][b].pressed;                     //                                 //
-	       let wasPressed = clientData[clientID] &&                          //                                 //
-	                          clientData[clientID][hand] &&                  //                                 //
-			            clientData[clientID][hand][b];               //                                 //
+               let isPressed = buttonState[hand][b].pressed;                     //                                 //
+               let wasPressed = clientData[clientID] &&                          //                                 //
+                                  clientData[clientID][hand] &&                  //                                 //
+                                    clientData[clientID][hand][b];               //                                 //
                if (wasPressed && ! isPressed || isPressed && ! wasPressed) {     //                                 //
                   message({ hand: hand, button: b, state: isPressed });          //                                 //
-	          if (! clientData[clientID][hand])                              //                                 //
-	             clientData[clientID][hand] = {};                            //                                 //
+                  if (! clientData[clientID][hand])                              //                                 //
+                     clientData[clientID][hand] = {};                            //                                 //
                   clientData[clientID][hand][b] = isPressed;                     // Set my own button state.        //
                }                                                                 //                                 //
             }                                                                    // Optionally, also update left    //
@@ -139,7 +139,7 @@ export function ClientStateSharing() {                                          
          clientData[clientID].head = headMatrix;                                 // Set my head matrix immediately. //
          clientData[clientID].coords = worldCoords;                              // Set my own coords immediately.  //
          message({ head  : cg.packMatrix(headMatrix),                            //                                 //
-	           coords: cg.packMatrix(worldCoords) });                        //                                 //
+                   coords: cg.packMatrix(worldCoords) });                        //                                 //
          for (let hand in { left: {}, right: {} }) {                             //                                 //
             let msg = { hand: hand };                                            //                                 //
             if (window.handtracking) {                                           // If handtracking, share fingers. //
@@ -147,10 +147,10 @@ export function ClientStateSharing() {                                          
                msg.fingers = [];                                                 // If the hands are teleporting,   //
                for (let f = 4 ; f < 25 ; f += 5)                                 // offset the hand and fingers.    //
                   msg.fingers.push(cg.roundVec(3,                                //                                 //
-		     clientState.teleport(hand,f).slice(12,15)));                //                                 //
+                     clientState.teleport(hand,f).slice(12,15)));                //                                 //
             }                                                                    //                                 //
             else {                                                               //                                 //
-	       msg.fingers = null;                                               //                                 //
+               msg.fingers = null;                                               //                                 //
                msg.mat = cg.packMatrix(                                          // If not handtracking, just share //
                            cg.mMultiply(clay.inverseRootMatrix,                  // the matrix of the controller,   //
                            cg.mMultiply(cg.mTranslate(handP),                    // translated so that it centers   //
@@ -158,8 +158,8 @@ export function ClientStateSharing() {                                          
                            cg.mMultiply(cg.mTranslate([0,-.049,-.079]),          //                                 //
                                         cg.mRotateX(-Math.PI/4))))));            //                                 //
             }                                                                    //                                 //
-	    if (! clientData[clientID][hand])                                    //                                 //
-	       clientData[clientID][hand] = {};                                  //                                 //
+            if (! clientData[clientID][hand])                                    //                                 //
+               clientData[clientID][hand] = {};                                  //                                 //
             clientData[clientID][hand].mat = cg.unpackMatrix(msg.mat);           // Set my hand matrix immediately. //
             clientData[clientID][hand].fingers = msg.fingers;                    // Set my finger data immediately. //
             message(msg);                                                        //                                 //

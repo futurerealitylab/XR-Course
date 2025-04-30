@@ -6,7 +6,7 @@ import * as cg from "./cg.js";
 export function HandsWidget(widgets) {
    const THUMB = 0, INDEX = 1, MIDDLE = 2, RING = 3, PINKY = 4;
 
-   let isVisible = false;
+   let isVisible = true;
    this.setVisible = isTrue => hands.opacity(isVisible = isTrue ? 1 : .4);
 
    this.visible = (hand, t) => { }
@@ -63,7 +63,7 @@ export function HandsWidget(widgets) {
          for (let hand in P)
             for (let finger = 0 ; finger < 5 ; finger++)
               for (let i = 0 ; i < 5 ; i++)
-                 P[hand].push(clientState.teleport(hand,5*finger+i).slice(12,15));
+                 P[hand].push(cg.mMultiply(worldCoords,clientState.teleport(hand,5*finger+i)).slice(12,15));
 
          hands.setMatrix(clay.inverseRootMatrix);
 
