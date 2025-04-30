@@ -21,6 +21,7 @@ export default () => {
             { name: "example8"           , path: "./example8.js"           , public: false },
 
             { name: "test2"              , path: "./test2.js"              , public: true  },
+            { name: "drawHouse"          , path: "./drawHouse.js"          , public: true  },
 
             { name: "wordcloud7"         , path: "./wordcloud7.js"         , public: true  },
             { name: "stock"              , path: "./stock.js"              , public: true  },
