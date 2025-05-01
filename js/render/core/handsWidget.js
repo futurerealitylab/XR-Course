@@ -6,7 +6,7 @@ import * as cg from "./cg.js";
 export function HandsWidget(widgets) {
    const THUMB = 0, INDEX = 1, MIDDLE = 2, RING = 3, PINKY = 4;
 
-   let isVisible = true;
+   let isVisible = false;
    this.setVisible = isTrue => hands.opacity(isVisible = isTrue ? 1 : .4);
 
    this.visible = (hand, t) => { }
