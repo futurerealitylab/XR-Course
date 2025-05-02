@@ -271,12 +271,26 @@ export let G3 = function(model, callback) {
 
 		     let m = clientState.hand(id,hand);
 		     let s = hand == 'left' ? -1 : 1;
-		     let palm = [[-.025*s,-.007,-.095],[.035*s,-.015,-.075],[.025*s,.005,-.02],[-.025*s,.015,-.02]];
-		     for (let n = 0 ; n < palm.length ; n++)
-		        palm[n] = cg.mTransform(m, palm[n]);
-		     this.lineWidth(.01).color(co[0]).fill(palm);
-		     for (let n = 0 ; n < palm.length ; n++)
-		        this.line(palm[n], palm[(n+1)%palm.length]);
+		     let P = [
+				 [-.023*s, .015,-.020],
+				 [-.031*s, .005,-.058],
+		                 [-.025*s,-.007,-.094],
+		                 [-.003*s,-.004,-.093],
+		                 [ .017*s,-.008,-.086],
+		                 [ .033*s,-.015,-.075],
+		                 [ .030*s,-.005,-.042],
+				 [ .023*s, .005,-.020],
+				 [ .000*s, .011,-.020] ];
+		     for (let n = 0 ; n < P.length ; n++)
+		        P[n] = cg.mTransform(m, P[n]);
+                     let b = cg.mTransform(m, [.000*s, .006,-.055]);
+		     this.lineWidth(.02).color(co[0]);
+		     for (let n = 0 ; n < P.length ; n++)
+		        this.line(P[n], P[(n+1)%P.length]);
+		     this.line(b, P[8]);
+		     this.line(b, P[3]);
+		     this.line(b, P[4]);
+		     this.fill(P);
 	          }
                   else {
 
