@@ -56,9 +56,8 @@ export const init = async model => {
 	             draw.color([0,0,0,u]).textHeight(s*.05).text(art[n].artist, p, 'center', 0,-.5*s);
                   }
 	          let v = cg.plateau(0,0,A,B,d);
-		  if (v > 0) {
+		  if (v > 0)
 	             draw.color([0,0,0,v]).textHeight(s*.027).text(art[n].description, p);
-		  }
                }
 	    }
 	 }

@@ -1,5 +1,5 @@
 import * as cg from "../render/core/cg.js";
-import { G2} from "./g2.js";
+import { G2 } from "./g2.js";
 import { jointMatrix } from "../render/core/handtrackingInput.js";
 import { buttonState, controllerMatrix } from "../render/core/controllerInput.js";
 
@@ -40,7 +40,9 @@ export let G3 = function(model, callback) {
        draw = this,
        font = 'Helvetica',
        g2 = [],
+       handD = 0,
        handP = [0,0,0],
+       handY = {left:undefined,right:undefined},
        lineWidth = .01,
        nd = 0,
        screen = [],
@@ -106,7 +108,7 @@ export let G3 = function(model, callback) {
          dl[1] = DRAW;
          dl[2] = color;
          dl[3] = p_path;
-         dl[4] = lineWidth * scale;
+         dl[4] = lineWidth * p_scale;
       }
       return this;
    }
@@ -169,6 +171,8 @@ export let G3 = function(model, callback) {
       return this;
    }
    this.line = (a,b) => {
+      if (! a || ! b)
+         return this;
       let scale = projected.getScale([ (a[0]+b[0])/2, (a[1]+b[1])/2, (a[2]+b[2])/2 ]);
       a = projected.projectPoint(a);
       b = projected.projectPoint(b);
@@ -208,17 +212,26 @@ export let G3 = function(model, callback) {
    }
    this.textHeight = th => { textHeight = th; return this; }
 
-   let co = ['#0080f0','#ffffff','#ff0000','#ffff00','#008000'];
-   let F = {left:[0,0,0,0,0], right:[0,0,0,0,0]};
-   let P = {left:[0,0,0,0], right:[0,0,0,0]};
+   this.textWidth = text => {
+      g2[0].textHeight(textHeight);
+      return g2[0].getCanvas().context.measureText(text).width / 2040;
+   }
 
-   this.finger = (hand,i) => F[hand][cg.def(i,1)];
-   this.pinch  = (hand,i) => P[hand][cg.def(i,1)];
+   this.finger = (hand,i) => clientState.finger(clientID, hand, i);
+   this.pinch  = (hand,i) => clientState.pinch (clientID, hand, i);
    this.view   = ()       => view;
 
-   let isPurple = false, purple = '#ff00ff';
+   const fw = [.021,.019,.018,.017,.015];
+   const faceX = [-.04, .04, .09,.1 ,.05,-.05,-.1 ,-.09];
+   const faceY = [-.11,-.11,-.05,.08,.13, .13, .08,-.05];
+
+   let co = [];
 
    this.update = () => {
+      if (! co.length)
+         for (let i = 0 ; i < 7 ; i++)
+	    co.push(cg.rgbToHex(clientState.color(i)));
+
       for (view = 0 ; view <= 1 ; view++) {
          projected.update(view);
          screen[view].setMatrix(projected.getMatrix());
@@ -230,38 +243,38 @@ export let G3 = function(model, callback) {
 
 	 let isTouching = (a,b) => { let d = cg.distance(a,b); return d > 0 && d < .025; }
 
-	 for (let hand in {left:0,right:0})
-	    if (window.handtracking) {
-	       let fw = [.021,.019,.018,.017,.015];
-	       let f = F[hand];
-	       let p = P[hand];
-	       for (let i = 0 ; i < 5 ; i++) {
-  		  let _f = cg.mTransform(cg.mMultiply(clay.inverseRootMatrix,
-		                                      cg.mMultiply(cg.mTranslate(handP),
-		                                                   jointMatrix[hand][5*i + 4].mat)), [0,.0,-.01]);
-		  f[i] = f[i] ? cg.mix(f[i], _f, .5) : _f;
-	          this.lineWidth(fw[i]+.002).color('black').line(f[i], f[i]);
-               }
-	       for (let i = 1 ; i < 5 ; i++)
-	          p[i] = isTouching(f[0], f[i]);
-	       this.lineWidth(fw[0]).color(isPurple?purple:co[p[1]?1:p[2]?2:p[3]?3:p[4]?4:0]).line(f[0], f[0]); // SHOW THUMB
-	       for (let i = 1 ; i < 5 ; i++)
-	          this.lineWidth(fw[i]).color(isPurple ? purple : p[i] ? co[i] : co[0]).line(f[i], f[i]); // SHOW FINGER
-	    }
-            else {
-	       F[hand][0] = F[hand][1] = cg.mMultiply(clay.inverseRootMatrix,
-	                                              cg.mMultiply(controllerMatrix[hand],
-					                           cg.mTranslate(0,-.049,-.079))).slice(12,15);
-	       P[hand][1] = buttonState[hand][0].pressed;
-	       if (buttonState[hand][1])
-	          P[hand][2] = buttonState[hand][1].pressed;
-	       this.lineWidth(.021).color('#000000').line(F[hand][1], F[hand][1]);
-	       this.lineWidth(.019).color(co[ P[hand][1] ? 1 : P[hand][2] ? 2 : 0 ]).line(F[hand][1], F[hand][1]);
-	    }
-
-         if (view == 0 && window.handtracking && isTouching(F.left[0],F.right[0]))
-	    handP = isTouching(F.left[2],F.right[2]) ? [0,0,0] :
-                    cg.scale(clay.root().inverseViewMatrix(view).slice(8,11), -20 * (cg.distance(F.left[2],F.right[2])-.025));
+         for (let n = 0 ; n < clients.length ; n++) {
+            let id = clients[n], m, p;
+            if (id != clientID && (m = clientState.head(id))) {
+	       let face = [];
+	       for (let i = 0 ; i < faceX.length ; i++)
+	          face.push(cg.mTransform(m, [faceX[i],faceY[i],0]));
+               this.lineWidth(.01).color(co[0]);
+	       for (let i = 0 ; i < face.length ; i++)
+                  this.line(face[i], face[(i+1) % face.length]);
+            }
+	    for (let hand in {left:0,right:0})
+	       if (m = clientState.hand(id,hand))
+	          if (clientState.isHand(id)) {
+	             let f = [], p = [];
+	             for (let i = 0 ; i < 5 ; i++) f[i] = clientState.finger(id,hand,i);
+	             for (let i = 0 ; i < 5 ; i++) this.lineWidth(fw[i]+.002).color('black').line(f[i],f[i]);
+	             for (let i = 1 ; i < 7 ; i++) p[i] = clientState.pinch (id,hand,i);
+		     this.lineWidth(fw[0]).color(co[p[1]?1:p[2]?2:p[3]?3:p[4]?4:p[5]?5:p[6]?6:0]).line(f[0],f[0]);
+		     this.lineWidth(fw[1]).color(co[p[1]?1:p[5]?5:p[6]?6:0]).line(f[1],f[1]);
+	             for (let i = 2 ; i < 5 ; i++) this.lineWidth(fw[i]).color(co[p[i]?i:0]).line(f[i],f[i]);
+	          }
+                  else {
+	             let p = m.slice(12,15);
+	             this.lineWidth(.031).color('black').line(p,p);
+	             this.lineWidth(.029).color(co[ clientState.button(id,hand,0) ? 1 :
+		                                    clientState.button(id,hand,1) ? 2 :
+		                                    clientState.button(id,hand,2) ? 3 :
+		                                    clientState.button(id,hand,3) ? 4 :
+		                                    clientState.button(id,hand,4) ? 5 :
+		                                    clientState.button(id,hand,5) ? 6 : 0 ]).line(p,p);
+	          }
+         }
 
 	 let sortedDisplayList = [];
          for (let n = 0 ; n < nd ; n++)

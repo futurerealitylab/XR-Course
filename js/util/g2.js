@@ -17,6 +17,7 @@ export function G2(do_not_animate_flag=false, canvasWidth=512, canvasHeight) {
    let context = txtrCanvas.getContext('2d');
    let width   = txtrCanvas.width;
    let height  = txtrCanvas.height;
+   txtrCanvas.context = context;
 
    let mouseZPrev = false;
    let mouseState = 'move';
@@ -471,14 +472,20 @@ export function G2(do_not_animate_flag=false, canvasWidth=512, canvasHeight) {
    }
    let _h = 0.1;
    this.text = (text,x,y,alignment,rotation) => {
-      if (typeof text === 'number')
+      if (typeof text == 'number' || typeof text == 'object')
          text = '' + text;
+      let lines;
+      try {
+         lines = text.split('\n');
+      } catch (error) { };
+      if (lines === undefined)
+         return;
+
       context.save();
          let dy = 2 * parseFloat(context.font) / height;
          if (alignment)
             context.textAlign = alignment;
 
-         let lines = text.split('\n');
 	 let dx = 0;
 	 if (alignment == 'left' || alignment == 'right')
 	    for (let n = 0 ; n < lines.length ; n++)
