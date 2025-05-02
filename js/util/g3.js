@@ -256,6 +256,9 @@ export let G3 = function(model, callback) {
 	    for (let hand in {left:0,right:0})
 	       if (m = clientState.hand(id,hand))
 	          if (clientState.isHand(id)) {
+
+                     // DRAW FINGERTIPS OF HAND
+
 	             let f = [], p = [];
 	             for (let i = 0 ; i < 5 ; i++) f[i] = clientState.finger(id,hand,i);
 	             for (let i = 0 ; i < 5 ; i++) this.lineWidth(fw[i]+.002).color('black').line(f[i],f[i]);
@@ -263,8 +266,22 @@ export let G3 = function(model, callback) {
 		     this.lineWidth(fw[0]).color(co[p[1]?1:p[2]?2:p[3]?3:p[4]?4:p[5]?5:p[6]?6:0]).line(f[0],f[0]);
 		     this.lineWidth(fw[1]).color(co[p[1]?1:p[5]?5:p[6]?6:0]).line(f[1],f[1]);
 	             for (let i = 2 ; i < 5 ; i++) this.lineWidth(fw[i]).color(co[p[i]?i:0]).line(f[i],f[i]);
+
+		     // DRAW PALM OF HAND
+
+		     let m = clientState.hand(id,hand);
+		     let s = hand == 'left' ? -1 : 1;
+		     let palm = [[-.025*s,-.007,-.095],[.035*s,-.015,-.075],[.025*s,.005,-.02],[-.025*s,.015,-.02]];
+		     for (let n = 0 ; n < palm.length ; n++)
+		        palm[n] = cg.mTransform(m, palm[n]);
+		     this.lineWidth(.01).color(co[0]).fill(palm);
+		     for (let n = 0 ; n < palm.length ; n++)
+		        this.line(palm[n], palm[(n+1)%palm.length]);
 	          }
                   else {
+
+		     // DRAW VIRTUAL PING PONG BALL OF CONTROLLER
+
 	             let p = m.slice(12,15);
 	             this.lineWidth(.031).color('black').line(p,p);
 	             this.lineWidth(.029).color(co[ clientState.button(id,hand,0) ? 1 :
