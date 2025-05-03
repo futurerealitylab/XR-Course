@@ -1,3 +1,4 @@
+import * as cg from './cg.js';
 export let updateAvatars = avatars => {
    while (avatars.nChildren() > 0)
       avatars.remove(0);
@@ -18,6 +19,24 @@ export let updateAvatars = avatars => {
                   avatar.add('sphere').move(clientState.finger(id,hand,f)).scale(.01)
 		                      .opacity(c==0 ? .7 : .9).color(clientState.color(c));
                }
+
+               let m = clientState.hand(id, hand);
+               let s = hand == 'left' ? -1 : 1;
+               let knuckle = [ [-.025*s,-.007,-.094],
+                               [-.003*s,-.004,-.093],
+                               [ .017*s,-.008,-.086],
+                               [ .033*s,-.015,-.075] ];
+               for (let k = 0 ; k < knuckle.length ; k++) {
+	          knuckle[k] = cg.mTransform(m, knuckle[k]);
+                  avatar.add('sphere').move(knuckle[k]).scale(.01)
+		        .opacity(.7).color(clientState.color(0));
+               }
+               for (let k = 0 ; k < knuckle.length-1 ; k++) {
+	          let c = cg.mix(knuckle[k],knuckle[k+1], .5,.5);
+	          let d = cg.mix(knuckle[k],knuckle[k+1],-.5,.5);
+		  avatar.add('tubeZ').move(c).aimZ(d).scale(.007,.007,cg.norm(d))
+		        .opacity(.7).color(clientState.color(0));
+	       }
             }
             else {                                                
                let c = 0;

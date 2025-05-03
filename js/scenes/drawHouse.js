@@ -1,21 +1,27 @@
+/*
+   One thing we would like to implement next is to allow each user to
+   create things other than houses, by saying other words while drawing.
+*/
 
 import * as cg from "../render/core/cg.js";
 import { G3 } from "../util/g3.js";
 
-server.init('dhS', { d: {}, h: [], s: '' });
+server.init('dhS', { d: {}, h: [], t: {} });
 
 export const init = async model => {
 
-   let word = 'house,road,roof'.split(',');
+   let types = 'house,road,roof'.split(',');
 
    window.onSpeech = (speech, id) => {
-      for (let n = 0 ; n < word.length ; n++)
-         if (speech.indexOf(word[n]) >= 0)
-            dhS.s = word[n];
+      if (clientState.pinch(id, 'left', 1))
+         for (let n = 0 ; n < types.length ; n++)
+            if (speech.indexOf(types[n]) >= 0)
+               dhS.t[id] = types[n];
    }
 
-   let wasL1 = {}, wasR1 = {}, np = {}, Lp0 = {}, Rp0 = {}, y0 = 1;
-   let spoken = '';
+   let isL1p = {}, isR1p = {}, L1p = {}, R1p = {};
+   let isL2p = {}, isR2p = {}, L2p = {}, R2p = {};
+   let np = {}, y0 = 1;
 
    let g3 = new G3(model, draw => {
       draw.color('#000000');
@@ -25,7 +31,6 @@ export const init = async model => {
          for (let n = 0 ; n < d.length - 1 ; n++)
             draw.line(d[n], d[n+1]);
       } 
-      draw.textHeight(.05).color('#ffffff').text(dhS.s, [0,1.5,0]);
    });
    model.add('cube').move(0,1,0).scale(.5,.001,.5).opacity(.7);
 
@@ -39,38 +44,57 @@ export const init = async model => {
 	    if (! dhS.d[id])
 	       dhS.d[id] = [];
 	    let d = dhS.d[id];
-            let isL1 = clientState.pinch(id, 'left' , 1);
-            let isR1 = clientState.pinch(id, 'right', 1);
-            let Lp = clientState.finger(id, 'left', 1);
-            let Rp = clientState.finger(id, 'right', 1);
+
+            let isL1 = clientState.pinch (id, 'left' , 1);
+            let isR1 = clientState.pinch (id, 'right', 1);
+            let L1   = clientState.finger(id, 'left' , 1);
+            let R1   = clientState.finger(id, 'right', 1);
+
+            let isL2 = clientState.pinch (id, 'left' , 2);
+            let isR2 = clientState.pinch (id, 'right', 2);
+            let L2   = clientState.finger(id, 'left' , 2);
+            let R2   = clientState.finger(id, 'right', 2);
 
             // Pinch with the left hand to draw with the right hand.
 
-            if (isL1 && ! isR1)
-               d.push([Rp[0],y0,Rp[2]]);
+            if (isL1 && ! isR1 && ! isR2)
+               d.push([R1[0],y0,R1[2]]);
 
-            // When you stop drawing, your drawing is replaced by a house.
+            // When you stop drawing, your drawing is replaced by something.
 
-            if (! isR1 && wasL1[id] && ! isL1) {
-               let xlo = 10, zlo = 10, xhi = -10, zhi = -10;
-               for (let n = 0 ; n < d.length ; n++) {
-                  xlo = Math.min(xlo, d[n][0]);
-                  xhi = Math.max(xhi, d[n][0]);
-                  zlo = Math.min(zlo, d[n][2]);
-                  zhi = Math.max(zhi, d[n][2]);
+            if (! isR1 && isL1p[id] && ! isL1) {
+
+	       // We are letting people specify different types of things
+	       // while drawing, but so far we are only creating houses.
+
+	       let type = dhS.t[id];
+	       delete dhS.t[id];
+	       if (! type)
+	          type = 'house';
+
+               switch (type) {
+	       case 'house':
+                  let xlo = 10, zlo = 10, xhi = -10, zhi = -10;
+                  for (let n = 0 ; n < d.length ; n++) {
+                     xlo = Math.min(xlo, d[n][0]);
+                     xhi = Math.max(xhi, d[n][0]);
+                     zlo = Math.min(zlo, d[n][2]);
+                     zhi = Math.max(zhi, d[n][2]);
+                  }
+                  dhS.d[id] = [];
+                  dhS.h.push(cg.roundVec(3, [ (xlo+xhi)/2,
+	                                      (zlo+zhi)/2,
+	                                      Math.max(.02, (xhi-xlo)/2),
+			                      Math.max(.02, (zhi-zlo)/2), .03 ]));
+                  break;
                }
-               dhS.d[id] = [];
-               dhS.h.push(cg.roundVec(3, [ (xlo+xhi)/2,
-	                                   (zlo+zhi)/2,
-	                                   Math.max(.02, (xhi-xlo)/2),
-			                   Math.max(.02, (zhi-zlo)/2), .03 ]));
             }
 
             // Start pinching with your right hand to select the nearest house.
 
-            if (! wasR1[id] && isR1) {
+            if (! isR1p[id] && isR1 || ! isR2p[id] && isR2) {
 	       delete np[id];
-	       let dMin = 10, x = Rp[0], z = Rp[2];
+	       let dMin = 10, x = R1[0], z = R1[2];
 	       for (let n = 0 ; n < dhS.h.length ; n++) {
 	          let h = dhS.h[n], xc = h[0], zc = h[1], xr = h[2], zr = h[3];
 		  if (x > xc - xr && x < xc + xr && z > zc - zr && z < zc + zr) {
@@ -83,27 +107,37 @@ export const init = async model => {
 	       }
 	    }
 
-            // Pinch with your right hand to move a house.
-            // Also pinch with your left hand to vary the house height.
-            // If the height goes negative, the house is deleted.
+            // Pinch with your right index finger to move a house.
 
             if (isR1 && np[id] !== undefined) {
 	       let n = np[id];
 	       let h = dhS.h[n];
-	       h[0] = Rp[0];
-	       h[1] = Rp[2];
-	       if (wasL1[id] && isL1) {
-	          h[4] += Lp[1] - Lp0[id][1];
-		  if (h[4] < 0) {
-		     dhS.h.slice(n, 1);
-		     delete np[id];
-		  }
+	       h[0] = R1[0];
+	       h[1] = R1[2];
+	    }
+
+            // Pinch with your right middle finger to vary house height.
+            // If house height becomes negative, the house is deleted.
+
+            if (isR2 && np[id] !== undefined) {
+	       let n = np[id];
+	       let h = dhS.h[n];
+	       h[4] += R2[1] - R2p[id][1];
+	       if (h[4] < 0) {
+		  dhS.h.slice(n, 1);
+		  delete np[id];
 	       }
 	    }
-	    wasL1[id] = isL1;
-	    wasR1[id] = isR1;
-	    Lp0[id] = Lp;
-	    Rp0[id] = Rp;
+
+	    isL1p[id] = isL1;
+	    isR1p[id] = isR1;
+	    L1p[id]   = L1;
+	    R1p[id]   = R1;
+
+	    isL2p[id] = isL2;
+	    isR2p[id] = isR2;
+	    L2p[id]   = L2;
+	    R2p[id]   = R2;
          }
          server.broadcastGlobal('dhS');
       }
