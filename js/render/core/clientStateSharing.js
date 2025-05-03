@@ -170,8 +170,10 @@ export function ClientStateSharing() {                                          
             let d = cg.distance(clientState.finger(clientID, 'left' , 1),        // teleport their hands or their   //
                                 clientState.finger(clientID, 'right', 1));       // controllers away from their     //
             let m = cg.mMultiply(worldCoords, headMatrix);                       // body by the distance between    //
-            handP = cg.scale(m.slice(8,11), -5 * Math.max(d - .02, 0));          // their two forefingers or their  //
-         }                                                                       // two virtual ping pong balls.    //
+	    let dist = Math.max(d - .02, 0);                                     // their two forefingers or their  //
+	    clay.handsWidget.setVisible(dist > 0);                               // two virtual ping pong balls.    //
+            handP = cg.scale(m.slice(8,11), -5 * dist);                          //                                 //
+         }                                                                       //                                 //
                                                                                  //                                 //
          if (previousAudioVolume < .1 && audioVolume >= .1)                      // Whenever a user wearing an XR   //
             message({ speaking: true });                                         // headset starts to speak, send a //
