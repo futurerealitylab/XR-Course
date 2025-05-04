@@ -1,6 +1,21 @@
 /*
-   One thing we would like to implement next is to allow each user to
-   create things other than houses, by saying other words while drawing.
+   Some ideas for where to take this next:
+
+   We can allow each user to create things other than houses, by
+   saying other words while drawing.
+
+   Houses could have roofs by default, and not stack. In that version,
+   maybe you cannot draw where there is already a house, and if 
+   you try to move a house into another house, it will not go there.
+
+   After a house exists, maybe you can use some combination of speech
+   and gesture to add things like a roof or doors or windows, etc.
+
+   We can also add npcs to the scene, and have them walk around.
+   If we add doors to the houses, and add special buildings like
+   stores and churches, that will motivate the npcs to move from
+   one place to another. The npcs could also have a preference for
+   moving along roads and paths, and should not run into each other.
 */
 
 import * as cg from "../render/core/cg.js";
