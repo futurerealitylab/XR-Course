@@ -4,6 +4,11 @@ const fl = [   0,.087,.098,.093,.076];
 
 let fingerLength = [0,0,0,0,0];
 
+/*
+   Eventually we want to turn the hand reconstruction
+   into a resource that can be used by g3.js.
+*/
+
 export let updateAvatars = avatars => {
    while (avatars.nChildren() > 0)
       avatars.remove(0);
@@ -39,39 +44,40 @@ export let updateAvatars = avatars => {
 		                      .opacity(c==0 ? .7 : .9).color(clientState.color(c));
                }
 
-	       // DRAW THE KNUCKLES OF INDEX, MIDDLE, RING AND PINKY FINGERS.
+	       // PLACE THE KNUCKLES.
 
                let m = clientState.hand(id, hand);
                let s = hand == 'left' ? -1 : 1;
-               let knuckle = [ [-.025*s,-.007,-.094],
+               let knuckle = [ [    0*s,    0,    0], // Haven't done the thumb knuckle yet.
+	                       [-.025*s,-.007,-.094],
                                [-.003*s,-.004,-.093],
                                [ .017*s,-.008,-.086],
                                [ .033*s,-.015,-.075] ];
-               for (let k = 0 ; k < knuckle.length ; k++) {
-	          knuckle[k] = cg.mTransform(m, knuckle[k]);
-                  avatar.add('sphere').move(knuckle[k]).scale(fw[k+1]/2)
-		        .opacity(.7).color(clientState.color(0));
-               }
+               for (let f = 0 ; f < 5 ; f++)
+	          knuckle[f] = cg.mTransform(m, knuckle[f]);
 
 	       // DRAW FINGERS, CONNECTING KNUCKLES TO FINGERTIPS
 
                let z = cg.scale(m.slice(8,11), -1);
                for (let f = 1 ; f < 5 ; f++) {
-                  let l = fl[f];
-		  let ik = (a,b,A,B) => cg.add(cg.ik(a, b, cg.subtract(B,A), z.slice()), A);
-		  let A = knuckle[f-1], D = finger[f];
-                  let B = ik(l*.27, l*.66, A, D);
-                  let C = ik(l*.335, l*.335, B, D);
-                  avatar.add('sphere').move(B).scale(fw[f]/2).opacity(.7).color(clientState.color(0));
-                  avatar.add('sphere').move(C).scale(fw[f]/2).opacity(.7).color(clientState.color(0));
-		  let rod = (A,B) => avatar.add('tubeZ').move(cg.mix(A,B,.5)).aimZ(cg.subtract(B,A))
-		                                        .scale(fw[f]/2,fw[f]/2,cg.distance(A,B)/2)
-                                                        .opacity(.7).color(clientState.color(0));
-                  rod(A,B);
-                  rod(B,C);
-                  rod(C,D);
-
+                  let r = fw[f]/2;
+		  let l = fl[f];
+		  let A = knuckle[f];
+		  let D = finger[f];
+                  let B = cg.ik2(A, D, l*.27 , l*.66 , z);
+                  let C = cg.ik2(B, D, l*.335, l*.335, z);
+                  avatar.add('sphere').move(B).scale(r).opacity(.7).color(clientState.color(0));
+                  avatar.add('sphere').move(C).scale(r).opacity(.7).color(clientState.color(0));
+                  avatar.add('can12' ).placeLimb(A,B,r).opacity(.7).color(clientState.color(0));
+                  avatar.add('tube12').placeLimb(B,C,r).opacity(.7).color(clientState.color(0));
+                  avatar.add('tube12').placeLimb(C,D,r).opacity(.7).color(clientState.color(0));
                }
+
+	       /*
+	          Building the thumb will be more challenging, since the direction that the
+		  thumb points varies with the position of the tip of the thumb.
+		  Hopefully I can find a simple function that computes the former from the latter.
+	       */
             }
 
 	    // IF USING CONTROLLERS

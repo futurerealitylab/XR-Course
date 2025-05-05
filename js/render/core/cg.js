@@ -25,7 +25,6 @@
 
    export let uniqueID = () => 1000 * Math.floor(Math.random() * 1000000) + (Date.now() % 1000);
 
-
    // Two link inverse kinematics
 
    export let ik = (a,b,C,D) => {
@@ -35,6 +34,10 @@
       for (let i = 0 ; i < 3 ; i++) D[i] = x * C[i] + y * D[i];
       return D;
    }
+
+   // More convenient version of two link inverse kinematics
+
+   export let ik2 = (A,B,len1,len2,aim) => add(A, ik(len1, len2, subtract(B, A), aim.slice()));
 
    // Linear mix between two angles
 

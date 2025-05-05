@@ -2222,7 +2222,7 @@ function Node(_form) {
    this.placeLimb = (a,b,radius) => {
       let c = cg.mix(a,b, .5,.5);
       let d = cg.mix(a,b,-.5,.5);
-      this.identity().move(c).aimZ(d).scale(radius,radius,cg.norm(d));
+      return this.identity().move(c).aimZ(d).scale(radius,radius,cg.norm(d));
    }
    this.turnX     = theta   => { m.rotateX(theta);     return this; }
    this.turnY     = theta   => { m.rotateY(theta);     return this; }
