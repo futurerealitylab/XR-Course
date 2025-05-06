@@ -1,13 +1,41 @@
 import * as cg from './cg.js';
+
 const fw = [.021,.019,.018,.017,.015];
 const fl = [   0,.087,.098,.093,.076];
-
-let fingerLength = [0,0,0,0,0];
 
 /*
    Eventually we want to turn the hand reconstruction
    into a resource that can be used by g3.js.
 */
+
+export let computeFingerJoints = (hand,handMatrix,fingertips) => {
+   let s = hand == 'left' ? -1 : 1;
+   let knuckle = [ [    0*s,    0,    0],
+                   [-.025*s,-.007,-.094],
+                   [-.003*s,-.004,-.093],
+                   [ .017*s,-.008,-.086],
+                   [ .033*s,-.015,-.075] ];
+   for (let f = 0 ; f < 5 ; f++)
+      knuckle[f] = cg.mTransform(handMatrix, knuckle[f]);
+
+   let fingerJoints = [];
+   let z = cg.scale(handMatrix.slice(8,11), -1);
+   for (let f = 0 ; f < 5 ; f++) {
+      if (f == 0) {
+         fingerJoints.push([fingertips[f]]);
+	 continue;
+      }
+      let r = fw[f]/2;
+      let l = fl[f];
+      let A = knuckle[f];
+      let D = fingertips[f];
+      let B = cg.ik2(A, D, l*.27 , l*.66 , z);
+      let C = cg.ik2(B, D, l*.335, l*.335, z);
+      fingerJoints.push([A,B,C,D]);
+   }
+   
+   return fingerJoints;
+}
 
 export let updateAvatars = avatars => {
    while (avatars.nChildren() > 0)
@@ -26,44 +54,47 @@ export let updateAvatars = avatars => {
 
          for (let hand in {left:0,right:0})
 
-	    // IF HAND TRACKING
+            // IF HAND TRACKING
 
             if (clientState.isHand(id)) {
 
-	       // DRAW THE FIVE FINGERTIPS. SET COLOR ACCORDING TO GESTURE.
+               // DRAW THE FIVE FINGERTIPS. SET COLOR ACCORDING TO GESTURE.
 
-	       let P = [], finger = [];
+               let P = [], fingers = [];
                for (let p = 1 ; p < 7 ; p++)
                   P[p] = clientState.pinch(id, hand, p);
                for (let f = 0 ; f < 5 ; f++) {
-	          finger[f] = clientState.finger(id,hand,f);
-	          let c = f == 0 ? P[1]?1:P[2]?2:P[3]?3:P[4]?4:P[5]?5:P[6]?6:0
-		        : f == 1 ? P[1]?1:P[5]?5:P[6]?6:0
-		        : P[f] ? f : 0;
-                  avatar.add('sphere').move(finger[f]).scale(fw[f]/2)
-		                      .opacity(c==0 ? .7 : .9).color(clientState.color(c));
+                  fingers[f] = clientState.finger(id,hand,f);
+                  let c = f == 0 ? P[1]?1:P[2]?2:P[3]?3:P[4]?4:P[5]?5:P[6]?6:0
+                        : f == 1 ? P[1]?1:P[5]?5:P[6]?6:0
+                        : P[f] ? f : 0;
+                  avatar.add('sphere').move(fingers[f]).scale(fw[f]/2)
+                                      .opacity(c==0 ? .7 : .9).color(clientState.color(c));
                }
 
-	       // PLACE THE KNUCKLES.
+               // PLACE THE KNUCKLES.
 
-               let m = clientState.hand(id, hand);
+               let handMatrix = clientState.hand(id, hand);
+
+	       let fingerJoints = computeFingerJoints(hand, handMatrix, fingers);
+
                let s = hand == 'left' ? -1 : 1;
                let knuckle = [ [    0*s,    0,    0], // Haven't done the thumb knuckle yet.
-	                       [-.025*s,-.007,-.094],
+                               [-.025*s,-.007,-.094],
                                [-.003*s,-.004,-.093],
                                [ .017*s,-.008,-.086],
                                [ .033*s,-.015,-.075] ];
                for (let f = 0 ; f < 5 ; f++)
-	          knuckle[f] = cg.mTransform(m, knuckle[f]);
+                  knuckle[f] = cg.mTransform(handMatrix, knuckle[f]);
 
-	       // DRAW FINGERS, CONNECTING KNUCKLES TO FINGERTIPS
+               // DRAW FINGERS, CONNECTING KNUCKLES TO FINGERTIPS
 
                let z = cg.scale(m.slice(8,11), -1);
                for (let f = 1 ; f < 5 ; f++) {
                   let r = fw[f]/2;
-		  let l = fl[f];
-		  let A = knuckle[f];
-		  let D = finger[f];
+                  let l = fl[f];
+                  let A = knuckle[f];
+                  let D = fingers[f];
                   let B = cg.ik2(A, D, l*.27 , l*.66 , z);
                   let C = cg.ik2(B, D, l*.335, l*.335, z);
                   avatar.add('sphere').move(B).scale(r).opacity(.7).color(clientState.color(0));
@@ -73,14 +104,14 @@ export let updateAvatars = avatars => {
                   avatar.add('tube12').placeLimb(C,D,r).opacity(.7).color(clientState.color(0));
                }
 
-	       /*
-	          Building the thumb will be more challenging, since the direction that the
-		  thumb points varies with the position of the tip of the thumb.
-		  Hopefully I can find a simple function that computes the former from the latter.
-	       */
+               /*
+                  Building the thumb will be more challenging, since the direction that the
+                  thumb points varies with the position of the tip of the thumb.
+                  Hopefully I can find a simple function that computes the former from the latter.
+               */
             }
 
-	    // IF USING CONTROLLERS
+            // IF USING CONTROLLERS
 
             else {                                                
 
