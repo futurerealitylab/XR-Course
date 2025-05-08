@@ -117,7 +117,10 @@ export function InputEvents() {
       let isAltL = handInfo.left.altPressTime > 0;
       let isAltR = handInfo.right.altPressTime > 0;
 
-      if ((isAltL || isAltR) && ! (isAltL && isAltR) && !window.handtracking) {
+      isAltL = clientState.pinch(clientID, 'left' , 4);
+      isAltR = clientState.pinch(clientID, 'right', 4);
+
+      if ((isAltL || isAltR) && ! (isAltL && isAltR)) {
          altPressed = true;
          let T = isAltL ? pos.left : pos.right;
          if (P)
@@ -140,7 +143,7 @@ export function InputEvents() {
 
       // WHILE BOTH HANDS ARE ALT-PRESSING, ADJUST WORLD COORDINATES
 
-      if (isAltL && isAltR && !window.handtracking) {
+      if (isAltL && isAltR) {
          altPressed = true;
          let L = cg.mTransform(worldCoords, pos.left );
          let R = cg.mTransform(worldCoords, pos.right);
