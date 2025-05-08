@@ -134,6 +134,7 @@ export default () => {
 //          { name: "snow"               , path: "./demoSnowDots.js"       , public: false },
 //          { name: "snow2"              , path: "./demoSnow2.js"          , public: false},
             { name: "statue"             , path: "./demoGLTF.js"           , public: true },
+            { name: "aiobject"           , path: "./demoGenerativeAIModel.js", public: true },
 //          { name: "attic"              , path: "./attic.js"              , public: false },
 //          { name: "sync"               , path: "./demoSync.js"           , public: false},
 //          { name: "table"              , path: "./demoTable.js"          , public: false},
