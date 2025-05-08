@@ -3,38 +3,41 @@ import * as cg from './cg.js';
 const fw = [.021,.019,.018,.017,.015];
 const fl = [   0,.087,.098,.093,.076];
 
-/*
-   Eventually we want to turn the hand reconstruction
-   into a resource that can be used by g3.js.
-*/
-
-export let computeFingerJoints = (hand,handMatrix,fingertips) => {
-   let s = hand == 'left' ? -1 : 1;
-   let knuckle = [ [    0*s,    0,    0],
-                   [-.025*s,-.007,-.094],
-                   [-.003*s,-.004,-.093],
-                   [ .017*s,-.008,-.086],
-                   [ .033*s,-.015,-.075] ];
-   for (let f = 0 ; f < 5 ; f++)
-      knuckle[f] = cg.mTransform(handMatrix, knuckle[f]);
-
-   let fingerJoints = [];
-   let z = cg.scale(handMatrix.slice(8,11), -1);
-   for (let f = 0 ; f < 5 ; f++) {
-      if (f == 0) {
-         fingerJoints.push([fingertips[f]]);
-	 continue;
-      }
-      let r = fw[f]/2;
-      let l = fl[f];
-      let A = knuckle[f];
-      let D = fingertips[f];
-      let B = cg.ik2(A, D, l*.27 , l*.66 , z);
-      let C = cg.ik2(B, D, l*.335, l*.335, z);
-      fingerJoints.push([A,B,C,D]);
+export let computeHandPose = (id, hand) => {
+   let FC = [];
+   {
+      let P = [];
+      for (let p = 1 ; p < 7 ; p++)
+         P[p] = clientState.pinch(id, hand, p);
+      for (let f = 0 ; f < 5 ; f++)
+         FC.push(f == 0 ? P[1]?1:P[2]?2:P[3]?3:P[4]?4:P[5]?5:P[6]?6:0
+                        : f == 1 ? P[1]?1:P[5]?5:P[6]?6:0
+                                 : P[f] ? f : 0);
    }
-   
-   return fingerJoints;
+   let FP = [];
+   {
+      let s = hand == 'left' ? -1 : 1;
+      let knuckle = [ [    0*s,    0,    0],
+                      [-.025*s,-.007,-.094],
+                      [-.003*s,-.004,-.093],
+                      [ .017*s,-.008,-.086],
+                      [ .033*s,-.015,-.075] ];
+      let handMatrix = clientState.hand(id, hand);
+      let z = cg.scale(handMatrix.slice(8,11), -1);
+      for (let f = 0 ; f < 5 ; f++) {
+         let D = clientState.finger(id,hand,f);
+         let F = [];
+         if (f > 0) {
+            let A = cg.mTransform(handMatrix, knuckle[f]);
+            let B = cg.ik2(A, D, fl[f]*.27 , fl[f]*.66 , z);
+            let C = cg.ik2(B, D, fl[f]*.335, fl[f]*.335, z);
+            F.push(A,B,C);
+         }
+         F.push(D);
+         FP.push(F);
+      }
+   }
+   return { c: FC, p: FP };
 }
 
 export let updateAvatars = avatars => {
@@ -57,58 +60,20 @@ export let updateAvatars = avatars => {
             // IF HAND TRACKING
 
             if (clientState.isHand(id)) {
-
-               // DRAW THE FIVE FINGERTIPS. SET COLOR ACCORDING TO GESTURE.
-
-               let P = [], fingers = [];
-               for (let p = 1 ; p < 7 ; p++)
-                  P[p] = clientState.pinch(id, hand, p);
-               for (let f = 0 ; f < 5 ; f++) {
-                  fingers[f] = clientState.finger(id,hand,f);
-                  let c = f == 0 ? P[1]?1:P[2]?2:P[3]?3:P[4]?4:P[5]?5:P[6]?6:0
-                        : f == 1 ? P[1]?1:P[5]?5:P[6]?6:0
-                        : P[f] ? f : 0;
-                  avatar.add('sphere').move(fingers[f]).scale(fw[f]/2)
-                                      .opacity(c==0 ? .7 : .9).color(clientState.color(c));
-               }
-
-               // PLACE THE KNUCKLES.
-
-               let handMatrix = clientState.hand(id, hand);
-
-	       let fingerJoints = computeFingerJoints(hand, handMatrix, fingers);
-
-               let s = hand == 'left' ? -1 : 1;
-               let knuckle = [ [    0*s,    0,    0], // Haven't done the thumb knuckle yet.
-                               [-.025*s,-.007,-.094],
-                               [-.003*s,-.004,-.093],
-                               [ .017*s,-.008,-.086],
-                               [ .033*s,-.015,-.075] ];
-               for (let f = 0 ; f < 5 ; f++)
-                  knuckle[f] = cg.mTransform(handMatrix, knuckle[f]);
-
-               // DRAW FINGERS, CONNECTING KNUCKLES TO FINGERTIPS
-
-               let z = cg.scale(m.slice(8,11), -1);
-               for (let f = 1 ; f < 5 ; f++) {
+               let handPose = computeHandPose(id, hand);
+	       let C = handPose.c;
+	       for (let f = 0 ; f < 5 ; f++) {
                   let r = fw[f]/2;
-                  let l = fl[f];
-                  let A = knuckle[f];
-                  let D = fingers[f];
-                  let B = cg.ik2(A, D, l*.27 , l*.66 , z);
-                  let C = cg.ik2(B, D, l*.335, l*.335, z);
-                  avatar.add('sphere').move(B).scale(r).opacity(.7).color(clientState.color(0));
-                  avatar.add('sphere').move(C).scale(r).opacity(.7).color(clientState.color(0));
-                  avatar.add('can12' ).placeLimb(A,B,r).opacity(.7).color(clientState.color(0));
-                  avatar.add('tube12').placeLimb(B,C,r).opacity(.7).color(clientState.color(0));
-                  avatar.add('tube12').placeLimb(C,D,r).opacity(.7).color(clientState.color(0));
-               }
-
-               /*
-                  Building the thumb will be more challenging, since the direction that the
-                  thumb points varies with the position of the tip of the thumb.
-                  Hopefully I can find a simple function that computes the former from the latter.
-               */
+	          let F = handPose.p[f];
+		  if (f > 0) {
+                     avatar.add('sphere').move(F[1]).scale(r).opacity(.7).color(clientState.color(0));
+                     avatar.add('sphere').move(F[2]).scale(r).opacity(.7).color(clientState.color(0));
+                     avatar.add('can12' ).placeLimb(F[0],F[1],r).opacity(.7).color(clientState.color(0));
+                     avatar.add('tube12').placeLimb(F[1],F[2],r).opacity(.7).color(clientState.color(0));
+                     avatar.add('tube12').placeLimb(F[2],F[3],r).opacity(.7).color(clientState.color(C[f]));
+	          }
+                  avatar.add('sphere').move(F[F.length-1]).scale(r).opacity(.7).color(clientState.color(C[f]));
+	       }
             }
 
             // IF USING CONTROLLERS

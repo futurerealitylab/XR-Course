@@ -1,23 +1,3 @@
-/*
-   Some ideas for where to take this next:
-
-   We can allow each user to create things other than houses, by
-   saying other words while drawing.
-
-   Houses could have roofs by default, and not stack. In that version,
-   maybe you cannot draw where there is already a house, and if 
-   you try to move a house into another house, it will not go there.
-
-   After a house exists, maybe you can use some combination of speech
-   and gesture to add things like a roof or doors or windows, etc.
-
-   We can also add npcs to the scene, and have them walk around.
-   If we add doors to the houses, and add special buildings like
-   stores and churches, that will motivate the npcs to move from
-   one place to another. The npcs could also have a preference for
-   moving along roads and paths, and should not run into each other.
-*/
-
 import * as cg from "../render/core/cg.js";
 import { G3 } from "../util/g3.js";
 
@@ -79,8 +59,8 @@ export const init = async model => {
 
             if (! isR1 && isL1p[id] && ! isL1) {
 
-	       // We are letting people specify different types of things
-	       // while drawing, but so far we are only creating houses.
+	       // Collaborators can speak to specify which type of thing
+	       // to create by drawing, but for now we only create houses.
 
 	       let type = dhS.t[id];
 	       delete dhS.t[id];
@@ -137,7 +117,7 @@ export const init = async model => {
             if (isR2 && np[id] !== undefined) {
 	       let n = np[id];
 	       let h = dhS.h[n];
-	       h[4] += R2[1] - R2p[id][1];
+	       h[4] += (R2[1] - R2p[id][1]) / 2;
 	       if (h[4] < 0) {
 		  dhS.h.slice(n, 1);
 		  delete np[id];
