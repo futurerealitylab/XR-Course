@@ -1,6 +1,6 @@
 import * as cg from './cg.js';
 
-const fw = [.021,.019,.018,.017,.015];
+const fw = [.023,.021,.020,.019,.017];
 const fl = [   0,.087,.098,.093,.076];
 
 export let computeHandPose = (id, hand) => {
@@ -39,6 +39,8 @@ export let computeHandPose = (id, hand) => {
    }
    return { c: FC, p: FP };
 }
+
+export let fingerWidth = f => fw[f];
 
 export let updateAvatars = avatars => {
    while (avatars.nChildren() > 0)

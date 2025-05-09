@@ -1,7 +1,6 @@
 import * as cg from "../render/core/cg.js";
 import { G2 } from "./g2.js";
-import { jointMatrix } from "../render/core/handtrackingInput.js";
-import { buttonState, controllerMatrix } from "../render/core/controllerInput.js";
+import { computeHandPose, fingerWidth } from "../render/core/avatars.js";
 
 let pz = .75;
 
@@ -257,15 +256,18 @@ export let G3 = function(model, callback) {
                if (m = clientState.hand(id,hand))
                   if (clientState.isHand(id)) {
 
-                     // DRAW FINGERTIPS OF HAND
+		     // DRAW FINGERS OF HAND
 
-                     let f = [], p = [];
-                     for (let i = 0 ; i < 5 ; i++) f[i] = clientState.finger(id,hand,i);
-                     for (let i = 0 ; i < 5 ; i++) this.lineWidth(fw[i]+.002).color('black').line(f[i],f[i]);
-                     for (let i = 1 ; i < 7 ; i++) p[i] = clientState.pinch (id,hand,i);
-                     this.lineWidth(fw[0]).color(co[p[1]?1:p[2]?2:p[3]?3:p[4]?4:p[5]?5:p[6]?6:0]).line(f[0],f[0]);
-                     this.lineWidth(fw[1]).color(co[p[1]?1:p[5]?5:p[6]?6:0]).line(f[1],f[1]);
-                     for (let i = 2 ; i < 5 ; i++) this.lineWidth(fw[i]).color(co[p[i]?i:0]).line(f[i],f[i]);
+		     let handPose = computeHandPose(id, hand);
+		     let C = handPose.c;
+		     for (let f = 0 ; f < 5 ; f++) {
+		        draw.lineWidth(fingerWidth(f));
+			let P = handPose.p[f];
+		        if (f == 0)
+			   draw.color(co[C[0]]).line(P[0],P[0]); // Handle thumb differently.
+			else
+			   draw.color(co[0]).line(P[0],P[1]).line(P[1],P[2]).color(co[C[f]]).line(P[2],P[3]);
+		     }
 
                      // DRAW PALM OF HAND
 
@@ -274,13 +276,13 @@ export let G3 = function(model, callback) {
                      let xf = p => cg.mTransform(m, p);
                      let P = [ [-.010*s, .015,-.020],
                                [-.023*s, .015,-.020],
-                               [-.030*s, .005,-.058],
+                               [-.029*s, .005,-.058],
                                [-.025*s,-.007,-.094],
                                [-.003*s,-.004,-.093],
                                [ .017*s,-.008,-.086],
-                               [ .033*s,-.015,-.075],
-                               [ .030*s,-.005,-.048],
-                               [ .023*s, .005,-.020],
+                               [ .032*s,-.015,-.075],
+                               [ .029*s,-.005,-.048],
+                               [ .022*s, .005,-.020],
                                [ .010*s, .011,-.020] ];
                      for (let n = 0 ; n < P.length ; n++)
                         P[n] = xf(P[n]);
