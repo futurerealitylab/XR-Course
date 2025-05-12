@@ -11,6 +11,8 @@ export default () => {
    return {
       enableSceneReloading: true,
       scenes: [ 
+            { name: "rayTracedSpheres"   , path: "./rayTracedSpheres.js"   , public: true  },
+            { name: "rayTracedCubes"     , path: "./rayTracedCubes.js"     , public: true  },
 //          { name: "example1"           , path: "./example1.js"           , public: false },
 //          { name: "example2"           , path: "./example2.js"           , public: false },
 //          { name: "example3"           , path: "./example3.js"           , public: false },

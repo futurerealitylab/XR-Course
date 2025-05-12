@@ -28,9 +28,10 @@ export let computeHandPose = (id, hand) => {
          let D = clientState.finger(id,hand,f);
          let F = [];
          if (f > 0) {
+	    let len = fl[f];
             let A = cg.mTransform(handMatrix, knuckle[f]);
-            let B = cg.ik2(A, D, fl[f]*.27 , fl[f]*.66 , z);
-            let C = cg.ik2(B, D, fl[f]*.335, fl[f]*.335, z);
+            let B = cg.ik2(A, D, len*.27 , len*.66 , z);
+            let C = cg.ik2(B, D, len*.335, len*.335, z);
             F.push(A,B,C);
          }
          F.push(D);
