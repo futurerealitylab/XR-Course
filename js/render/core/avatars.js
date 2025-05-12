@@ -54,9 +54,9 @@ export let updateAvatars = avatars => {
          // SHOW THE HEAD AS A RING. WE SHOULD ADD TRANSPARENT EYES, VISIBLE ONLY IF PERSON IS FACING ME.
 
          let m = clientState.head(id);
-         avatar.add('ringZ').setMatrix(m).move(0,.01,0).scale(.1,.12,.8).opacity(.7);
-         avatar.add('square').setMatrix(m).move(-.0325,.014,0).turnY(Math.PI).scale(.01,.01,.00).opacity(.7);
-         avatar.add('square').setMatrix(m).move( .0325,.014,0).turnY(Math.PI).scale(.01,.01,.00).opacity(.7);
+         avatar.add('ringZ').setMatrix(m).move(0,-.01,0).scale(.1,.12,.8).opacity(.7);
+         avatar.add('disk12').setMatrix(m).move(-.0325,-.01,-.06).turnY(Math.PI).scale(.013,.013,.00).opacity(.7);
+         avatar.add('disk12').setMatrix(m).move( .0325,-.01,-.06).turnY(Math.PI).scale(.013,.013,.00).opacity(.7);
 
          for (let hand in {left:0,right:0})
 
