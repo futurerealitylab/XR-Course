@@ -19,9 +19,10 @@
 */
 
 import * as cg from "../render/core/cg.js";
+import { NPCSystem } from "../render/core/npc/npcSystem.js";
 import { G3 } from "../util/g3.js";
 
-server.init('dhS', { d: {}, h: [], t: {} });
+server.init('dhS', { d: {}, h: [], t: {}, npc: {} });
 
 export const init = async model => {
 
@@ -50,6 +51,37 @@ export const init = async model => {
    model.add('cube').move(0,1,0).scale(.5,.001,.5).opacity(.7);
 
    let houses = model.add();
+
+   let scaling = 32;
+   let npcSystem = new NPCSystem(model, scaling, scaling/5, scaling, 32/scaling);
+   npcSystem.initRender(model);
+   npcSystem.getRootNode().move(0,1,0).move(-.5,0,-.5).scale(1/scaling);
+   let matNPCSystem = npcSystem.getRootNode().getGlobalMatrix();
+   let matNPCSystemInv = cg.mInverse(matNPCSystem);
+
+   let posGlobalToLocal = (pos) => {
+      if (!pos) return [0,0,0];
+      return cg.mTransform(matNPCSystemInv, pos);
+   }
+   let localToNPCWorld = (local) => cg.scale(local, scaling/32);
+
+   npcSystem.setTerrainVisibility(true);
+
+   let isTerrainNeedUpdate = false;
+   setTimeout(() => isTerrainNeedUpdate = true, 100); // Trigger the update after load the houses data
+
+   // Host controls all the NPCs' movement
+   if (clientID == clients[0]) {
+      setInterval(() => {
+         let r = Math.random;
+         for (let npcId of Object.keys(npcSystem.dictNPC)) {
+               let destination = [scaling*r(), 0, scaling*r()];
+               dhS.npc[npcId] = cg.roundVec(3, destination);
+         }
+      }, 6000);
+   }
+
+   let hudFPS = new fps(model);
 
    model.animate(() => {
       dhS = server.synchronize('dhS');
@@ -101,6 +133,8 @@ export const init = async model => {
                                               (zlo+zhi)/2,
                                               Math.max(.02, (xhi-xlo)/2),
                                               Math.max(.02, (zhi-zlo)/2), .03 ]));
+                  console.log("House Added");
+                  setTimeout(() => isTerrainNeedUpdate = true, 100);
                   break;
                }
             }
@@ -127,8 +161,13 @@ export const init = async model => {
             if (isR1 && np[id] !== undefined) {
                let n = np[id];
                let h = dhS.h[n];
-               h[0] = R1[0];
-               h[1] = R1[2];
+
+               if (h[0] !== R1[0] || h[1] !== R1[2]) {
+                  h[0] = R1[0];
+                  h[1] = R1[2];
+                  console.log("House Moved");
+                  isTerrainNeedUpdate = true;
+               }
             }
 
             // Pinch with your right middle finger to vary house height.
@@ -137,11 +176,30 @@ export const init = async model => {
             if (isR2 && np[id] !== undefined) {
                let n = np[id];
                let h = dhS.h[n];
-               h[4] += R2[1] - R2p[id][1];
+
+               if (R2[1] - R2p[id][1] !== 0) {
+                  h[4] += R2[1] - R2p[id][1];
+                  console.log("House Updated");
+                  isTerrainNeedUpdate = true;
+               }
                if (h[4] < 0) {
                   dhS.h.slice(n, 1);
                   delete np[id];
                }
+            }
+
+            // Update the terrain when R1 and R2 is not pinching.
+            if (!isR1 && !isR2 && isTerrainNeedUpdate) {
+               npcSystem.adaptTerrainToMeshes(houses._children, true);
+               console.log("Terrain Updated")
+               isTerrainNeedUpdate = false;
+            }
+
+            // Add NPC
+            if (isL2p[id] && !isL2) {
+               let lPos_rh = posGlobalToLocal(R1);
+               dhS.npc[Date.now()] = cg.roundVec(3, localToNPCWorld(lPos_rh));
+               console.log("NPC added at", ...lPos_rh);
             }
 
             isL1p[id] = isL1;
@@ -174,6 +232,31 @@ export const init = async model => {
          }
          houses.add('cube').move(h[0],y+h[4],h[1]).scale(h[2],h[4],h[3]).opacity(.7);
       }
+
+      /* Command the NPCs */
+      for (let [npcId, npcTarget] of Object.entries(dhS.npc)) {
+         let npcObj = npcSystem.getNPC(npcId);
+         if (!npcObj) npcObj = npcSystem.addNPC("humanoid", npcId, true, npcTarget);
+         let posCurrent = npcObj.center;
+         let moveVec = cg.normalize(cg.subtract(npcTarget, posCurrent));
+         npcSystem.setNPCMoveVec(npcId, moveVec);
+      }
+
+      npcSystem.update();
+      hudFPS.update();
    });
 }
 
+function fps(model) {
+   let f = model.add();
+   let lastUpdateTime = -1;
+   this.updateGap = .25;
+
+   this.update = () => {
+      f.hud().move(.5,.5,.5).scale(.5,.5,.001).color(1,0,0);
+      if (model.time - lastUpdateTime > this.updateGap) {
+         f.textBox(((1 / model.deltaTime)>>0)+"");
+         lastUpdateTime = model.time;
+      }
+   }
+}

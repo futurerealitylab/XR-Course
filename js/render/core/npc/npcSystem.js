@@ -37,27 +37,31 @@ export class NPCSystem {
     * **Heavily impact the CPU performance!**
     * @param {*} nodeList 
     */
-   adaptTerrainToMeshes(nodeList) {
+   adaptTerrainToMeshes(nodeList, genMesh = true) {
+      this.terrain.clear();
       this.terrain.scanMeshes(nodeList, this.n_root);
-      this.terrain.generateMesh();
+      for (let npc of Object.values(this.dictNPC)) {
+         npc?.resetPosY();
+      }
+      if (genMesh) this.terrain.generateMesh();
    }
    setTerrainVisibility(visible) {
       this.terrainVisible = visible;
       if (!this.n_terrainChild0) return;
       if (visible)
-         this.n_terrainChild0.identity();
+         this.n_terrainChild0.identity().move(0,.01,0);
       else 
          this.n_terrainChild0.scale(0);
    }
    legNum = {"triped":3, "quadruped":4, "pentaped":5, "hexapod":6, "heptapod":7, "octopod":8};
-   addNPC(type, id = null, render = true) {
+   addNPC(type, id = null, render = true, position = null) {
       let npc;
       if (type in this.legNum) {
-         npc = new RobotMultiLegs(this.terrain, this.legNum[type]);
+         npc = new RobotMultiLegs(this.terrain, this.legNum[type], position);
       } else if (type === "humanoid") {
-         npc = new Humanoid(this.terrain);
+         npc = new Humanoid(this.terrain, position);
       } else if (type === "tetrapod") {
-         npc = new Tetrapod(this.terrain);
+         npc = new Tetrapod(this.terrain, position);
       } else {
          console.warn("NPC type not found: " + type);
          return null;
@@ -68,6 +72,15 @@ export class NPCSystem {
       if (render) npc.initRender(this.n_rootNPCs);
       return npc;
    }
+   removeNPC(id) {
+      if (id in this.dictNPC) {
+         delete this.dictNPC[id];
+         delete this.NPCMoveVec[id];
+         delete this.NPCLookVec[id];
+      } else {
+         console.warn("NPC not found: "+id);
+      }
+   }
    getNPC(id) {
       if (id in this.dictNPC) return this.dictNPC[id];
       console.warn("NPC not found: "+id);
@@ -75,7 +88,10 @@ export class NPCSystem {
    }
    update() {
       Object.entries(this.dictNPC).forEach(([id, NPCObj]) => {
-         let moveVec = this.NPCMoveVec[id] || [0,0,0];
+         let moveVec = this.NPCMoveVec[id] 
+            ? !isNaN(this.NPCMoveVec[id][0])
+            ? this.NPCMoveVec[id]
+            : [0,0,0] : [0,0,0];
          let lookVec = this.NPCLookVec[id];
          NPCObj.update(this.r_model.time, this.r_model.deltaTime, moveVec, lookVec);
          NPCObj.render();

@@ -22,6 +22,7 @@ export default () => {
 
             { name: "test2"              , path: "./test2.js"              , public: true  },
             { name: "drawHouse"          , path: "./drawHouse.js"          , public: true  },
+            { name: "drawHouseNPC"       , path: "./drawHouseWithNPC.js"   , public: true  },
 
             { name: "wordcloud7"         , path: "./wordcloud7.js"         , public: true  },
             { name: "stock"              , path: "./stock.js"              , public: true  },
