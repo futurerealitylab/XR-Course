@@ -3,7 +3,7 @@ import { RayTraceCubes } from "../render/core/rayTraceCubes.js";
 
 // RAY TRACE TO RANDOMLY PLACED CUBES
 
-let isTextured = true;
+let isTextured = false;
 
 export const init = async model => {
    let N = isTextured ? 20 : 30;
