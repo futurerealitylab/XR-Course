@@ -193,6 +193,12 @@ function Server(wsPort) {
             return;
          }
 
+         if (obj.peerID && obj.receiverID==clientID) {  // RECEIVING AN INVITE TO OPEN A NEW
+	    let ch = new Channel();                     // PEER CHANNEL WITH ANOTHER CLIENT.
+	    channel[obj.senderID] = ch;
+            channelOpenQueue.push({ ch: ch, peerID: obj.peerID });
+	 }
+
          if (obj.code) {
             try {
                eval(obj.code);
@@ -271,12 +277,45 @@ function Server(wsPort) {
    let neverLoadOrSave = false;
    this.neverLoadOrSave = () => neverLoadOrSave = true;
 
+   let channelSendQueue = []; // SENDER CHANNELS MUST WAIT FOR A VALID WEB-RTC ID.
+   let channelOpenQueue = []; // OPENER CHANNELS MUST WAIT FOR A VALID WEB-RTC ID.
+
    this.synchronize = (name, interval) => {
+
       if (window.clients === undefined)                 // DO NOT DO ANYTHING UNTIL THE
          return window[name];                           // SERVER PROVIDES A CLIENT LIST.
 
-      if (window.clientID === undefined)                // ON START-UP, ASSIGN A UNIQUE
-         window.clientID = clients[clients.length-1];   // ID TO THIS CLIENT.
+      if (window.clientID === undefined) {              // ON START-UP, ASSIGN A UNIQUE ID
+         window.clientID = clients[clients.length-1];   // TO THIS CLIENT.
+
+         for (let i = 0 ; i < clients.length ; i++)     // ALSO CREATE CHANNEL OBJECTS FOR
+            if (clients[i] != clientID) {               // SENDING ONE-TO-ONE PEER CONNECTION
+	       channel[clients[i]] = new Channel();     // INVITES TO OTHER CLIENTS.
+	       channelSendQueue.push({id: clients[i],
+	                              ch: channel[clients[i]]});
+            }
+      }
+
+      for (let i=0 ; i<channelSendQueue.length ; i++) { // WAIT TO SEND AN INVITE TO JOIN A
+         let ch = channelSendQueue[i].ch;               // CHANNEL, UNTIL THE SENDER OBJECT
+         let id = channelSendQueue[i].id;               // HAS A VALID WEB-RTC PEER ID.
+	 if (ch.id()) {
+	    this.broadcastObject({senderID:clientID, receiverID:id, peerID:ch.id()});
+            channelSendQueue.splice(i, 1);
+         }
+      }
+
+      for (let i = 0 ; i < clients.length ; i++)        // IF A CHANNEL DOES NOT YET EXIST,
+         if (! channel[clients[i]])                     // ADD A STUB, JUST SO THAT CALLING
+	    channel[clients[i]] = { send: () => {} };   // channel[i].send() WILL WORK.
+
+      for (let i=0 ; i<channelOpenQueue.length ; i++) { // WAIT BETWEEN WHEN A CLIENT MAKES
+         let item = channelOpenQueue[i];                // A RECEIVER OBJECT IN RESPONSE TO
+	 if (item.ch.id()) {                            // A PEER CHANNEL INVITE, AND WHEN
+            item.ch.open(item.peerID);                  // THE CONNECTION IS ACTUALLY OPENED,
+            channelOpenQueue.splice(i, 1);              // UNTIL THE RECEIVER OBJECT HAS A
+         }                                              // VALID WEB-RTC PEER ID.
+      }
 
       let isSceneLoaded = name + '__' + clientID;
       if (! neverLoadOrSave && ! window[isSceneLoaded]) {       // IF THE SCENE ISN'T LOADED:
@@ -315,7 +354,7 @@ function Server(wsPort) {
       let i = interval===undefined ? 3 : Math.abs(interval); // DEFAULT interval IS 3 SECS
       let counter = Date.now() / (1000 * i) >> 0;
       if (! neverLoadOrSave && ! window['waitForFirstUpdate__' + name] // IF NOT WAITING FOR A
-          && counter > this.counter                     // FIRST UPDATE, THEN AT EVERY interval
+          && counter > this.counter                     // FIRST UPDATE, THEN AT EVERY INTERVAL
           && window.clientID == window.clients[0]) {    // COUNT THE OLDEST CLIENT SAVES ITS
          this.set(name, window[name]);                  // CURRENT VALUE TO PERSISTENT STORAGE.
          if (interval > 0)                              // IF THE INTERVAL IS POSITIVE THEN
@@ -336,3 +375,30 @@ function Server(wsPort) {
    this.connectSocket(wsPort);
 }
 
+// BIDIRECTIONAL PEER-TO-PEER DATA CHANNELS BETWEEN ANY TWO CLIENTS.
+
+window.channel = {};          // Client A sends data to client B via channel[B].send(data).
+window.channelData = {};      // That data then appears in client B within channelData[A].
+
+function Channel() {
+    let getData = json => {                      // Process data that was received across
+       let obj = JSON.parse(json);               // the channel, by inserting it into my
+       channelData[obj.id] = obj.data;           // channelData.
+    }
+    let peer = new Peer(), conn, id;
+    peer.on('open', i => id = i);
+    peer.on('connection', c => {                 // When I receive an invite from a remote
+       conn = c;                                 // channel object, I need to initialize
+       conn.on('open', () => {});                // some things internally.
+       conn.on('data', json => getData(json));
+    });
+    this.open = peerId => {                      // INVITE A CHANNEL OBJECT WITHIN A REMOTE
+       conn = peer.connect(peerId);              // CLIENT TO INITIATE A ONE-TO-ONE TWO-WAY
+       conn.on('data', json => getData(json));
+    }
+    this.send = data => {                        // SEND DATA ACROSS THE CHANNEL.
+       if (conn && conn.open)
+          conn.send(JSON.stringify({ id: clientID, data: data }));
+    }
+    this.id = () => id;                          // MY ID TELLS THE OTHER CHANNEL WHERE TO
+}                                                // SEND THE INVITE TO OPEN A CONNECTION.
