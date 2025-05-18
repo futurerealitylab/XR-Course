@@ -307,7 +307,8 @@ function Server(wsPort) {
 
       for (let i = 0 ; i < clients.length ; i++)        // IF A CHANNEL DOES NOT YET EXIST,
          if (! channel[clients[i]])                     // ADD A STUB, JUST SO THAT CALLING
-	    channel[clients[i]] = { send: () => {} };   // channel[i].send() WILL WORK.
+	    channel[clients[i]] = { put: () => {},      // THE put() AND get() METHODS WILL
+	                            get: () => {} };    // NOT TRIGGER AN ERROR.
 
       for (let i=0 ; i<channelOpenQueue.length ; i++) { // WAIT BETWEEN WHEN A CLIENT MAKES
          let item = channelOpenQueue[i];                // A RECEIVER OBJECT IN RESPONSE TO
@@ -375,30 +376,24 @@ function Server(wsPort) {
    this.connectSocket(wsPort);
 }
 
-// BIDIRECTIONAL PEER-TO-PEER DATA CHANNELS BETWEEN ANY TWO CLIENTS.
+window.channel = {};
 
-window.channel = {};          // Client A sends data to client B via channel[B].send(data).
-window.channelData = {};      // That data then appears in client B within channelData[A].
-
-function Channel() {
-    let getData = json => {                      // Process data that was received across
-       let obj = JSON.parse(json);               // the channel, by inserting it into my
-       channelData[obj.id] = obj.data;           // channelData.
-    }
-    let peer = new Peer(), conn, id;
+function Channel() {                             // BIDIRECTIONAL ONE-TO-ONE DATA CHANNELS:
+    let peer = new Peer(), conn, id, data;
     peer.on('open', i => id = i);
     peer.on('connection', c => {                 // When I receive an invite from a remote
        conn = c;                                 // channel object, I need to initialize
        conn.on('open', () => {});                // some things internally.
-       conn.on('data', json => getData(json));
+       conn.on('data', d => data=JSON.parse(d));
     });
     this.open = peerId => {                      // INVITE A CHANNEL OBJECT WITHIN A REMOTE
        conn = peer.connect(peerId);              // CLIENT TO INITIATE A ONE-TO-ONE TWO-WAY
-       conn.on('data', json => getData(json));
+       conn.on('data', d => data=JSON.parse(d)); // DATA EXCHANGE.
     }
-    this.send = data => {                        // SEND DATA ACROSS THE CHANNEL.
+    this.get = () => data;                       // GET DATA FROM ACROSS THE CHANNEL.
+    this.put = data => {                         // PUT DATA ACROSS THE CHANNEL.
        if (conn && conn.open)
-          conn.send(JSON.stringify({ id: clientID, data: data }));
+          conn.send(JSON.stringify(data));
     }
     this.id = () => id;                          // MY ID TELLS THE OTHER CHANNEL WHERE TO
 }                                                // SEND THE INVITE TO OPEN A CONNECTION.
