@@ -195,6 +195,8 @@ function Server(wsPort) {
 
          if (obj.peerID && obj.receiverID==clientID) {  // RECEIVING AN INVITE TO OPEN A NEW
 	    let ch = new Channel();                     // PEER CHANNEL WITH ANOTHER CLIENT.
+	    if (channel[obj.senderID])
+	       ch.on = channel[obj.senderID].on;
 	    channel[obj.senderID] = ch;
             channelOpenQueue.push({ ch: ch, peerID: obj.peerID });
 	 }
@@ -307,8 +309,8 @@ function Server(wsPort) {
 
       for (let i = 0 ; i < clients.length ; i++)        // IF A CHANNEL DOES NOT YET EXIST,
          if (! channel[clients[i]])                     // ADD A STUB, JUST SO THAT CALLING
-	    channel[clients[i]] = { put: () => {},      // THE put() AND get() METHODS WILL
-	                            get: () => {} };    // NOT TRIGGER AN ERROR.
+	    channel[clients[i]] = { send: () => {},     // THE send() AND on() METHODS WILL
+	                            on  : () => {} };   // NOT TRIGGER AN ERROR.
 
       for (let i=0 ; i<channelOpenQueue.length ; i++) { // WAIT BETWEEN WHEN A CLIENT MAKES
          let item = channelOpenQueue[i];                // A RECEIVER OBJECT IN RESPONSE TO
@@ -378,22 +380,13 @@ function Server(wsPort) {
 
 window.channel = {};
 
-function Channel() {                             // BIDIRECTIONAL ONE-TO-ONE DATA CHANNELS:
+function Channel() {
     let peer = new Peer(), conn, id, data;
+    let initConn = c => (conn=c).on('data', d => (this.on && this.on(d)));
     peer.on('open', i => id = i);
-    peer.on('connection', c => {                 // When I receive an invite from a remote
-       conn = c;                                 // channel object, I need to initialize
-       conn.on('open', () => {});                // some things internally.
-       conn.on('data', d => data=JSON.parse(d));
-    });
-    this.open = peerId => {                      // INVITE A CHANNEL OBJECT WITHIN A REMOTE
-       conn = peer.connect(peerId);              // CLIENT TO INITIATE A ONE-TO-ONE TWO-WAY
-       conn.on('data', d => data=JSON.parse(d)); // DATA EXCHANGE.
-    }
-    this.get = () => data;                       // GET DATA FROM ACROSS THE CHANNEL.
-    this.put = data => {                         // PUT DATA ACROSS THE CHANNEL.
-       if (conn && conn.open)
-          conn.send(JSON.stringify(data));
-    }
-    this.id = () => id;                          // MY ID TELLS THE OTHER CHANNEL WHERE TO
-}                                                // SEND THE INVITE TO OPEN A CONNECTION.
+    peer.on('connection', c => initConn(c));
+
+    this.open = peerId => initConn(peer.connect(peerId));
+    this.send = data => { if (conn && conn.open) conn.send(data); }
+    this.id   = () => id;
+}
