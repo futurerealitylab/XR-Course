@@ -1,6 +1,14 @@
 import requests
 import os
 import time
+import sys
+
+input_text = sys.argv[1].split("+")
+
+prompt = ""
+for i in range(2,len(input_text)):
+    prompt += input_text[i]
+    prompt += " "
 
 headers = {
   "Authorization": f"Bearer msy_AG9G6n5paA63XLBAlCw4pdHBWVfyZLTSNSfu"
@@ -10,7 +18,7 @@ headers = {
 
 generate_preview_request = {
   "mode": "preview",
-  "prompt": "a house",
+  "prompt": prompt,
   "negative_prompt": "low quality, low resolution, low poly, ugly",
   "art_style": "realistic",
   "should_remesh": True,
@@ -56,8 +64,10 @@ preview_model_url = preview_task["model_urls"]["glb"]
 preview_model_response = requests.get(preview_model_url)
 preview_model_response.raise_for_status()
 
-with open("./media/gltf/preview_model.glb", "wb") as f:
+filename = "../media/gltf/" + input_text[0] + ".glb"
+
+with open(filename, "wb") as f:
   f.write(preview_model_response.content)
 
-print("./media/gltf/preview_model.glb")
+print(filename)
 
