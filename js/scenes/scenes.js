@@ -13,6 +13,8 @@ export default () => {
       scenes: [ 
             { name: "channel1"           , path: "./channel1.js"           , public: true  },
             { name: "channel2"           , path: "./channel2.js"           , public: true  },
+            { name: "channel3"           , path: "./channel3.js"           , public: true  },
+            { name: "channel4"           , path: "./channel4.js"           , public: true  },
 
             { name: "rayTracedSpheres"   , path: "./rayTracedSpheres.js"   , public: true  },
             { name: "rayTracedCubes"     , path: "./rayTracedCubes.js"     , public: true  },
