@@ -5,7 +5,7 @@ import * as global from "../global.js";
 import { quat } from "../render/math/gl-matrix.js";
 import { Gltf2Node } from "../render/nodes/gltf2.js";
 
-let buddha = new Gltf2Node({ url: './media/gltf/buddha_statue_broken/scene.gltf', txtr: 14 });
+let buddha = new Gltf2Node({ url: './media/gltf/1.glb', txtr: 14 });
 let box    = new Gltf2Node({ url: './media/gltf/box-gltf/box.gltf', txtr: 13 });
 let room   = new Gltf2Node({ url: './media/gltf/60_fifth_ave/60_fifth_ave.gltf' , alpha: 1, txtr: 12 });
 

@@ -61,8 +61,8 @@ function Server(wsPort) {
       request.onloadend = () => {
          if (request.status >= 200 && request.status < 300) {
             const text = request.responseText;
-            window.imageResult = text;
-            this.broadcastGlobal('imageResult');
+            window.pythonOutput = text;
+            this.broadcastGlobal('pythonOutput');
             console.log('Output from python script: ' + text);
          }
 	      else
