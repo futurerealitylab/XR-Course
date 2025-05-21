@@ -11,10 +11,10 @@ export default () => {
    return {
       enableSceneReloading: true,
       scenes: [ 
-            { name: "channel1"           , path: "./channel1.js"           , public: true  },
-            { name: "channel2"           , path: "./channel2.js"           , public: true  },
-            { name: "channel3"           , path: "./channel3.js"           , public: true  },
-            { name: "channel4"           , path: "./channel4.js"           , public: true  },
+            { name: "shared1"            , path: "./shared1.js"            , public: true  },
+            { name: "shared2"            , path: "./shared2.js"            , public: true  },
+            { name: "shared3"            , path: "./shared3.js"            , public: true  },
+            { name: "shared4"            , path: "./shared4.js"            , public: true  },
 
             { name: "rayTracedSpheres"   , path: "./rayTracedSpheres.js"   , public: true  },
             { name: "rayTracedCubes"     , path: "./rayTracedCubes.js"     , public: true  },
