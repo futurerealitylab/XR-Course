@@ -7,14 +7,11 @@ export const init = async model => {
          draw.text(D[n].s, [0,1.5,0], 'center', D[n].x+(n/63>>0)/8-2.0, (32-n%63)/20);
    });
    model.animate(() => {
-      if (clientID == clients[0]) {
+      D = shared(() => {
          for (let n = 0 ; n < 2000 ; n++)
 	    D[n] = {n: n, s: n * n, x: Math.sin(4*model.time+n)/30};
-         for (let i = 1 ; i < clients.length ; i++)
-	    channel[clients[i]].send(D);
-      }
-      else
-         channel[clients[0]].on = d => D = d;
+         return D;
+      });
       g3.update();
    });
 }

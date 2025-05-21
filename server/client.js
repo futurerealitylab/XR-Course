@@ -390,3 +390,16 @@ function Channel() {
     this.send = data => { if (conn && conn.open) conn.send(data); }
     this.id   = () => id;
 }
+
+window._shared_result = null;
+window.shared = func => {
+   if (clientID == clients[0]) {
+      _shared_result = func();
+      for (let i = 1 ; i < clients.length ; i++)
+         channel[clients[i]].send(_shared_result);
+   }
+   else
+      channel[clients[0]].on = data => _shared_result = data;
+   return _shared_result;
+}
+
