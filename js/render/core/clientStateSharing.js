@@ -6,6 +6,8 @@ import { jointMatrix } from "./handtrackingInput.js";                           
 // Button color  unpressed    0        1        2        3        4       5      // pinched, and controller buttons //
 let color = [[.48,.36,.27],[1,1,1],[1,.19,0],[1,1,0],[0,.88,0],[0,0,1],[1,0,0]]; // show a color when pressed.      //
                                                                                  //                                 //
+let pinchState = {};                                                             // Previous pinch states.          //
+                                                                                 //                                 //
 window.clientState = {                                                           // The global clientState object   //
    button: (id,hand,b) => clientData[id] &&                                      // contains methods that let any   //
                             clientData[id][hand]                                 // client get the current state    //
@@ -29,9 +31,18 @@ window.clientState = {                                                          
                             clientData[id].left &&                               //                                 //
                               clientData[id].left.fingers ? true : false,        // isXR(): is client immersive     //
    isXR  : id          => Array.isArray(clientState.head(id)),                   //                                 //
-   pinch : (id,hand,i) => {                                                      // Pinch is when the thumb is      //
-      if (clientState.isHand(id)) {                                              // touches by another finger, when //
-         if (i < 1 || i > 6)                                                     // i has values 1,2,3,4.           //
+   pinchState : (id,hand,i) => {                                                 // When you need more detailed     // 
+      let P0 = pinchState[id + ',' + hand + ',' + i];                            // knowledge of pinch state, use   //
+      let P1 = clientState.pinch(id,hand,i);                                     // this. It compares with previous //
+      if (! P0 &&   P1) return 'press';                                          // state of this pinch, returning  //
+      if (  P0 &&   P1) return 'down';                                           // one of either 'press', 'down',  //
+      if (  P0 && ! P1) return 'release';                                        // 'release' or 'up', to indicate  //
+                        return 'up';                                             // both state and state change.    //
+   },                                                                            //                                 //
+   pinch : (id,hand,i) => {                                                      // A pinch gesture is triggered    //
+      let state = false;                                                         // whenever the thumb is being     //
+      if (clientState.isHand(id)) {                                              // touched by another finger, and  //
+         if (i < 1 || i > 6)                                                     // when i has values 1,2,3,4.      //
             return false;                                                        // If the hand is pointing with    //
          if (i == 5 || i == 6) {                                                 // the thumb pointed to the sky,   //
             let p = clientState.point(id,hand);                                  // pinch returns true when i==5.   //
@@ -42,10 +53,12 @@ window.clientState = {                                                          
          if (! thumb || ! finger)                                                // If not handtracking, then pinch //
             return false;                                                        // returns button i-1. For example //
          let d = cg.distance(thumb, finger);                                     // if i==1 and not handtracking,   //
-         return d > 0 && d < 0.025;                                              // pinch will return true when     //
+         state = d > 0 && d < 0.025;                                             // pinch will return true when     //
       }                                                                          // button 0 (the trigger on the    //
       else                                                                       // controller) is pressed.         //
-         return clientState.button(id,hand,i<1?0:i-1);                           //                                 //
+         state = clientState.button(id,hand,i<1?0:i-1);                          //                                 //
+      pinchState[id + ',' + hand + ',' + i] = state;                             // Remember previous pinch state.  //
+      return state;                                                              //                                 //
    },                                                                            //                                 //
    point : (id,hand) => {                                                        // If not handtracking, point will //
       if (! clientState.isHand(id))                                              // always return null.             //
