@@ -1,5 +1,7 @@
 import * as cg from "../render/core/cg.js";
 import { G3 } from "../util/g3.js";
+import { matchCurves } from "../render/core/matchCurves.js";
+
 export const init = async model => {
 
    let drawing = [], strokeAtCursor = {}, strokeBeingDrawn = {}, P0 = {};
@@ -7,14 +9,15 @@ export const init = async model => {
    // RENDER THE 3D DRAWING FOR THIS CLIENT.
 
    let g3 = new G3(model, draw => {
-      if (drawing)
+      if (drawing) {
+         draw.color('#ff00ff');
          for (let n = 0 ; n < drawing.length ; n++) {
             let stroke = drawing[n];
-            draw.lineWidth(stroke.hilit ? .006 : .003)
-                .color(stroke.selected ? '#ffffff' : '#ff00ff');
+            draw.lineWidth(stroke.hilit ? .006 : .003);
             for (let i = 0 ; i < stroke.p.length - 1 ; i++)
                draw.line(stroke.p[i], stroke.p[i+1]);
          }
+      }
    });
 
    // CHECK WHETHER A POINT IS ON A LINE.
@@ -109,8 +112,11 @@ export const init = async model => {
 
                case 'release':
 	          if (strokeAtCursor[id] && strokeAtCursor[id].count < 10) {
-		     if (id.indexOf('right') >= 0)
-		        strokeAtCursor[id].selected = 1 - strokeAtCursor[id].selected;
+		     if (id.indexOf('right') >= 0) {
+		        let p = strokeAtCursor[id].p;
+			let z = p.reduce((sum,v) => sum + v[2], 0) / p.length;
+		        strokeAtCursor[id].p = matchCurves.recognize([p])[1][0].map(v=>[v[0],v[1],z]);
+                     }
 		     else
 		        for (let i = 0 ; i < drawing.length ; i++)
 		           if (strokeAtCursor[id] == drawing[i]) {
