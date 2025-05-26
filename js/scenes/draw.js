@@ -1,10 +1,13 @@
 import * as cg from "../render/core/cg.js";
 import { G3 } from "../util/g3.js";
-import { matchCurves } from "../render/core/matchCurves.js";
+import { matchCurves } from "../render/core/matchCurves3D.js";
 
 export const init = async model => {
 
-   let drawing = [], strokeAtCursor = {}, strokeBeingDrawn = {}, P0 = {};
+   let drawing = [],            // SHARED STATE BETWEEN CLIENTS
+       strokeAtCursor = {},     // STROKE AT CURSOR FOR EACH HAND OF EVERY CLIENT
+       strokeBeingDrawn = {},   // STROKE CURRENTLY BEING DRAWN FOR EACH HAND OF EVERY CLIENT
+       P0 = {};                 // PREVIOUS CURSOR POSITION FOR EACH HAND OF EVERY CLIENT
 
    // RENDER THE 3D DRAWING FOR THIS CLIENT.
 
@@ -30,7 +33,7 @@ export const init = async model => {
       return false;
    }
 
-   // FIND WHICH STROKE (IF ANY) IS AT THE CURSOR.
+   // RETURN THE STROKE (IF ANY) THAT IS AT THE CURSOR.
 
    let findStroke = p => {
       for (let n = 0 ; n < drawing.length ; n++) {
@@ -48,12 +51,12 @@ export const init = async model => {
 
       drawing = shared(() => {
 
-         // START BY UNHILIGHTING ALL STROKES.
+         // START BY UN-HILIGHTING ALL STROKES.
 
 	 for (let i = 0 ; i < drawing.length ; i++)
 	    drawing[i].hilit = 0;
 
-         // FOR EACH HAND OF EVERY CLIENT:
+         // LOOP THROUGH BOTH HANDS OF EVERY CLIENT:
 
          for (let i = 0 ; i < clients.length ; i++)
             for (let hand in {left:{},right:{}}) {
@@ -65,11 +68,11 @@ export const init = async model => {
 	          continue;
                let P = cg.mix(thumb, clientState.finger(clients[i], hand, 1), .5);
 
-	       // PROVIDE A UNIQUE ID FOR THIS HAND OF THIS CLIENT.
+	       // PROVIDE A UNIQUE ID STRING FOR THIS HAND OF THIS CLIENT.
 
 	       let id = clients[i] + hand;
 
-	       // DO VARIOUS ACTIONS THAT DEPEND ON THE STATE OF THE HAND OR CONTROLLER:
+	       // ACTIONS DEPEND ON THE CURRENT STATE OF THE HAND OR CONTROLLER:
 
                switch (clientState.pinchState(clients[i], hand, 1)) {
 
@@ -83,16 +86,16 @@ export const init = async model => {
                   }
 	          break;
 
-               // ON press EVENT: IF NO STROKE IS AT THE CURSOR, START DRAWING ONE.
+               // ON press EVENT: IF NO STROKE IS AT THE CURSOR, THEN START DRAWING ONE.
 
                case 'press':
 	          if (! strokeAtCursor[id]) {
-                     strokeBeingDrawn[id] = { p:[P], hilit: 0, selected: 0, count: 0 };
+                     strokeBeingDrawn[id] = { p:[P], hilit: 0, count: 0 };
                      drawing.push(strokeBeingDrawn[id]);
                   }
 	          break;
 
-               // IF IN down STATE: IF DRAWING, KEEP DRAWING. ELSE DRAG SELECTED STROKE.
+               // IF IN down STATE: IF DRAWING A STROKE, KEEP DRAWING. ELSE DRAG THE SELECTED STROKE.
 
                case 'down':
 	          if (! strokeAtCursor[id])
@@ -107,16 +110,21 @@ export const init = async model => {
 	          }
 	          break;
 
-               // ON release EVENT: IF LEFT  UP-CLICK ON A STROKE, DELETE THE STROKE.
-               //                   IF RIGHT UP-CLICK ON A STROKE, TOGGLE SELECTION.
+               // ON release EVENT:
 
                case 'release':
+
+                  // UP-CLICKING ON A STROKE:
+
 	          if (strokeAtCursor[id] && strokeAtCursor[id].count < 10) {
-		     if (id.indexOf('right') >= 0) {
-		        let p = strokeAtCursor[id].p;
-			let z = p.reduce((sum,v) => sum + v[2], 0) / p.length;
-		        strokeAtCursor[id].p = matchCurves.recognize([p])[1][0].map(v=>[v[0],v[1],z]);
-                     }
+
+                     // IF RIGHT UP-CLICK, REPLACE THE STROKE BY THE BEST MATCHING GLYPH.
+
+		     if (id.indexOf('right') > 0)
+		        strokeAtCursor[id].p = matchCurves.recognize([strokeAtCursor[id].p])[1][0];
+
+	             // IF LEFT UP-CLICK, DELETE THE STROKE.
+
 		     else
 		        for (let i = 0 ; i < drawing.length ; i++)
 		           if (strokeAtCursor[id] == drawing[i]) {
@@ -127,7 +135,7 @@ export const init = async model => {
 	          }
 	          break;
                }
-               P0[id] = P; // REMEMBER PREVIOUS CURSOR POSITION, FOR DRAGGING.
+               P0[id] = P; // REMEMBER THE PREVIOUS CURSOR POSITION. THIS IS NEEDED FOR DRAGGING.
             }
          return drawing;
       });
