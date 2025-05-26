@@ -12,8 +12,8 @@ export const init = async model => {
    // RENDER THE 3D DRAWING FOR THIS CLIENT.
 
    let g3 = new G3(model, draw => {
+      draw.color('#ff00ff');
       if (drawing) {
-         draw.color('#ff00ff');
          for (let n = 0 ; n < drawing.length ; n++) {
             let stroke = drawing[n];
             draw.lineWidth(stroke.hilit ? .006 : .003);
@@ -53,8 +53,8 @@ export const init = async model => {
 
          // START BY UN-HILIGHTING ALL STROKES.
 
-	 for (let i = 0 ; i < drawing.length ; i++)
-	    drawing[i].hilit = 0;
+	 for (let n = 0 ; n < drawing.length ; n++)
+	    drawing[n].hilit = 0;
 
          // LOOP THROUGH BOTH HANDS OF EVERY CLIENT:
 
@@ -120,15 +120,18 @@ export const init = async model => {
 
                      // IF RIGHT UP-CLICK, REPLACE THE STROKE BY THE BEST MATCHING GLYPH.
 
-		     if (id.indexOf('right') > 0)
-		        strokeAtCursor[id].p = matchCurves.recognize([strokeAtCursor[id].p])[1][0];
+		     if (id.indexOf('right') > 0) {
+		        // strokeAtCursor[id].p = matchCurves.recognize([strokeAtCursor[id].p])[1][0];
+		        strokeAtCursor[id].glyph = matchCurves.recognize([strokeAtCursor[id].p]);
+		        strokeAtCursor[id].timer = 0;
+                     }
 
 	             // IF LEFT UP-CLICK, DELETE THE STROKE.
 
 		     else
-		        for (let i = 0 ; i < drawing.length ; i++)
-		           if (strokeAtCursor[id] == drawing[i]) {
-			      drawing.splice(i, 1);
+		        for (let n = 0 ; n < drawing.length ; n++)
+		           if (strokeAtCursor[id] == drawing[n]) {
+			      drawing.splice(n, 1);
 			      strokeAtCursor[id] = null;
 			      break;
 			   }
@@ -137,6 +140,16 @@ export const init = async model => {
                }
                P0[id] = P; // REMEMBER THE PREVIOUS CURSOR POSITION. THIS IS NEEDED FOR DRAGGING.
             }
+
+	 for (let n = 0 ; n < drawing.length ; n++) {
+	    let stroke = drawing[n];
+	    if (stroke.glyph && stroke.timer < 1) {
+	       let curves = matchCurves.mix(stroke.glyph[0], stroke.glyph[1], cg.ease(stroke.timer));
+	       stroke.p = curves[0];
+	       stroke.timer = Math.min(1, stroke.timer + 1.4 * model.deltaTime);
+	    }
+	 }
+
          return drawing;
       });
       g3.update();
