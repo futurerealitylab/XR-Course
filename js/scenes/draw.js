@@ -121,7 +121,6 @@ export const init = async model => {
                      // IF RIGHT UP-CLICK, REPLACE THE STROKE BY THE BEST MATCHING GLYPH.
 
 		     if (id.indexOf('right') > 0) {
-		        // strokeAtCursor[id].p = matchCurves.recognize([strokeAtCursor[id].p])[1][0];
 		        strokeAtCursor[id].glyph = matchCurves.recognize([strokeAtCursor[id].p]);
 		        strokeAtCursor[id].timer = 0;
                      }
@@ -146,7 +145,7 @@ export const init = async model => {
 	    if (stroke.glyph && stroke.timer < 1) {
 	       let curves = matchCurves.mix(stroke.glyph[0], stroke.glyph[1], cg.ease(stroke.timer));
 	       stroke.p = curves[0];
-	       stroke.timer = Math.min(1, stroke.timer + 1.4 * model.deltaTime);
+	       stroke.timer = Math.min(1, stroke.timer + 1.8 * model.deltaTime);
 	    }
 	 }
 
