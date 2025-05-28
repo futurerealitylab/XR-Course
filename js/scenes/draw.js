@@ -4,6 +4,22 @@ import { matchCurves } from "../render/core/matchCurves3D.js";
 
 export const init = async model => {
 
+   let bird = time => {
+      let theta1 = Math.sin(2 * time - 2.8) * .4 - .6;
+      let theta2 = Math.cos(2 * time - 2.8) * .8;
+      let C1 = .7 * Math.cos(theta1), S1 = .7 * Math.sin(theta1);
+      let C2 = .7 * Math.cos(theta2), S2 = .7 * Math.sin(theta2);
+      let c = [ 0, .1 + .5 * S1, 0 ];
+      let b = [ c[0] - C1, c[1] - S1, 0 ];
+      let a = [ b[0] - C2, b[1] + S2, 0 ];
+      let d = [ c[0] + C1, c[1] - S1, 0 ];
+      let e = [ d[0] + C2, d[1] + S2, 0 ];
+      return [ [ a, b, c, d, e ] ];
+   }
+
+   matchCurves.addGlyphFromCurves('bird', bird(0), (time,T) =>
+      matchCurves.animate(time => bird(time), cg.mIdentity(), time, T));
+
    let drawing = [],            // SHARED STATE BETWEEN CLIENTS
        strokeAtCursor = {},     // STROKE AT CURSOR FOR EACH HAND OF EVERY CLIENT
        strokeBeingDrawn = {},   // STROKE CURRENTLY BEING DRAWN FOR EACH HAND OF EVERY CLIENT
@@ -121,7 +137,17 @@ export const init = async model => {
                      // IF RIGHT UP-CLICK, REPLACE THE STROKE BY THE BEST MATCHING GLYPH.
 
 		     if (id.indexOf('right') > 0) {
-		        strokeAtCursor[id].glyph = matchCurves.recognize([strokeAtCursor[id].p]);
+		        let fm = cg.mMultiply(clay.inverseRootMatrix, clay.root().inverseViewMatrix(0));
+		        let im = cg.mInverse(fm);
+			let p = [];
+			for (let i = 0 ; i < strokeAtCursor[id].p.length ; i++)
+			   p.push(cg.mTransform(im, strokeAtCursor[id].p[i]));
+		        let ST = matchCurves.recognize([p]);
+			for (let i = 0 ; i < ST[0][0].length ; i++) {
+			   ST[0][0][i] = cg.mTransform(fm, ST[0][0][i]);
+			   ST[1][0][i] = cg.mTransform(fm, ST[1][0][i]);
+			}
+		        strokeAtCursor[id].ST = ST;
 		        strokeAtCursor[id].timer = 0;
                      }
 
@@ -142,11 +168,20 @@ export const init = async model => {
 
 	 for (let n = 0 ; n < drawing.length ; n++) {
 	    let stroke = drawing[n];
-	    if (stroke.glyph && stroke.timer < 1) {
-	       let curves = matchCurves.mix(stroke.glyph[0], stroke.glyph[1], cg.ease(stroke.timer));
-	       stroke.p = curves[0];
-	       stroke.timer = Math.min(1, stroke.timer + 1.8 * model.deltaTime);
-	    }
+	    if (stroke.ST)
+	       if (stroke.timer < 1) {
+	          stroke.timer = Math.min(1, stroke.timer + 1.8 * model.deltaTime);
+	          let strokes = matchCurves.mix(stroke.ST[0], stroke.ST[1], cg.ease(stroke.timer));
+	          stroke.p = strokes[0];
+	       }
+	       else {
+	          let glyph = matchCurves.glyph(stroke.ST[2]);
+		  if (glyph.code) {
+	             stroke.timer += model.deltaTime;
+		     let strokes = glyph.code(stroke.timer - 1, stroke.ST[3]);
+	             stroke.p = strokes[0];
+		  }
+	       }
 	 }
 
          return drawing;
