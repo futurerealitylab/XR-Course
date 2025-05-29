@@ -106,8 +106,8 @@ export let G3 = function(model, callback) {
          dl[0] = p_z;
          dl[1] = DRAW;
          dl[2] = color;
-         dl[3] = p_path;
-         dl[4] = lineWidth * p_scale;
+         dl[3] = lineWidth * p_scale;
+         dl[4] = p_path;
       }
       return this;
    }
@@ -117,8 +117,8 @@ export let G3 = function(model, callback) {
          dl[0] = p_z;
          dl[1] = DRAW;
          dl[2] = color;
-         dl[3] = p_path;
-         dl[4] = lineWidth * p_scale;
+         dl[3] = lineWidth * p_scale;
+         dl[4] = p_path;
       }
       return this;
    }
@@ -321,8 +321,8 @@ export let G3 = function(model, callback) {
             switch (item[1]) {
             case DRAW:
                g2[view].setColor (item[2]);
-               g2[view].drawPath (item[3]);
-               g2[view].lineWidth(item[4]);
+               g2[view].lineWidth(item[3]);
+               g2[view].drawPath (item[4]);
                break;
             case FILL:
                g2[view].setColor(item[2]);

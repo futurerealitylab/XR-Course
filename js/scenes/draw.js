@@ -4,9 +4,12 @@ import { matchCurves } from "../render/core/matchCurves3D.js";
 
 export const init = async model => {
 
-   let bird = time => {
-      let theta1 = Math.sin(2 * time - 2.8) * .4 - .6;
-      let theta2 = Math.cos(2 * time - 2.8) * .8;
+   let addThing = (name,proc) => matchCurves.addGlyphFromCurves(name, proc(0),
+      (time,T) => matchCurves.animate(time => proc(time), cg.mIdentity(), time, T));
+
+   addThing('bird', time => {
+      let theta1 = Math.sin(4 * time - 2.8) * .4 - .6;
+      let theta2 = Math.cos(4 * time - 2.8) * .8;
       let C1 = .7 * Math.cos(theta1), S1 = .7 * Math.sin(theta1);
       let C2 = .7 * Math.cos(theta2), S2 = .7 * Math.sin(theta2);
       let c = [ 0, .1 + .5 * S1, 0 ];
@@ -15,10 +18,7 @@ export const init = async model => {
       let d = [ c[0] + C1, c[1] - S1, 0 ];
       let e = [ d[0] + C2, d[1] + S2, 0 ];
       return [ [ a, b, c, d, e ] ];
-   }
-
-   matchCurves.addGlyphFromCurves('bird', bird(0), (time,T) =>
-      matchCurves.animate(time => bird(time), cg.mIdentity(), time, T));
+   });
 
    let drawing = [],            // SHARED STATE BETWEEN CLIENTS
        strokeAtCursor = {},     // STROKE AT CURSOR FOR EACH HAND OF EVERY CLIENT
@@ -121,8 +121,12 @@ export const init = async model => {
 		     stroke.hilit = 1;
 		     stroke.count++;
 	             let d = cg.subtract(P, P0[id]);
-	             for (let i = 0 ; i < stroke.p.length ; i++)
-	                stroke.p[i] = cg.add(stroke.p[i], d);
+		     if (stroke.m)
+		        for (let i = 0 ; i < 3 ; i++)
+	                   stroke.m[12 + i] += d[i];
+		     else
+	                for (let i = 0 ; i < stroke.p.length ; i++)
+	                   stroke.p[i] = cg.add(stroke.p[i], d);
 	          }
 	          break;
 
@@ -134,7 +138,7 @@ export const init = async model => {
 
 	          if (strokeAtCursor[id] && strokeAtCursor[id].count < 10) {
 
-                     // IF RIGHT UP-CLICK, REPLACE THE STROKE BY THE BEST MATCHING GLYPH.
+                     // IF RIGHT UP-CLICK:
 
 		     if (id.indexOf('right') > 0) {
 		        let fm = cg.mMultiply(clay.inverseRootMatrix, clay.root().inverseViewMatrix(0));
@@ -143,10 +147,10 @@ export const init = async model => {
 			for (let i = 0 ; i < strokeAtCursor[id].p.length ; i++)
 			   p.push(cg.mTransform(im, strokeAtCursor[id].p[i]));
 		        let ST = matchCurves.recognize([p]);
-			for (let i = 0 ; i < ST[0][0].length ; i++) {
-			   ST[0][0][i] = cg.mTransform(fm, ST[0][0][i]);
-			   ST[1][0][i] = cg.mTransform(fm, ST[1][0][i]);
-			}
+			for (let k = 0 ; k <= 1 ; k++)
+			for (let i = 0 ; i < ST[k][0].length ; i++)
+			   ST[k][0][i] = cg.mTransform(fm, ST[k][0][i]);
+		        strokeAtCursor[id].m = fm;
 		        strokeAtCursor[id].ST = ST;
 		        strokeAtCursor[id].timer = 0;
                      }
@@ -166,20 +170,31 @@ export const init = async model => {
                P0[id] = P; // REMEMBER THE PREVIOUS CURSOR POSITION. THIS IS NEEDED FOR DRAGGING.
             }
 
+         // UPDATE STROKES THAT HAVE GLYPHS.
+
 	 for (let n = 0 ; n < drawing.length ; n++) {
 	    let stroke = drawing[n];
 	    if (stroke.ST)
+
+	       // STILL MORPHING FROM A STROKE TO ITS MATCHING GLYPH
+
 	       if (stroke.timer < 1) {
 	          stroke.timer = Math.min(1, stroke.timer + 1.8 * model.deltaTime);
 	          let strokes = matchCurves.mix(stroke.ST[0], stroke.ST[1], cg.ease(stroke.timer));
 	          stroke.p = strokes[0];
 	       }
+
+               // UPDATING A FULLY MORPHED GLYPH
+
 	       else {
 	          let glyph = matchCurves.glyph(stroke.ST[2]);
 		  if (glyph.code) {
 	             stroke.timer += model.deltaTime;
 		     let strokes = glyph.code(stroke.timer - 1, stroke.ST[3]);
+		     let fm = cg.mMultiply(clay.inverseRootMatrix, clay.root().inverseViewMatrix(0));
 	             stroke.p = strokes[0];
+		     for (let i = 0 ; i < stroke.p.length ; i++)
+			stroke.p[i] = cg.mTransform(stroke.m, stroke.p[i]);
 		  }
 	       }
 	 }

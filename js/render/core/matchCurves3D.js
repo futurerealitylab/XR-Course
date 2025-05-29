@@ -225,7 +225,8 @@ function MatchCurves() {
          let curve = [];
          for (let i = 0 ; i < src[n].length ; i++)
             curve.push(cg.mTransform(m, src[n][i]));
-         dst.push(this.resample(curve, 20));
+         //dst.push(this.resample(curve, 20));
+         dst.push(curve);
       }
       return dst;
    }
