@@ -35,8 +35,8 @@ export class Humanoid extends NPC {
    animStartPosFootL  = [0,0,0]; animStartPosFootR  = [0,0,0];
    animEndPosFootL    = [0,0,0]; animEndPosFootR    = [0,0,0];
    cycle = 0;
-   constructor(terrainObj) {
-      super(terrainObj);
+   constructor(terrainObj, position) {
+      super(terrainObj, position);
       this.ikbody = new IKBody();
 
       this.initIKOffset();
@@ -192,6 +192,12 @@ export class Humanoid extends NPC {
       let Vec3AverageCenter = new Vector3(...averageCenter);
       this.ikbody.pos[IK.WRIST_L].set(...posWL).applyQuaternion(qHandSwing).add(Vec3AverageCenter);
       this.ikbody.pos[IK.WRIST_R].set(...posWR).applyQuaternion(qHandSwing).add(Vec3AverageCenter);
+   }
+   
+   resetPosY() {
+      this.center[1] = this.terrainObj.getHeight(this.center[0], this.center[2]);
+      this.actualPosFootL[1] = this.terrainObj.getHeight(this.actualPosFootL[0], this.actualPosFootL[2]);
+      this.actualPosFootR[1] = this.terrainObj.getHeight(this.actualPosFootR[0], this.actualPosFootR[2]);
    }
 
    r_node = null;

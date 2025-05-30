@@ -355,9 +355,11 @@ export function G2(do_not_animate_flag=false, canvasWidth=512, canvasHeight) {
       this.fillPath([ [b[0]+2*d[0]*r, b[1]+2*d[1]*r],
                       [b[0]-d[0]*r-2*d[1]*r, b[1]-d[1]*r+2*d[0]*r],
                       [b[0]-d[0]*r+2*d[1]*r, b[1]-d[1]*r-2*d[0]*r] ]);
+      return this;
    }
    this.clear = () => {
       context.clearRect(0, 0, width, height);
+      return this;
    }
    this.computeUVZ = objMatrix => {
       if (! window.vr) {
@@ -373,21 +375,6 @@ export function G2(do_not_animate_flag=false, canvasWidth=512, canvasHeight) {
       }
    }
 
-/*
-      context.save();
-      let lines = text.split('\n');
-      let dy = 2 * parseFloat(context.font) / height;
-      context.translate(x2c(x), y2c(y+dy*(lines.length/2-2/3)));
-      if (rotation)
-         context.rotate(-Math.PI/2 * rotation);
-      if (alignment)
-         context.textAlign = alignment;
-      for (let n = 0 ; n < lines.length ; n++, y -= dy) {
-         context.lineWidth = _h;
-         context.fillText(lines[n],0,h2c(n*dy));
-      }
-      context.restore();
-*/
    this.drawImage = (image,x,y,w,h,rotation, sx,sy,sw,sh) => {
       context.save();
          context.translate(x2c(x), y2c(y));
@@ -399,11 +386,13 @@ export function G2(do_not_animate_flag=false, canvasWidth=512, canvasHeight) {
             context.drawImage(image, w2c(-w/2), h2c(-h/2), w2c(w), h2c(h));
          }
       context.restore();
+      return this;
    }
    this.drawOval = (x,y,w,h) => {
       context.beginPath();
       context.ellipse(x2c(x), y2c(y), w2c(w/2), h2c(h/2), 0, 0, 2 * Math.PI);
       context.stroke();
+      return this;
    }
    this.drawPath = path => {
       context.beginPath();
@@ -412,6 +401,7 @@ export function G2(do_not_animate_flag=false, canvasWidth=512, canvasHeight) {
          lineTo(x2c(path[n+1][0]), y2c(path[n+1][1]));
       }
       context.stroke();
+      return this;
    }
    this.drawRect = (x,y,w,h,r) => {
       if (r === undefined) {
@@ -428,11 +418,13 @@ export function G2(do_not_animate_flag=false, canvasWidth=512, canvasHeight) {
          context.roundRect(x2c(x),y2c(y+h),w2c(w),h2c(h),w2c(r));
          context.stroke();
       }
+      return this;
    }
    this.fillOval = (x,y,w,h) => {
       context.beginPath();
       context.ellipse(x2c(x+w/2), y2c(y+h/2), w2c(w/2), h2c(h/2), 0, 0, 2 * Math.PI);
       context.fill();
+      return this;
    }
    this.fillPath = path => {
       context.beginPath();
@@ -442,6 +434,7 @@ export function G2(do_not_animate_flag=false, canvasWidth=512, canvasHeight) {
          else
             lineTo(x2c(path[n][0]), y2c(path[n][1]));
       context.fill();
+      return this;
    }
    this.fillRect = (x,y,w,h,r) => {
       if (r === undefined)
@@ -451,16 +444,18 @@ export function G2(do_not_animate_flag=false, canvasWidth=512, canvasHeight) {
          context.roundRect(x2c(x),y2c(y+h),w2c(w),h2c(h),w2c(r));
          context.fill();
       }
+      return this;
    }
-   this.fillText = (text,x,y,alignment,rotation) => this.text(text,x,y,alignment,rotation);
+   this.fillText = (text,x,y,alignment,rotation) => { this.text(text,x,y,alignment,rotation); return this; }
    this.getContext = () => context;
    this.line = (a,b) => {
       context.beginPath();
       moveTo(x2c(a[0]), y2c(a[1]));
       lineTo(x2c(b[0]), y2c(b[1]));
       context.stroke();
+      return this;
    }
-   this.lineWidth = w => context.lineWidth = width * w;
+   this.lineWidth = w => { context.lineWidth = width * w; return this; }
    this.mouseState = () => mouseState;
    this.setColor = (color,dim) => {
       if (dim !== undefined && (isHex(color) || isRgba(color))) {
@@ -469,6 +464,7 @@ export function G2(do_not_animate_flag=false, canvasWidth=512, canvasHeight) {
       }
       else
          context.fillStyle = context.strokeStyle = isRgba(color) ? rgbaToHex(color[0],color[1],color[2],color[3]) : color;
+      return this;
    }
    let _h = 0.1;
    this.text = (text,x,y,alignment,rotation) => {
@@ -479,7 +475,7 @@ export function G2(do_not_animate_flag=false, canvasWidth=512, canvasHeight) {
          lines = text.split('\n');
       } catch (error) { };
       if (lines === undefined)
-         return;
+         return this;
 
       context.save();
          let dy = 2 * parseFloat(context.font) / height;
@@ -505,9 +501,10 @@ export function G2(do_not_animate_flag=false, canvasWidth=512, canvasHeight) {
                context.fillText(lines[n],w2c(-dx/2),h2c(n*dy));
          }
       context.restore();
+      return this;
    }
-   this.textHeight = h => { _h = h; context.font = ((10 * height * h >> 0)/10) + 'px ' + font; }
-   this.setFont = f => { font = f; this.textHeight(_h); }
+   this.textHeight = h => { _h = h; context.font = ((10 * height * h >> 0)/10) + 'px ' + font; return this; }
+   this.setFont = f => { font = f; this.textHeight(_h); return this; }
 
    let font = 'Helvetica';
 
@@ -532,6 +529,7 @@ export function G2(do_not_animate_flag=false, canvasWidth=512, canvasHeight) {
       this.fillRect(x, y, w, .02);
 
       context.restore();
+      return this;
    }
 
    this.clock = (x,y,w,h) => {
@@ -561,6 +559,7 @@ export function G2(do_not_animate_flag=false, canvasWidth=512, canvasHeight) {
          clockHand(.027, (minute + second / 60) / 60, .64);
          clockHand(.018,           second / 60      , .84);
       context.restore();
+      return this;
    }
 
    this.textHeight(.05);

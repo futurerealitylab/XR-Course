@@ -600,7 +600,7 @@ vec3 lighting_contribution(
     // skylight
     if (uSky == 1) {
        vec3 p = uEye - (uIRM * vec4(worldPosition,1.)).xyz;
-       fragColor = texture(uSampler[0], .5 - .5 * p.xz);
+       fragColor = texture(uSampler[1], .5 - .5 * p.xz);
        return;
     }
 

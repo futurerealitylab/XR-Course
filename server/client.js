@@ -61,8 +61,8 @@ function Server(wsPort) {
       request.onloadend = () => {
          if (request.status >= 200 && request.status < 300) {
             const text = request.responseText;
-            window.imageResult = text;
-            this.broadcastGlobal('imageResult');
+            window.pythonOutput = text;
+            this.broadcastGlobal('pythonOutput');
             console.log('Output from python script: ' + text);
          }
 	      else
@@ -198,6 +198,14 @@ function Server(wsPort) {
             return;
          }
 
+         if (obj.peerID && obj.receiverID==clientID) {  // RECEIVING AN INVITE TO OPEN A NEW
+	    let ch = new Channel();                     // PEER CHANNEL WITH ANOTHER CLIENT.
+	    if (channel[obj.senderID])
+	       ch.on = channel[obj.senderID].on;
+	    channel[obj.senderID] = ch;
+            channelOpenQueue.push({ ch: ch, peerID: obj.peerID });
+	 }
+
          if (obj.code) {
             try {
                eval(obj.code);
@@ -276,12 +284,46 @@ function Server(wsPort) {
    let neverLoadOrSave = false;
    this.neverLoadOrSave = () => neverLoadOrSave = true;
 
+   let channelSendQueue = []; // SENDER CHANNELS MUST WAIT FOR A VALID WEB-RTC ID.
+   let channelOpenQueue = []; // OPENER CHANNELS MUST WAIT FOR A VALID WEB-RTC ID.
+
    this.synchronize = (name, interval) => {
+
       if (window.clients === undefined)                 // DO NOT DO ANYTHING UNTIL THE
          return window[name];                           // SERVER PROVIDES A CLIENT LIST.
 
-      if (window.clientID === undefined)                // ON START-UP, ASSIGN A UNIQUE
-         window.clientID = clients[clients.length-1];   // ID TO THIS CLIENT.
+      if (window.clientID === undefined) {              // ON START-UP, ASSIGN A UNIQUE ID
+         window.clientID = clients[clients.length-1];   // TO THIS CLIENT.
+
+         for (let i = 0 ; i < clients.length ; i++)     // ALSO CREATE CHANNEL OBJECTS FOR
+            if (clients[i] != clientID) {               // SENDING ONE-TO-ONE PEER CONNECTION
+	       channel[clients[i]] = new Channel();     // INVITES TO OTHER CLIENTS.
+	       channelSendQueue.push({id: clients[i],
+	                              ch: channel[clients[i]]});
+            }
+      }
+
+      for (let i=0 ; i<channelSendQueue.length ; i++) { // WAIT TO SEND AN INVITE TO JOIN A
+         let ch = channelSendQueue[i].ch;               // CHANNEL, UNTIL THE SENDER OBJECT
+         let id = channelSendQueue[i].id;               // HAS A VALID WEB-RTC PEER ID.
+	 if (ch.id()) {
+	    this.broadcastObject({senderID:clientID, receiverID:id, peerID:ch.id()});
+            channelSendQueue.splice(i, 1);
+         }
+      }
+
+      for (let i = 0 ; i < clients.length ; i++)        // IF A CHANNEL DOES NOT YET EXIST,
+         if (! channel[clients[i]])                     // ADD A STUB, JUST SO THAT CALLING
+	    channel[clients[i]] = { send: () => {},     // THE send() AND on() METHODS WILL
+	                            on  : () => {} };   // NOT TRIGGER AN ERROR.
+
+      for (let i=0 ; i<channelOpenQueue.length ; i++) { // WAIT BETWEEN WHEN A CLIENT MAKES
+         let item = channelOpenQueue[i];                // A RECEIVER OBJECT IN RESPONSE TO
+	 if (item.ch.id()) {                            // A PEER CHANNEL INVITE, AND WHEN
+            item.ch.open(item.peerID);                  // THE CONNECTION IS ACTUALLY OPENED,
+            channelOpenQueue.splice(i, 1);              // UNTIL THE RECEIVER OBJECT HAS A
+         }                                              // VALID WEB-RTC PEER ID.
+      }
 
       let isSceneLoaded = name + '__' + clientID;
       if (! neverLoadOrSave && ! window[isSceneLoaded]) {       // IF THE SCENE ISN'T LOADED:
@@ -320,7 +362,7 @@ function Server(wsPort) {
       let i = interval===undefined ? 3 : Math.abs(interval); // DEFAULT interval IS 3 SECS
       let counter = Date.now() / (1000 * i) >> 0;
       if (! neverLoadOrSave && ! window['waitForFirstUpdate__' + name] // IF NOT WAITING FOR A
-          && counter > this.counter                     // FIRST UPDATE, THEN AT EVERY interval
+          && counter > this.counter                     // FIRST UPDATE, THEN AT EVERY INTERVAL
           && window.clientID == window.clients[0]) {    // COUNT THE OLDEST CLIENT SAVES ITS
          this.set(name, window[name]);                  // CURRENT VALUE TO PERSISTENT STORAGE.
          if (interval > 0)                              // IF THE INTERVAL IS POSITIVE THEN
@@ -339,5 +381,30 @@ function Server(wsPort) {
    }
    
    this.connectSocket(wsPort);
+}
+
+window.channel = {};
+
+function Channel() {
+    let peer = new Peer(), conn, id, data;
+    let initConn = c => (conn=c).on('data', d => (this.on && this.on(d)));
+    peer.on('open', i => id = i);
+    peer.on('connection', c => initConn(c));
+
+    this.open = peerId => initConn(peer.connect(peerId));
+    this.send = data => { if (conn && conn.open) conn.send(data); }
+    this.id   = () => id;
+}
+
+window._shared_result = null;
+window.shared = func => {
+   if (clientID == clients[0]) {
+      _shared_result = func();
+      for (let i = 1 ; i < clients.length ; i++)
+         channel[clients[i]].send(_shared_result);
+   }
+   else
+      channel[clients[0]].on = data => _shared_result = data;
+   return _shared_result;
 }
 

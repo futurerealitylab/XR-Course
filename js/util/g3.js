@@ -1,7 +1,6 @@
 import * as cg from "../render/core/cg.js";
 import { G2 } from "./g2.js";
-import { jointMatrix } from "../render/core/handtrackingInput.js";
-import { buttonState, controllerMatrix } from "../render/core/controllerInput.js";
+import { computeHandPose, fingerWidth } from "../render/core/avatars.js";
 
 let pz = .75;
 
@@ -103,29 +102,29 @@ export let G3 = function(model, callback) {
             for (let i = 0 ; i < 3 ; i++)
                c += path[n][i];
          let scale = projected.getScale([c[0]/np, c[1]/np, c[2]/np]);
-	 if (! displayList[nd]) displayList[nd] = []; let dl = displayList[nd++];
+         if (! displayList[nd]) displayList[nd] = []; let dl = displayList[nd++];
          dl[0] = p_z;
          dl[1] = DRAW;
          dl[2] = color;
-         dl[3] = p_path;
-         dl[4] = lineWidth * p_scale;
+         dl[3] = lineWidth * p_scale;
+         dl[4] = p_path;
       }
       return this;
    }
    this.draw2D = (path,center,) => {
       if (projectPath2D(path, center)) {
-	 if (! displayList[nd]) displayList[nd] = []; let dl = displayList[nd++];
+         if (! displayList[nd]) displayList[nd] = []; let dl = displayList[nd++];
          dl[0] = p_z;
          dl[1] = DRAW;
          dl[2] = color;
-         dl[3] = p_path;
-         dl[4] = lineWidth * p_scale;
+         dl[3] = lineWidth * p_scale;
+         dl[4] = p_path;
       }
       return this;
    }
    this.fill = path => {
       if (projectPath(path)) {
-	 if (! displayList[nd]) displayList[nd] = []; let dl = displayList[nd++];
+         if (! displayList[nd]) displayList[nd] = []; let dl = displayList[nd++];
          dl[0] = p_z;
          dl[1] = FILL;
          dl[2] = color;
@@ -153,7 +152,7 @@ export let G3 = function(model, callback) {
             else if (! w)
                w = h * image.width / image.height;
             let scale = projected.getScale(center);
-	    if (! displayList[nd]) displayList[nd] = []; let dl = displayList[nd++];
+            if (! displayList[nd]) displayList[nd] = []; let dl = displayList[nd++];
             dl[0] = p[2];
             dl[1] = IMAGE;
             dl[2] = image;
@@ -177,7 +176,7 @@ export let G3 = function(model, callback) {
       a = projected.projectPoint(a);
       b = projected.projectPoint(b);
       if (a && b) {
-	 if (! displayList[nd]) displayList[nd] = []; let dl = displayList[nd++];
+         if (! displayList[nd]) displayList[nd] = []; let dl = displayList[nd++];
          dl[0] = (a[2] + b[2]) / 2;
          dl[1] = LINE;
          dl[2] = color;
@@ -194,15 +193,15 @@ export let G3 = function(model, callback) {
          let scale = projected.getScale(center);
          x = cg.def(x,0);
          y = cg.def(y,0);
-	 if (! displayList[nd]) displayList[nd] = []; let dl = displayList[nd++];
+         if (! displayList[nd]) displayList[nd] = []; let dl = displayList[nd++];
          dl[0] = p[2];
          dl[1] = TEXT;
          dl[2] = color;
          dl[3] = font;
          dl[4] = textHeight * scale;
          dl[5] = text;
-	 let cos = scale * Math.cos(projected.tilt);
-	 let sin = scale * Math.sin(projected.tilt);
+         let cos = scale * Math.cos(projected.tilt);
+         let sin = scale * Math.sin(projected.tilt);
          dl[6] = p[0] + cos * x + sin * y;
          dl[7] = p[1] - sin * x + cos * y;
          dl[8] = cg.def(alignment, 'center');
@@ -230,55 +229,91 @@ export let G3 = function(model, callback) {
    this.update = () => {
       if (! co.length)
          for (let i = 0 ; i < 7 ; i++)
-	    co.push(cg.rgbToHex(clientState.color(i)));
+            co.push(cg.rgbToHex(clientState.color(i)));
 
       for (view = 0 ; view <= 1 ; view++) {
          projected.update(view);
          screen[view].setMatrix(projected.getMatrix());
 
-	 nd = 0;
+         nd = 0;
          g2[view].update();
 
-	 // IF HAND TRACKING, SHOW TIPS OF FINGERS. USE COLOR TO INDICATE PINCH.
+         // IF HAND TRACKING, SHOW TIPS OF FINGERS. USE COLOR TO INDICATE PINCH.
 
-	 let isTouching = (a,b) => { let d = cg.distance(a,b); return d > 0 && d < .025; }
+         let isTouching = (a,b) => { let d = cg.distance(a,b); return d > 0 && d < .025; }
 
          for (let n = 0 ; n < clients.length ; n++) {
             let id = clients[n], m, p;
             if (id != clientID && (m = clientState.head(id))) {
-	       let face = [];
-	       for (let i = 0 ; i < faceX.length ; i++)
-	          face.push(cg.mTransform(m, [faceX[i],faceY[i],0]));
+               let face = [];
+               for (let i = 0 ; i < faceX.length ; i++)
+                  face.push(cg.mTransform(m, [faceX[i],faceY[i],0]));
                this.lineWidth(.01).color(co[0]);
-	       for (let i = 0 ; i < face.length ; i++)
+               for (let i = 0 ; i < face.length ; i++)
                   this.line(face[i], face[(i+1) % face.length]);
             }
-	    for (let hand in {left:0,right:0})
-	       if (m = clientState.hand(id,hand))
-	          if (clientState.isHand(id)) {
-	             let f = [], p = [];
-	             for (let i = 0 ; i < 5 ; i++) f[i] = clientState.finger(id,hand,i);
-	             for (let i = 0 ; i < 5 ; i++) this.lineWidth(fw[i]+.002).color('black').line(f[i],f[i]);
-	             for (let i = 1 ; i < 7 ; i++) p[i] = clientState.pinch (id,hand,i);
-		     this.lineWidth(fw[0]).color(co[p[1]?1:p[2]?2:p[3]?3:p[4]?4:p[5]?5:p[6]?6:0]).line(f[0],f[0]);
-		     this.lineWidth(fw[1]).color(co[p[1]?1:p[5]?5:p[6]?6:0]).line(f[1],f[1]);
-	             for (let i = 2 ; i < 5 ; i++) this.lineWidth(fw[i]).color(co[p[i]?i:0]).line(f[i],f[i]);
-	          }
+            for (let hand in {left:0,right:0})
+               if (m = clientState.hand(id,hand))
+                  if (clientState.isHand(id)) {
+
+		     // DRAW FINGERS OF HAND
+
+		     let handPose = computeHandPose(id, hand);
+		     let C = handPose.c;
+		     for (let f = 0 ; f < 5 ; f++) {
+		        draw.lineWidth(fingerWidth(f));
+			let P = handPose.p[f];
+		        if (f == 0)
+			   draw.color(co[C[0]]).line(P[0],P[0]); // Handle thumb differently.
+			else
+			   draw.color(co[0]).line(P[0],P[1]).line(P[1],P[2]).color(co[C[f]]).line(P[2],P[3]);
+		     }
+
+                     // DRAW PALM OF HAND
+
+                     let m = clientState.hand(id,hand);
+                     let s = hand == 'left' ? -1 : 1;
+                     let xf = p => cg.mTransform(m, p);
+                     let P = [ [-.010*s, .015,-.020],
+                               [-.023*s, .015,-.020],
+                               [-.029*s, .005,-.058],
+                               [-.025*s,-.007,-.094],
+                               [-.003*s,-.004,-.093],
+                               [ .017*s,-.008,-.086],
+                               [ .032*s,-.015,-.075],
+                               [ .029*s,-.005,-.048],
+                               [ .022*s, .005,-.020],
+                               [ .010*s, .011,-.020] ];
+                     for (let n = 0 ; n < P.length ; n++)
+                        P[n] = xf(P[n]);
+                     let a = xf([-.009*s, .010,-.058]);
+                     let b = xf([ .013*s, .006,-.055]);
+                     this.lineWidth(.02).color(co[0]);
+                     for (let n = 0 ; n < P.length ; n++)
+                        this.line(P[n], P[(n+1)%P.length]);
+                     this.line(P[0],a).line(a,P[4]);
+                     this.line(P[9],b).line(b,P[5]);
+                     this.line(P[2],a).line(b,P[7]).line(a,b);
+                     this.fill(P);
+                  }
                   else {
-	             let p = m.slice(12,15);
-	             this.lineWidth(.031).color('black').line(p,p);
-	             this.lineWidth(.029).color(co[ clientState.button(id,hand,0) ? 1 :
-		                                    clientState.button(id,hand,1) ? 2 :
-		                                    clientState.button(id,hand,2) ? 3 :
-		                                    clientState.button(id,hand,3) ? 4 :
-		                                    clientState.button(id,hand,4) ? 5 :
-		                                    clientState.button(id,hand,5) ? 6 : 0 ]).line(p,p);
-	          }
+
+                     // DRAW VIRTUAL PING PONG BALL OF CONTROLLER
+
+                     let p = m.slice(12,15);
+                     this.lineWidth(.031).color('black').line(p,p);
+                     this.lineWidth(.029).color(co[ clientState.button(id,hand,0) ? 1 :
+                                                    clientState.button(id,hand,1) ? 2 :
+                                                    clientState.button(id,hand,2) ? 3 :
+                                                    clientState.button(id,hand,3) ? 4 :
+                                                    clientState.button(id,hand,4) ? 5 :
+                                                    clientState.button(id,hand,5) ? 6 : 0 ]).line(p,p);
+                  }
          }
 
-	 let sortedDisplayList = [];
+         let sortedDisplayList = [];
          for (let n = 0 ; n < nd ; n++)
-	    sortedDisplayList.push(displayList[n]);
+            sortedDisplayList.push(displayList[n]);
          sortedDisplayList.sort((a,b) => a[0] - b[0]);
 
          for (let n = 0 ; n < nd ; n++) {
@@ -286,8 +321,8 @@ export let G3 = function(model, callback) {
             switch (item[1]) {
             case DRAW:
                g2[view].setColor (item[2]);
-               g2[view].drawPath (item[3]);
-               g2[view].lineWidth(item[4]);
+               g2[view].lineWidth(item[3]);
+               g2[view].drawPath (item[4]);
                break;
             case FILL:
                g2[view].setColor(item[2]);

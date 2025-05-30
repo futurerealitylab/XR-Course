@@ -11,6 +11,15 @@ export default () => {
    return {
       enableSceneReloading: true,
       scenes: [ 
+            { name: "draw"               , path: "./draw.js"               , public: true  },
+            { name: "chalktalk"          , path: "./chalktalk.js"          , public: true  },
+            { name: "shared1"            , path: "./shared1.js"            , public: true  },
+            { name: "shared2"            , path: "./shared2.js"            , public: true  },
+            { name: "shared3"            , path: "./shared3.js"            , public: true  },
+            { name: "shared4"            , path: "./shared4.js"            , public: true  },
+
+            { name: "rayTracedSpheres"   , path: "./rayTracedSpheres.js"   , public: true  },
+            { name: "rayTracedCubes"     , path: "./rayTracedCubes.js"     , public: true  },
 //          { name: "example1"           , path: "./example1.js"           , public: false },
 //          { name: "example2"           , path: "./example2.js"           , public: false },
 //          { name: "example3"           , path: "./example3.js"           , public: false },
@@ -22,6 +31,7 @@ export default () => {
 
             { name: "test2"              , path: "./test2.js"              , public: true  },
             { name: "drawHouse"          , path: "./drawHouse.js"          , public: true  },
+            { name: "drawHouseNPC"       , path: "./drawHouseWithNPC.js"   , public: true  },
 
             { name: "wordcloud7"         , path: "./wordcloud7.js"         , public: true  },
             { name: "stock"              , path: "./stock.js"              , public: true  },
@@ -134,6 +144,7 @@ export default () => {
 //          { name: "snow"               , path: "./demoSnowDots.js"       , public: false },
 //          { name: "snow2"              , path: "./demoSnow2.js"          , public: false},
             { name: "statue"             , path: "./demoGLTF.js"           , public: true },
+            { name: "aiobject"           , path: "./demoGenerativeAIModel.js", public: true },
 //          { name: "attic"              , path: "./attic.js"              , public: false },
 //          { name: "sync"               , path: "./demoSync.js"           , public: false},
 //          { name: "table"              , path: "./demoTable.js"          , public: false},
