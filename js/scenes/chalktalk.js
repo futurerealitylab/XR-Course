@@ -5,8 +5,8 @@ import { matchCurves } from "../render/core/matchCurves3D.js";
 /*
 DONE	Right drag: Draw a stroke.
 DONE	Right single click on a sketch: Convert the sketch to an object.
-	Right click on an object: Send the click event to the object.
-	Right drag on an object: Send the drag event to the object.
+DONE	Right click on an object: Send the click event to the object.
+DONE	Right drag on an object: Send the drag event to the object.
 	Right click on object A while looking at object B: Create a link arrow from A to B.
 DONE	Left drag on a sketch or object: Move the sketch or object’s position.
 DONE	Left single click on a sketch or object: Do nothing.
@@ -14,7 +14,9 @@ DONE	Left double click on a sketch, object or link: Delete the sketch, object or
 DONE	Left click then drag left/right on an object: Spin object about its vertical axis.
 DONE	Left click then drag up/down an object: If dragging up/down: Scale the object.
 
+To do:
 	Handle multi-stroke things.
+	Handle creating links.
 */
 
 export const init = async model => {
@@ -23,8 +25,7 @@ export const init = async model => {
 
    let addThing = (name,Thing) => {
       let thing = new Thing();
-      matchCurves.addGlyphFromCurves(name, thing.update(0),
-         (time,T) => matchCurves.animate(time => thing.update(time), cg.mIdentity(), time, T));
+      matchCurves.addGlyphFromCurves(name, thing.update(0), thing);
    }
 
    addThing('bird', function() {
@@ -40,6 +41,17 @@ export const init = async model => {
          let e = [ d[0] + C2, d[1] + S2, 0 ];
          return [ [ a, b, c, d, e ] ];
       }
+   });
+
+   addThing('testThing', function() {
+      let t = 1;
+      this.onDrag = p => t = p[1];
+      this.update = time => [ [
+         [ -t, .5, 0],
+	 [  0, .5, 0],
+	 [  0,-.5, 0],
+	 [  t,-.5, 0],
+      ] ];
    });
 
    let drawing = [],            // SHARED STATE BETWEEN CLIENTS
@@ -216,11 +228,29 @@ export const init = async model => {
                      }
 		     break;
 
-                  // RIGHT DRAG: DRAWING A STROKE.
-
 		  case 'right':
+
+                     // RIGHT DRAG ON A STROKE: CONTINUE TO DRAW THE STROKE.
+
 	             if (strokeBeingDrawn[id])
                         strokeBeingDrawn[id].p.push(P);
+
+                     // IF RIGHT DRAG ON A THING: SEND THE EVENT TO THE THING.
+
+                     if (strokeAtCursor[id] && strokeAtCursor[id].ST) {
+		        let stroke = strokeAtCursor[id];
+	                let glyph = matchCurves.glyph(stroke.ST[2]);
+		        if (glyph.code) {
+		           if (glyph.code.onDrag) {
+			      let p = cg.mTransform(cg.mInverse(stroke.m), P);
+			      let T = stroke.ST[3];
+			      for (let j = 0 ; j < 3 ; j++)
+			         p[j] = (p[j] - T[j]) / T[3];
+		              glyph.code.onDrag(p);
+                           }
+		        }
+		     }
+
 		     break;
                   }
 	          break;
@@ -258,9 +288,25 @@ export const init = async model => {
 		  case 'right':
 		     strokeBeingDrawn[id] = null;
 
-                     // IF RIGHT CLICK ON A STROKE: CONVERT THE STROKE TO A THING
+                     // IF RIGHT CLICK ON A THING: SEND THE EVENT TO THE THING.
 
-	             if (isClickOnStroke) {
+                     if (isClickOnStroke && strokeAtCursor[id].ST) {
+		        let stroke = strokeAtCursor[id];
+	                let glyph = matchCurves.glyph(stroke.ST[2]);
+		        if (glyph.code) {
+		           if (glyph.code.onClick) {
+			      let p = cg.mTransform(cg.mInverse(stroke.m), P);
+			      let T = stroke.ST[3];
+			      for (let j = 0 ; j < 3 ; j++)
+			         p[j] = (p[j] - T[j]) / T[3];
+		              glyph.code.onClick(p);
+                           }
+		        }
+		     }
+
+                     // IF RIGHT CLICK ON AN UNCONVERTED STROKE: CONVERT THE STROKE TO A THING
+
+	             else if (isClickOnStroke) {
 		        let fm = cg.mMultiply(clay.inverseRootMatrix, clay.root().inverseViewMatrix(0));
 		        let im = cg.mInverse(fm);
 			let p = [];
@@ -290,7 +336,7 @@ export const init = async model => {
 	       // STILL MORPHING FROM A STROKE TO ITS MATCHING GLYPH
 
 	       if (stroke.timer < 1) {
-	          stroke.timer = Math.min(1, stroke.timer + 1.8 * model.deltaTime);
+	          stroke.timer += 1.8 * model.deltaTime;
 	          let strokes = matchCurves.mix(stroke.ST[0], stroke.ST[1], cg.ease(stroke.timer));
 	          stroke.p = strokes[0];
 	       }
@@ -301,7 +347,7 @@ export const init = async model => {
 	          let glyph = matchCurves.glyph(stroke.ST[2]);
 		  if (glyph.code) {
 	             stroke.timer += model.deltaTime;
-		     let strokes = glyph.code(stroke.timer - 1, stroke.ST[3]);
+		     let strokes = matchCurves.animate(() => glyph.code.update(stroke.timer-1), cg.mIdentity(), stroke.timer-1, stroke.ST[3]);
 		     let fm = cg.mMultiply(clay.inverseRootMatrix, clay.root().inverseViewMatrix(0));
 	             stroke.p = strokes[0];
 		     for (let i = 0 ; i < stroke.p.length ; i++)
