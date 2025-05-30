@@ -9,15 +9,17 @@ DONE	Right single click on a sketch: Convert the sketch to an object.
 	Right drag on an object: Send the drag event to the object.
 	Right click on object A while looking at object B: Create a link arrow from A to B.
 DONE	Left drag on a sketch or object: Move the sketch or object’s position.
-	Left single click on a sketch or object: Do nothing.
-	Left double click on a sketch, object or link: Delete the sketch, object or link.
-	Left click then drag left/right on an object: Spin object about its vertical axis.
-	Left click then drag up/down an object: If dragging up/down: Scale the object.
+DONE	Left single click on a sketch or object: Do nothing.
+DONE	Left double click on a sketch, object or link: Delete the sketch, object or link.
+DONE	Left click then drag left/right on an object: Spin object about its vertical axis.
+DONE	Left click then drag up/down an object: If dragging up/down: Scale the object.
+
+	Handle multi-stroke things.
 */
 
 export const init = async model => {
 
-   let info = '---';
+   let info = '';
 
    let addThing = (name,Thing) => {
       let thing = new Thing();
@@ -161,15 +163,44 @@ export const init = async model => {
 
                         // LEFT CLICK THEN DRAG ON A STROKE: SCALE THE STROKE.
 
-		        if (clickCount[id] == 1 && dragCount >= 10) {
+		        if (clickCount[id] == 1 && stroke.dragCount >= 10) {
 			   let center = [0,0,0];
 			   for (let i = 0 ; i < stroke.p.length ; i++)
 			      center = cg.add(center, stroke.p[i]);
                            center = cg.scale(center, 1 / stroke.p.length);
 
-	                   let s = 1 + d[1];
-			   for (let i = 0 ; i < stroke.p.length ; i++)
-			      stroke.p[i] = cg.add(cg.scale(cg.subtract(stroke.p[i], center), s), center);
+			   // VERTICAL DRAG: SCALE THE STROKE.
+
+			   if (d[1] * d[1] > d[0] * d[0] + d[2] * d[2]) {
+	                      let s = 1 + 4 * d[1];
+			      for (let i = 0 ; i < stroke.p.length ; i++)
+			         stroke.p[i] = cg.add(cg.scale(cg.subtract(stroke.p[i], center), s), center);
+
+                              if (stroke.m) {
+		                 for (let j = 0 ; j < 3 ; j++)
+	                            stroke.m[12 + j] -= center[j];
+                                 stroke.m = cg.mMultiply(cg.mScale(s), stroke.m);
+		                 for (let j = 0 ; j < 3 ; j++)
+	                            stroke.m[12 + j] += center[j];
+			      }
+			   }
+
+			   // HORIZONTAL DRAG: ROTATE THE STROKE.
+
+			   else {
+		              let fm = cg.mMultiply(clay.inverseRootMatrix, clay.root().inverseViewMatrix(0));
+			      let theta = 20 * cg.dot(d, [fm[0],fm[4],fm[8]]);
+			      let c = Math.cos(theta), s = Math.sin(theta);
+			      for (let i = 0 ; i < stroke.p.length ; i++)
+			         stroke.p[i] = cg.subtract(stroke.p[i], center);
+			      for (let i = 0 ; i < stroke.p.length ; i++) {
+			         let x = stroke.p[i][0], z = stroke.p[i][2];
+			         stroke.p[i][0] =  c * x + s * z;
+			         stroke.p[i][2] = -s * x + c * z;
+                              }
+			      for (let i = 0 ; i < stroke.p.length ; i++)
+			         stroke.p[i] = cg.add(stroke.p[i], center);
+			   }
 		        }
 
                         // LEFT DRAG ON A STROKE: MOVE THE STROKE.
