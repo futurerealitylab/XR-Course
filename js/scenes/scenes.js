@@ -12,6 +12,7 @@ export default () => {
       enableSceneReloading: true,
       scenes: [ 
             { name: "draw"               , path: "./draw.js"               , public: true  },
+            { name: "chalktalk"          , path: "./chalktalk.js"          , public: true  },
             { name: "shared1"            , path: "./shared1.js"            , public: true  },
             { name: "shared2"            , path: "./shared2.js"            , public: true  },
             { name: "shared3"            , path: "./shared3.js"            , public: true  },
