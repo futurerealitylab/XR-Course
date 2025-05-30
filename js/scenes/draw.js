@@ -4,20 +4,25 @@ import { matchCurves } from "../render/core/matchCurves3D.js";
 
 export const init = async model => {
 
-   let addThing = (name,proc) => matchCurves.addGlyphFromCurves(name, proc(0),
-      (time,T) => matchCurves.animate(time => proc(time), cg.mIdentity(), time, T));
+   let addThing = (name,Thing) => {
+      let thing = new Thing();
+      matchCurves.addGlyphFromCurves(name, thing.update(0),
+         (time,T) => matchCurves.animate(time => thing.update(time), cg.mIdentity(), time, T));
+   }
 
-   addThing('bird', time => {
-      let theta1 = Math.sin(4 * time - 2.8) * .4 - .6;
-      let theta2 = Math.cos(4 * time - 2.8) * .8;
-      let C1 = .7 * Math.cos(theta1), S1 = .7 * Math.sin(theta1);
-      let C2 = .7 * Math.cos(theta2), S2 = .7 * Math.sin(theta2);
-      let c = [ 0, .1 + .5 * S1, 0 ];
-      let b = [ c[0] - C1, c[1] - S1, 0 ];
-      let a = [ b[0] - C2, b[1] + S2, 0 ];
-      let d = [ c[0] + C1, c[1] - S1, 0 ];
-      let e = [ d[0] + C2, d[1] + S2, 0 ];
-      return [ [ a, b, c, d, e ] ];
+   addThing('bird', function() {
+      this.update = time => {
+         let theta1 = Math.sin(4 * time - 2.8) * .4 - .6;
+         let theta2 = Math.cos(4 * time - 2.8) * .8;
+         let C1 = .7 * Math.cos(theta1), S1 = .7 * Math.sin(theta1);
+         let C2 = .7 * Math.cos(theta2), S2 = .7 * Math.sin(theta2);
+         let c = [ 0, .1 + .5 * S1, 0 ];
+         let b = [ c[0] - C1, c[1] - S1, 0 ];
+         let a = [ b[0] - C2, b[1] + S2, 0 ];
+         let d = [ c[0] + C1, c[1] - S1, 0 ];
+         let e = [ d[0] + C2, d[1] + S2, 0 ];
+         return [ [ a, b, c, d, e ] ];
+      }
    });
 
    let drawing = [],            // SHARED STATE BETWEEN CLIENTS
@@ -121,12 +126,12 @@ export const init = async model => {
 		     stroke.hilit = 1;
 		     stroke.count++;
 	             let d = cg.subtract(P, P0[id]);
-		     if (stroke.m)
-		        for (let i = 0 ; i < 3 ; i++)
-	                   stroke.m[12 + i] += d[i];
-		     else
-	                for (let i = 0 ; i < stroke.p.length ; i++)
-	                   stroke.p[i] = cg.add(stroke.p[i], d);
+	             for (let i = 0 ; i < stroke.p.length ; i++)
+		        for (let j = 0 ; j < 3 ; j++)
+	                   stroke.p[i][j] += d[j];
+                     if (stroke.m)
+		        for (let j = 0 ; j < 3 ; j++)
+		           stroke.m[12 + j] += d[j];
 	          }
 	          break;
 
@@ -138,7 +143,7 @@ export const init = async model => {
 
 	          if (strokeAtCursor[id] && strokeAtCursor[id].count < 10) {
 
-                     // IF RIGHT UP-CLICK:
+                     // IF RIGHT UP-CLICK: CONVERT THE STROKE TO A THING
 
 		     if (id.indexOf('right') > 0) {
 		        let fm = cg.mMultiply(clay.inverseRootMatrix, clay.root().inverseViewMatrix(0));
@@ -153,6 +158,7 @@ export const init = async model => {
 		        strokeAtCursor[id].m = fm;
 		        strokeAtCursor[id].ST = ST;
 		        strokeAtCursor[id].timer = 0;
+		        strokeAtCursor[id].offset = [0,0,0];
                      }
 
 	             // IF LEFT UP-CLICK, DELETE THE STROKE.
