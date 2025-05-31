@@ -45,13 +45,9 @@ export const init = async model => {
 
    addThing('testThing', function() {
       let t = 1;
+      this.onClick = p => t = 1;
       this.onDrag = p => t = p[1];
-      this.update = time => [ [
-         [ -t, .5, 0],
-	 [  0, .5, 0],
-	 [  0,-.5, 0],
-	 [  t,-.5, 0],
-      ] ];
+      this.update = time => [ [ [-t,.5,0], [0,.5,0], [0,-.5,0], [t,-.5,0] ] ];
    });
 
    let drawing = [],            // SHARED STATE BETWEEN CLIENTS
@@ -151,10 +147,12 @@ export const init = async model => {
                      }
 		     break;
 	          case 'right':
-	             if (! strokeAtCursor[id]) {
+	             if (! strokeAtCursor[id] || ! strokeAtCursor[id].ST) {
                         strokeBeingDrawn[id] = { p:[P], hilit: 0, dragCount: 0 };
                         drawing.push(strokeBeingDrawn[id]);
                      }
+	             if (strokeAtCursor[id])
+		        strokeAtCursor[id].dragCount = 0;
 		     break;
                   }
 	          break;
@@ -200,7 +198,7 @@ export const init = async model => {
 			   // HORIZONTAL DRAG: ROTATE THE STROKE.
 
 			   else {
-		              let fm = cg.mMultiply(clay.inverseRootMatrix, clay.root().inverseViewMatrix(0));
+			      let fm = clientState.head(clients[i]);
 			      let theta = 20 * cg.dot(d, [fm[0],fm[4],fm[8]]);
 			      let c = Math.cos(theta), s = Math.sin(theta);
 			      for (let i = 0 ; i < stroke.p.length ; i++)
@@ -239,6 +237,7 @@ export const init = async model => {
 
                      if (strokeAtCursor[id] && strokeAtCursor[id].ST) {
 		        let stroke = strokeAtCursor[id];
+			stroke.dragCount++;
 	                let glyph = matchCurves.glyph(stroke.ST[2]);
 		        if (glyph.code) {
 		           if (glyph.code.onDrag) {
@@ -263,6 +262,14 @@ export const init = async model => {
 		  if (strokeAtCursor[id] && strokeAtCursor[id].dragCount >= 10)
 		     clickCount[id] = 0;
 
+                  let deleteStroke = stroke => {
+		     for (let n = 0 ; n < drawing.length ; n++)
+		        if (stroke == drawing[n]) {
+		            drawing.splice(n, 1);
+			    break;
+		        }
+		  }
+
 	          switch (hand) {
 		  case 'left':
 
@@ -273,12 +280,8 @@ export const init = async model => {
 	                // IF DOUBLE LEFT CLICK ON A STROKE, DELETE THE STROKE.
 
 	                if (clickCount[id] == 2) {
-		           for (let n = 0 ; n < drawing.length ; n++)
-		              if (strokeAtCursor[id] == drawing[n]) {
-			         drawing.splice(n, 1);
-			         strokeAtCursor[id] = null;
-			         break;
-			      }
+			   deleteStroke(strokeAtCursor[id]);
+			   strokeAtCursor[id] = null;
 		           clickCount[id] = 0;
 		        }
                      }
@@ -286,7 +289,6 @@ export const init = async model => {
 		     break;
 
 		  case 'right':
-		     strokeBeingDrawn[id] = null;
 
                      // IF RIGHT CLICK ON A THING: SEND THE EVENT TO THE THING.
 
@@ -304,10 +306,11 @@ export const init = async model => {
 		        }
 		     }
 
-                     // IF RIGHT CLICK ON AN UNCONVERTED STROKE: CONVERT THE STROKE TO A THING
+                     // IF RIGHT CLICK ON AN UNCONVERTED STROKE: CONVERT THE STROKE TO A THING.
 
-	             else if (isClickOnStroke) {
-		        let fm = cg.mMultiply(clay.inverseRootMatrix, clay.root().inverseViewMatrix(0));
+	             else if (strokeAtCursor[id] && strokeBeingDrawn[id].p.length < 10) {
+		        deleteStroke(strokeBeingDrawn[id]);
+			let fm = clientState.head(clients[i]);
 		        let im = cg.mInverse(fm);
 			let p = [];
 			for (let i = 0 ; i < strokeAtCursor[id].p.length ; i++)
@@ -319,15 +322,16 @@ export const init = async model => {
 		        strokeAtCursor[id].m = fm;
 		        strokeAtCursor[id].ST = ST;
 		        strokeAtCursor[id].timer = 0;
-		        strokeAtCursor[id].offset = [0,0,0];
                      }
+
+		     strokeBeingDrawn[id] = null;
 	          }
 	          break;
                }
                P0[id] = P;
             }
 
-         // UPDATE STROKES THAT HAVE GLYPHS.
+         // UPDATE THINGS.
 
 	 for (let n = 0 ; n < drawing.length ; n++) {
 	    let stroke = drawing[n];
@@ -347,8 +351,8 @@ export const init = async model => {
 	          let glyph = matchCurves.glyph(stroke.ST[2]);
 		  if (glyph.code) {
 	             stroke.timer += model.deltaTime;
-		     let strokes = matchCurves.animate(() => glyph.code.update(stroke.timer-1), cg.mIdentity(), stroke.timer-1, stroke.ST[3]);
-		     let fm = cg.mMultiply(clay.inverseRootMatrix, clay.root().inverseViewMatrix(0));
+		     let strokes = matchCurves.animate(() => glyph.code.update(stroke.timer-1),
+		                                       cg.mIdentity(), stroke.timer-1, stroke.ST[3]);
 	             stroke.p = strokes[0];
 		     for (let i = 0 ; i < stroke.p.length ; i++)
 			stroke.p[i] = cg.mTransform(stroke.m, stroke.p[i]);
