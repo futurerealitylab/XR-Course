@@ -210,6 +210,14 @@ export const init = async model => {
                               }
 			      for (let i = 0 ; i < stroke.p.length ; i++)
 			         stroke.p[i] = cg.add(stroke.p[i], center);
+
+                              if (stroke.m) {
+		                 for (let j = 0 ; j < 3 ; j++)
+	                            stroke.m[12 + j] -= center[j];
+                                 stroke.m = cg.mMultiply(cg.mRotateY(theta), stroke.m);
+		                 for (let j = 0 ; j < 3 ; j++)
+	                            stroke.m[12 + j] += center[j];
+			      }
 			   }
 		        }
 
