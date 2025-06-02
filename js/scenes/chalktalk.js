@@ -21,11 +21,16 @@ import { matchCurves } from "../render/core/matchCurves3D.js";
 
 	Individual strokes have now been replaced by
 	things of the form { type: name, strokes: [], ... }.
+
+	To do:
+	    Replace strokes touching by 3D bounding box test.
+	    Add links creation, including head gaze.
+	    For non-sketch things, transmit only state, then render in receiver clients.
 */
 
 export const init = async model => {
 
-   let info = '---'; // IN CASE WE NEED TO SHOW DEBUG INFO IN THE SCENE.
+   let info = ''; // IN CASE WE NEED TO SHOW DEBUG INFO IN THE SCENE.
 
    let addThingType = (name, ThingType) => {
       let thing = new ThingType();
@@ -121,8 +126,6 @@ export const init = async model => {
 
    model.animate(() => {
 
-      info = '0';
-
       // COMPUTE THE SHARED VALUE OF THINGS IN THE SCENE FOR THIS ANIMATION FRAME.
 
       things = shared(() => {
@@ -152,54 +155,29 @@ export const init = async model => {
 
 	       // ACTIONS DEPEND ON THE CURRENT STATE OF THE HAND OR CONTROLLER:
 
-               switch (clientState.pinchState(clients[I], hand, 1)) {
+               let pinchState = clientState.pinchState(clients[I], hand, 1);
 
-	       // up EVENT: SEE WHICH THING IS AT THE CURSOR, IF ANY.
+               switch (hand) {
 
-               case 'up':
-	          thingAtCursor[id] = findThingAtPoint(P);
-		  if (thingAtCursor[id]) {
-		     thingAtCursor[id].hilit = 1;
-		     thingAtCursor[id].dragCount = 0;
-                  }
-	          break;
+	       case 'left':
+	          switch (pinchState) {
 
-               // press EVENT:
+                  case 'up':
+	             thingAtCursor[id] = findThingAtPoint(P);
+		     if (thingAtCursor[id]) {
+		        thingAtCursor[id].hilit = 1;
+		        thingAtCursor[id].dragCount = 0;
+                     }
+	             break;
 
-               case 'press':
-	          switch (hand) {
-
-                  // press left EVENT: IF A THING IS AT THE CURSOR, START COUNTING DRAG EVENTS.
-
-		  case 'left':
+                  case 'press':
 		     if (thingAtCursor[id]) {
 		        thingAtCursor[id].hilit = 1;
 		        thingAtCursor[id].dragCount = 0;
                      }
 		     break;
 
-                  // press right EVENT: IF NO NON-SKETCH THING IS AT THE CURSOR, THEN START DRAWING A STROKE.
-
-	          case 'right':
-
-                     thingBeingDrawn[id] = null;
-	             if (! thingAtCursor[id] || thingAtCursor[id].type == 'sketch') {
-                        thingBeingDrawn[id] = { type: 'sketch', strokes: [ [P] ], hilit: 0, dragCount: 0 };
-                        things.push(thingBeingDrawn[id]);
-                     }
-		     break;
-                  }
-	          break;
-
-               // down EVENT:
-
-               case 'down':
-	          switch (hand) {
-
-                  // down left EVENT: BEGIN DELETE OR MOVE OR SCALE OR SPIN.
-
-		  case 'left':
-
+                  case 'down':
 		     let thing = thingAtCursor[id];
 		     if (thing) {
 		        thing.hilit = 1;
@@ -284,9 +262,41 @@ export const init = async model => {
                      }
 		     break;
 
-                  // down right EVENT: DRAWING A STROKE OR SENDING drag EVENTS TO A THING.
+                  case 'release':
+		     if (thingAtCursor[id] && thingAtCursor[id].dragCount >= 10)
+		        clickCount[id] = 0;
 
-		  case 'right':
+	             // DOUBLE LEFT CLICK ON A THING: DELETE THE THING.
+
+		     if (thingAtCursor[id] && thingAtCursor[id].dragCount < 10 && ++clickCount[id] == 2) {
+		        deleteThing(thingAtCursor[id]);
+		        thingAtCursor[id] = null;
+		        clickCount[id] = 0;
+                     }
+		     break;
+                  }
+	          break;
+
+	       case 'right':
+	          switch (pinchState) {
+
+                  case 'up':
+	             thingAtCursor[id] = findThingAtPoint(P);
+		     if (thingAtCursor[id]) {
+		        thingAtCursor[id].hilit = 1;
+		        thingAtCursor[id].dragCount = 0;
+                     }
+	             break;
+
+                  case 'press':
+                     thingBeingDrawn[id] = null;
+	             if (! thingAtCursor[id] || thingAtCursor[id].type == 'sketch') {
+                        thingBeingDrawn[id] = { type: 'sketch', strokes: [ [P] ], hilit: 0, dragCount: 0 };
+                        things.push(thingBeingDrawn[id]);
+                     }
+		     break;
+
+                  case 'down':
 
                      // RIGHT DRAG WHILE DRAWING: CONTINUE TO DRAW THE STROKE.
 
@@ -309,36 +319,15 @@ export const init = async model => {
 		        }
 		     }
 		     break;
-                  }
-	          break;
 
-               // ON release EVENT:
+                  case 'release':
 
-               case 'release':
-	          let isClickOnThing = thingAtCursor[id] && thingAtCursor[id].dragCount < 10;
-
-		  // AFTER A DRAG, RESET THE CLICK COUNT BACK TO ZERO.
-
-		  if (thingAtCursor[id] && thingAtCursor[id].dragCount >= 10)
-		     clickCount[id] = 0;
-
-	          switch (hand) {
-		  case 'left':
-
-	             // DOUBLE LEFT CLICK ON A THING: DELETE THE THING.
-
-		     if (isClickOnThing && ++clickCount[id] == 2) {
-		        deleteThing(thingAtCursor[id]);
-		        thingAtCursor[id] = null;
+		     if (thingAtCursor[id] && thingAtCursor[id].dragCount >= 10)
 		        clickCount[id] = 0;
-                     }
-		     break;
-
-		  case 'right':
 
                      // RIGHT CLICK ON A NON-SKETCH THING: SEND THE EVENT TO THE THING.
 
-                     if (isClickOnThing && thingAtCursor[id].type != 'sketch') {
+                     if (thingAtCursor[id] && thingAtCursor[id].dragCount < 10 && thingAtCursor[id].type != 'sketch') {
 		        let thing = thingAtCursor[id];
 	                let glyph = matchCurves.glyph(thing.ST[2]);
 		        if (glyph.code && glyph.code.onClick) {
@@ -394,17 +383,19 @@ export const init = async model => {
 		           deleteThing(thingBeingDrawn[id]);
                         }
 
-                     // ELSE IF THE STROKE THAT WAS JUST DRAWN WAS ONLY A CLICK, DELETE IT.
-                     // (LATER WE CAN ADD LOGIC HERE TO RESPOND TO CLICKING ON THE BACKGROUND.)
+                        // ELSE IF THE STROKE THAT WAS JUST DRAWN WAS ONLY A CLICK, DELETE IT.
+                        // (LATER WE CAN ADD LOGIC HERE TO RESPOND TO CLICKING ON THE BACKGROUND.)
 
-		     if (thingBeingDrawn[id] && thingBeingDrawn[id].strokes[0].length < 10)
-		        deleteThing(thingBeingDrawn[id]);
-	          }
-		  strokeBeingDrawn[id] = null;
-	          break;
+		        if (thingBeingDrawn[id] && thingBeingDrawn[id].strokes[0].length < 10)
+		           deleteThing(thingBeingDrawn[id]);
+
+		        strokeBeingDrawn[id] = null;
+			break;
+	             }
+	             break;
+                  }
+                  P0[id] = P;
                }
-               P0[id] = P;
-            }
 
          // UPDATE NON-SKETCH THINGS.
 
