@@ -22,10 +22,12 @@ import { matchCurves } from "../render/core/matchCurves3D.js";
 	Individual strokes have now been replaced by
 	things of the form { type: name, strokes: [], ... }.
 
+	We have also replaced strokes touching by 3D bounding box test.
+	We now have bounding box logic working properly for merging strokes.
+
 	To do:
-	    Replace strokes touching by 3D bounding box test.
+	    Create things with 2D graphics in a plane.
 	    Add links creation, including head gaze.
-	    For non-sketch things, transmit only state, then render in receiver clients.
 */
 
 export const init = async model => {
@@ -35,7 +37,7 @@ export const init = async model => {
    let addThingType = (name, ThingType) => {
       let thing = new ThingType();
       thing.name = name;
-      matchCurves.addGlyphFromCurves(name, thing.update(0), thing);
+      matchCurves.addGlyphFromCurves(name, thing.sketch ? thing.sketch() : thing.update(0), thing);
    }
 
    addThingType('bird', function() {
@@ -53,13 +55,36 @@ export const init = async model => {
       }
    });
 
-   addThingType('testThing', function() {
-      let t = 1;
+   addThingType('xSlider', function() {
+      let t = 0;
       this.onClick = p => t = 1;
-      this.onDrag = p => t = p[1];
-      this.update = time => [ [ [-t,.5,0], [0,.5,0], [0,-.5,0], [t,-.5,0] ] ];
+      this.onDrag = p => t = Math.max(-1, Math.min(1, p[0]));
+      this.sketch = () => [ [ [-1,0,0],[1,0,0] ],
+                            [ [t,.2,0],[t,-.2,0] ] ],
+      this.update = time => [
+         [ [-1,0,0],[1,0,0] ],
+	 [ [t,.2,0],[t,-.2,0] ],
+	 { text: (50*t+50>>0)/100, p: [1.05,0,0], size: .03, align: 'left' },
+      ];
       this.setState = s => t = s;
       this.getState = () => t;
+      this.output = () => .5 * t + .5;
+   });
+
+   addThingType('ySlider', function() {
+      let t = 0;
+      this.onClick = p => t = 1;
+      this.onDrag = p => t = Math.max(-1, Math.min(1, p[1]));
+      this.sketch = () => [ [ [0,1,0],[0,-1,0] ],
+                            [ [-.2,t,0],[.2,t,0] ] ],
+      this.update = time => [
+         [ [0,1,0],[0,-1,0] ],
+	 [ [-.2,t,0],[.2,t,0] ],
+	 { text: (50*t+50>>0)/100, p: [0,1.15,0], size: .03 },
+      ];
+      this.setState = s => t = s;
+      this.getState = () => t;
+      this.output = () => .5 * t + .5;
    });
 
    let things = [],            // THINGS SHARED BETWEEN CLIENTS
@@ -78,6 +103,10 @@ export const init = async model => {
          }
    }
 
+   let isIntersect = (thing1,thing2) => thing1.lo[0] < thing2.hi[0] && thing2.lo[0] < thing1.hi[0]
+                                     && thing1.lo[1] < thing2.hi[1] && thing2.lo[1] < thing1.hi[1]
+                                     && thing1.lo[2] < thing2.hi[2] && thing2.lo[2] < thing1.hi[2];
+
    // RENDER THE SCENE FOR THIS CLIENT.
 
    let g3 = new G3(model, draw => {
@@ -89,38 +118,28 @@ export const init = async model => {
             let strokes = thing.strokes;
 	    for (let n = 0 ; n < strokes.length ; n++) {
 	       let stroke = strokes[n];
-               for (let i = 0 ; i < stroke.length - 1 ; i++)
-                  draw.line(stroke[i], stroke[i+1]);
+	       if (Array.isArray(stroke))
+                  for (let i = 0 ; i < stroke.length - 1 ; i++)
+                     draw.line(stroke[i], stroke[i+1]);
+               else if (stroke.text !== undefined) {
+	          if (stroke.size)
+	             draw.textHeight(stroke.size);
+	          draw.text(stroke.text, stroke.p, stroke.align ?? 'center', stroke.x ?? 0, stroke.y ?? 0);
+               }
             }
          }
       }
-      draw.color('#ff00ff').text(info, [0,1.2,0]);
+      draw.text(info, [0,1.2,0]);
    });
 
    // RETURN THE THING (IF ANY) THAT IS AT THE CURSOR.
 
    let findThingAtPoint = p => {
-
-      // WHICH REQUIRES DETERMINING WHETHER A POINT IS ON A LINE.
-
-      let isOnLine = (p, a, b) => {
-         let d = cg.distance(a,b);
-         for (let t = 0 ; t < d ; t += .02)
-            if (cg.distance(p, cg.mix(a, b, t/d)) < .02)
-	       return true;
-         return false;
-      }
-
-      for (let n = 0 ; n < things.length ; n++) {
-	 let thing = things[n];
-	 let strokes = thing.strokes;
-	 for (let n = 0 ; n < strokes.length ; n++) {
-	    let stroke = strokes[n];
-            for (let i = 0 ; i < stroke.length - 1 ; i++)
-	       if (isOnLine(p, stroke[i], stroke[i+1]))
-	          return thing;
-         }
-      }
+      for (let n = 0 ; n < things.length ; n++)
+         if (things[n].lo && p[0] > things[n].lo[0] && p[0] < things[n].hi[0] &&
+	                     p[1] > things[n].lo[1] && p[1] < things[n].hi[1] &&
+	                     p[2] > things[n].lo[2] && p[2] < things[n].hi[2] )
+           return things[n];
       return null;
    }
 
@@ -147,7 +166,7 @@ export const init = async model => {
 	          continue;
                let P = cg.mix(thumb, clientState.finger(clients[I], hand, 1), .5);
 
-	       // PROVIDE A UNIQUE ID STRING FOR THIS HAND OF THIS CLIENT.
+	       // PROVIDE A UNIQUE ID FOR THIS HAND OF THIS CLIENT.
 
 	       let id = clients[I] + hand;
 	       if (clickCount[id] === undefined)
@@ -196,8 +215,9 @@ export const init = async model => {
 			   let count = 0;
 			   for (let n = 0 ; n < strokes.length ; n++) {
 			      let stroke = strokes[n];
-			      for (let i = 0 ; i < stroke.length ; i++, count++)
-			         center = cg.add(center, stroke[i]);
+			      if (Array.isArray(stroke))
+			         for (let i = 0 ; i < stroke.length ; i++, count++)
+			            center = cg.add(center, stroke[i]);
                            }
                            center = cg.scale(center, 1 / count);
 
@@ -207,8 +227,11 @@ export const init = async model => {
 	                      let s = 1 + 4 * d[1];
 			      for (let n = 0 ; n < strokes.length ; n++) {
 			         let stroke = strokes[n];
-			         for (let i = 0 ; i < stroke.length ; i++)
-			            stroke[i] = cg.add(cg.scale(cg.subtract(stroke[i], center), s), center);
+				 if (Array.isArray(stroke))
+			            for (let i = 0 ; i < stroke.length ; i++)
+			               stroke[i] = cg.add(cg.scale(cg.subtract(stroke[i], center), s), center);
+                                 else if (stroke.p)
+			            stroke.p = cg.add(cg.scale(cg.subtract(stroke.p, center), s), center);
                               }
                               if (thing.m) {
 		                 for (let j = 0 ; j < 3 ; j++)
@@ -227,13 +250,21 @@ export const init = async model => {
 			      let c = Math.cos(theta), s = Math.sin(theta);
 			      for (let n = 0 ; n < strokes.length ; n++) {
 			         let stroke = strokes[n];
-			         for (let i = 0 ; i < stroke.length ; i++) {
-			            let p = cg.subtract(stroke[i], center);
+				 if (Array.isArray(stroke))
+			            for (let i = 0 ; i < stroke.length ; i++) {
+			               let p = cg.subtract(stroke[i], center);
+			               let x = p[0], z = p[2];
+			               p[0] =  c * x + s * z;
+			               p[2] = -s * x + c * z;
+			               stroke[i] = cg.add(p, center);
+                                    }
+                                 else {
+			            let p = cg.subtract(stroke.p, center);
 			            let x = p[0], z = p[2];
 			            p[0] =  c * x + s * z;
 			            p[2] = -s * x + c * z;
-			            stroke[i] = cg.add(p, center);
-                                 }
+			            stroke.p = cg.add(p, center);
+				 }
                               }
                               if (thing.m) {
                                  for (let j = 0 ; j < 3 ; j++)
@@ -251,9 +282,13 @@ export const init = async model => {
 			   let strokes = thing.strokes;
 			   for (let n = 0 ; n < strokes.length ; n++) {
 			      let stroke = strokes[n];
-	                      for (let i = 0 ; i < stroke.length ; i++)
+			      if (Array.isArray(stroke))
+	                         for (let i = 0 ; i < stroke.length ; i++)
+		                    for (let j = 0 ; j < 3 ; j++)
+	                               stroke[i][j] += d[j];
+                              else
 		                 for (let j = 0 ; j < 3 ; j++)
-	                            stroke[i][j] += d[j];
+	                            stroke.p[j] += d[j];
                            }
                            if (thing.m)
 		              for (let j = 0 ; j < 3 ; j++)
@@ -300,8 +335,12 @@ export const init = async model => {
 
                      // RIGHT DRAG WHILE DRAWING: CONTINUE TO DRAW THE STROKE.
 
-	             if (thingBeingDrawn[id])
+	             if (thingBeingDrawn[id]) {
 		        thingBeingDrawn[id].strokes[0].push(P);
+			for (let n = 0 ; n < things.length ; n++)
+			   if (isIntersect(thingBeingDrawn[id], things[n]))
+			      things[n].hilit = 1;
+                     }
 
                      // RIGHT DRAG ON A NON-SKETCH THING: SEND THE DRAG EVENT TO THE THING.
 
@@ -339,63 +378,75 @@ export const init = async model => {
 		        }
 		     }
 
-		     // IF THE STROKE THAT WAS JUST DRAWN INTERSECTS AN EXISTING SKETCH:
+		     // JUST FINISHED DRAWING A STROKE:
 
-	             if (thingAtCursor[id] && thingBeingDrawn[id])
+	             if (thingBeingDrawn[id]) {
 
-                        // IF THE STROKE THAT WAS JUST DRAWN WAS ONLY A CLICK, CONVERT THE SKETCH TO A THING.
+		        // IF THE STROKE INTERSECTS AN EXISTING SKETCH:
 
-	                if (thingBeingDrawn[id].strokes[0].length < 10) {
-			   let fm = clientState.head(clients[I]);
-		           let im = cg.mInverse(fm);
-			   let strokes = thingAtCursor[id].strokes;
+		        let sketch = null;
+			for (let n = 0 ; n < things.length ; n++) {
+			   let thing = things[n];
+			   if (thing!=thingBeingDrawn[id] && thing.type=='sketch' && isIntersect(thing,thingBeingDrawn[id]))
+			      sketch = thing;
+                        }
+			if (sketch) {
 
-			   // FIRST TRANSFORM STROKES INTO THE INTERNAL COORDINATE SYSTEM OF THE THING.
+                           // IF THE STROKE WAS ONLY A CLICK, CONVERT THE SKETCH TO A THING.
 
-			   let ss = [];
-			   for (let n = 0 ; n < strokes.length ; n++) {
-			      let s = [];
-			      for (let i = 0 ; i < strokes[n].length ; i++)
-			         s.push(cg.mTransform(im, strokes[n][i]));
-                              ss.push(s);
+	                   if (thingBeingDrawn[id].strokes[0].length < 10) {
+			      let fm = clientState.head(clients[I]);
+		              let im = cg.mInverse(fm);
+			      let strokes = sketch.strokes;
+
+			      // FIRST TRANSFORM STROKES INTO THE INTERNAL COORDINATE SYSTEM OF THE THING.
+
+			      let ss = [];
+			      for (let n = 0 ; n < strokes.length ; n++)
+			         if (Array.isArray(strokes[n])) {
+			            let s = [];
+			            for (let i = 0 ; i < strokes[n].length ; i++)
+			               s.push(cg.mTransform(im, strokes[n][i]));
+                                    ss.push(s);
+                                 }
+
+			      // THEN RECOGNIZE THE STROKES AND TRANSFORM BACK.
+
+		              let ST = matchCurves.recognize(ss);
+			      for (let k = 0 ; k <= 1 ; k++)
+			         for (let n = 0 ; n < ST[k].length ; n++)
+			            for (let i = 0 ; i < ST[k][n].length ; i++)
+			               ST[k][n][i] = cg.mTransform(fm, ST[k][n][i]);
+
+			      // SET THE DATA FIELDS FOR THE (NOW NON-SKETCH) THING.
+
+		              sketch.m = fm;
+		              sketch.ST = ST;
+		              sketch.type = matchCurves.glyph(ST[2]).name;
+		              sketch.timer = 0;
                            }
 
-			   // THEN RECOGNIZE THE STROKES AND TRANSFORM BACK.
+		           // ELSE ADD THE STROKE TO THE EXISTING SKETCH.
 
-		           let ST = matchCurves.recognize(ss);
-			   for (let k = 0 ; k <= 1 ; k++)
-			      for (let n = 0 ; n < ST[k].length ; n++)
-			         for (let i = 0 ; i < ST[k][n].length ; i++)
-			            ST[k][n][i] = cg.mTransform(fm, ST[k][n][i]);
-
-			   // SET THE DATA FIELDS FOR THE (NOW NON-SKETCH) THING.
-
-		           thingAtCursor[id].m = fm;
-		           thingAtCursor[id].ST = ST;
-		           thingAtCursor[id].type = matchCurves.glyph(ST[2]).name;
-		           thingAtCursor[id].timer = 0;
+		           else {
+			      sketch.strokes.push(thingBeingDrawn[id].strokes[0]);
+		              deleteThing(thingBeingDrawn[id]);
+                           }
                         }
 
-		        // ELSE ADD THE STROKE THAT WAS JUST DRAWN TO THE EXISTING SKETCH.
-
-		        else {
-			   thingAtCursor[id].strokes.push(thingBeingDrawn[id].strokes[0]);
-		           deleteThing(thingBeingDrawn[id]);
-                        }
-
-                        // ELSE IF THE STROKE THAT WAS JUST DRAWN WAS ONLY A CLICK, DELETE IT.
+                        // IF THE STROKE WAS ONLY A CLICK, DELETE IT.
                         // (LATER WE CAN ADD LOGIC HERE TO RESPOND TO CLICKING ON THE BACKGROUND.)
 
-		        if (thingBeingDrawn[id] && thingBeingDrawn[id].strokes[0].length < 10)
+                        if (thingBeingDrawn[id] && thingBeingDrawn[id].strokes[0].length < 10)
 		           deleteThing(thingBeingDrawn[id]);
-
-		        strokeBeingDrawn[id] = null;
-			break;
-	             }
-	             break;
+		        thingBeingDrawn[id] = null;
+                     }
+	  	     break;
                   }
-                  P0[id] = P;
+		  break;
                }
+               P0[id] = P;
+            }
 
          // UPDATE NON-SKETCH THINGS.
 
@@ -420,11 +471,26 @@ export const init = async model => {
 		                                         cg.mIdentity(), thing.timer-1, thing.ST[3]);
 		     for (let n = 0 ; n < thing.strokes.length ; n++) {
 		        let stroke = thing.strokes[n];
-		        for (let i = 0 ; i < stroke.length ; i++)
-			   stroke[i] = cg.mTransform(thing.m, stroke[i]);
+			if (Array.isArray(stroke))
+		           for (let i = 0 ; i < stroke.length ; i++)
+			      stroke[i] = cg.mTransform(thing.m, stroke[i]);
+                        else
+			   stroke.p = cg.mTransform(thing.m, stroke.p);
                      }
 		  }
 	       }
+
+            // COMPUTE BOUNDING BOX FOR THIS THING.
+
+            thing.lo = [ 1000, 1000, 1000 ];
+	    thing.hi = [-1000,-1000,-1000 ];
+	    for (let n = 0 ; n < thing.strokes.length ; n++)
+	       if (Array.isArray(thing.strokes[n]))
+	          for (let i = 0 ; i < thing.strokes[n].length ; i++)
+		     for (let j = 0 ; j < 3 ; j++) {
+		        thing.lo[j] = Math.min(thing.lo[j], thing.strokes[n][i][j] - .003);
+		        thing.hi[j] = Math.max(thing.hi[j], thing.strokes[n][i][j] + .003);
+                     }
 	 }
 
          return things;
