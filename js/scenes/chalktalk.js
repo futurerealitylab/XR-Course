@@ -86,8 +86,8 @@ export const init = async model => {
    });
 
    let things = [],            // THINGS SHARED BETWEEN CLIENTS
-       thingCode = {},         // CODE FOR THING INSTANCES
        linkSrc = {},           // THE SOURCE OF THE LINK BEING DRAWN
+       thingCode = {},         // CODE FOR THING INSTANCES
        clickCount = {},        // NUMBER OF CLICKS IN A ROW FOR EACH HAND OF EVERY CLIENT
        thingAtCursor = {},     // THING AT CURSOR FOR EACH HAND OF EVERY CLIENT
        thingBeingDrawn = {},   // THING CURRENTLY BEING DRAWN FOR EACH HAND OF EVERY CLIENT
@@ -108,13 +108,20 @@ export const init = async model => {
       let removeLink = links => {
          if (links)
 	    for (let i = 0 ; i < links.length ; i++)
-	       if (links[i] == thing)
+	       if (links[i] == thing.id)
 	          links.splice(i, 1);
       }
       for (let n = 0 ; n < things.length ; n++) {
          removeLink(things[n].linkSrc);
          removeLink(things[n].linkDst);
       }
+   }
+
+   let findThingFromID = id => {
+      for (let n = 0 ; n < things.length ; n++)
+         if (id == things[n].id)
+	    return things[n];
+      return null;
    }
 
    let isIntersect = (thing1,thing2) => thing1.lo[0] < thing2.hi[0] && thing2.lo[0] < thing1.hi[0]
@@ -142,7 +149,7 @@ export const init = async model => {
             }
 	    if (thing.linkDst)
 	       for (let i = 0 ; i < thing.linkDst.length ; i++) {
-	          let other = thing.linkDst[i];
+	          let other = findThingFromID(thing.linkDst[i]);
 		  let p1 = cg.mTransform(thing.m, thing.ST[3].slice(0,3));
 		  let p2 = cg.mTransform(other.m, other.ST[3].slice(0,3));
                   draw.color('#ffffff').lineWidth(.002).line(p1, p2)
@@ -384,12 +391,12 @@ export const init = async model => {
 			thing.dragCount++;
                         if (! isAfterClickOnBG[id]) {
 			   if (thing.dragCount >= 10) {
-		              if (thingCode[thing.hash] && thingCode[thing.hash].onDrag) {
+		              if (thingCode[thing.id] && thingCode[thing.id].onDrag) {
 			         let p = cg.mTransform(cg.mInverse(thing.m), P);
 			         let T = thing.ST[3];
 			         for (let j = 0 ; j < 3 ; j++)
 			            p[j] = (p[j] - T[j]) / T[3];
-		                 thingCode[thing.hash].onDrag(p);
+		                 thingCode[thing.id].onDrag(p);
 		              }
 		           }
 		        }
@@ -411,8 +418,8 @@ export const init = async model => {
 		        if (thing2 && thing2.type != 'sketch' && thing2 != thing1) {
 			   if (! thing1.linkDst) thing1.linkDst = [];
 			   if (! thing2.linkSrc) thing2.linkSrc = [];
-			   thing1.linkDst.push(thing2);
-			   thing2.linkSrc.push(thing1);
+			   thing1.linkDst.push(thing2.id);
+			   thing2.linkSrc.push(thing1.id);
 			}
 		     }
 
@@ -421,12 +428,12 @@ export const init = async model => {
                      if (! isAfterClickOnBG[id]) {
                         if (thingAtCursor[id] && thingAtCursor[id].dragCount < 10 && thingAtCursor[id].type != 'sketch') {
 		           let thing = thingAtCursor[id];
-		           if (thingCode[thing.hash] && thingCode[thing.hash].onClick) {
+		           if (thingCode[thing.id] && thingCode[thing.id].onClick) {
 			      let p = cg.mTransform(cg.mInverse(thing.m), P);
 			      let T = thing.ST[3];
 			      for (let j = 0 ; j < 3 ; j++)
 			         p[j] = (p[j] - T[j]) / T[3];
-		              thingCode[thing.hash].onClick(p);
+		              thingCode[thing.id].onClick(p);
 		           }
 		        }
 		     }
@@ -489,11 +496,11 @@ export const init = async model => {
 			      deleteThing(sketch);
 
 		              let glyph = matchCurves.glyph(ST[2]);
-			      let thing = { type: glyph.name, ST: ST, timer: 0, m: fm, hash: cg.uniqueID() };
+			      let thing = { type: glyph.name, ST: ST, timer: 0, m: fm, id: cg.uniqueID() };
 			      try {
-		                 thingCode[thing.hash] = new glyph.code();
+		                 thingCode[thing.id] = new glyph.code();
                               } catch (err) {
-		                 thingCode[thing.hash] = glyph.code;
+		                 thingCode[thing.id] = glyph.code;
                               }
 			      things.push(thing);
                            }
@@ -526,9 +533,9 @@ export const init = async model => {
 	    let thing1 = things[n];
 	    if (thing1.linkDst)
 	    for (let i = 0 ; i < thing1.linkDst.length ; i++) {
-	       let thing2 = thing1.linkDst[i];
-	       let code1 = thingCode[thing1.hash];
-	       let code2 = thingCode[thing2.hash];
+	       let thing2 = findThingFromID(thing1.linkDst[i]);
+	       let code1 = thingCode[thing1.id];
+	       let code2 = thingCode[thing2.id];
 	       if (code1 && code1.output && code2 && code2.input)
                  code2.input(code1.output());
 	    }
@@ -550,9 +557,9 @@ export const init = async model => {
                // UPDATE A NON-SKETCH THING.
 
 	       else {
-		  if (thingCode[thing.hash]) {
+		  if (thingCode[thing.id]) {
 	             thing.timer += model.deltaTime;
-		     thing.strokes = matchCurves.animate(() => thingCode[thing.hash].update(thing.timer-1),
+		     thing.strokes = matchCurves.animate(() => thingCode[thing.id].update(thing.timer-1),
 		                                         cg.mIdentity(), thing.timer-1, thing.ST[3]);
 		     for (let n = 0 ; n < thing.strokes.length ; n++) {
 		        let stroke = thing.strokes[n];
