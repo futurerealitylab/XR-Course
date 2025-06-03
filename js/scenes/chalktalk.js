@@ -64,7 +64,7 @@ export const init = async model => {
       this.update = time => [
          [ [-1,0,0],[1,0,0] ],
 	 [ [t,.2,0],[t,-.2,0] ],
-	 { text: (50*t+50>>0)/100, p: [1.05,0,0], size: .03, align: 'left' },
+	 { text: (50*t+50>>0)/100, p: [1.1,0,0], size: .03, align: 'left' },
       ];
       this.input = _t => t = 2 * _t - 1;
       this.output = () => .5 * t + .5;
@@ -86,6 +86,7 @@ export const init = async model => {
    });
 
    let things = [],            // THINGS SHARED BETWEEN CLIENTS
+       thingCode = {},         // CODE FOR THING INSTANCES
        linkSrc = {},           // THE SOURCE OF THE LINK BEING DRAWN
        clickCount = {},        // NUMBER OF CLICKS IN A ROW FOR EACH HAND OF EVERY CLIENT
        thingAtCursor = {},     // THING AT CURSOR FOR EACH HAND OF EVERY CLIENT
@@ -166,6 +167,8 @@ export const init = async model => {
    }
 
    model.animate(() => {
+
+      info = '';
 
       // COMPUTE THE SHARED VALUE OF THINGS IN THE SCENE FOR THIS ANIMATION FRAME.
 
@@ -381,12 +384,12 @@ export const init = async model => {
 			thing.dragCount++;
                         if (! isAfterClickOnBG[id]) {
 			   if (thing.dragCount >= 10) {
-		              if (thing.code && thing.code.onDrag) {
+		              if (thingCode[thing.hash] && thingCode[thing.hash].onDrag) {
 			         let p = cg.mTransform(cg.mInverse(thing.m), P);
 			         let T = thing.ST[3];
 			         for (let j = 0 ; j < 3 ; j++)
 			            p[j] = (p[j] - T[j]) / T[3];
-		                 thing.code.onDrag(p);
+		                 thingCode[thing.hash].onDrag(p);
 		              }
 		           }
 		        }
@@ -418,12 +421,12 @@ export const init = async model => {
                      if (! isAfterClickOnBG[id]) {
                         if (thingAtCursor[id] && thingAtCursor[id].dragCount < 10 && thingAtCursor[id].type != 'sketch') {
 		           let thing = thingAtCursor[id];
-		           if (thing.code && thing.code.onClick) {
+		           if (thingCode[thing.hash] && thingCode[thing.hash].onClick) {
 			      let p = cg.mTransform(cg.mInverse(thing.m), P);
 			      let T = thing.ST[3];
 			      for (let j = 0 ; j < 3 ; j++)
 			         p[j] = (p[j] - T[j]) / T[3];
-		              thing.code.onClick(p);
+		              thingCode[thing.hash].onClick(p);
 		           }
 		        }
 		     }
@@ -483,12 +486,16 @@ export const init = async model => {
 
 			      // SET THE DATA FIELDS FOR THE (NOW NON-SKETCH) THING.
 
-		              sketch.m = fm;
-		              sketch.ST = ST;
-		              sketch.type = matchCurves.glyph(ST[2]).name;
-		              sketch.timer = 0;
-		              sketch.glyph = matchCurves.glyph(ST[2]);
-		              sketch.code = new sketch.glyph.code();
+			      deleteThing(sketch);
+
+		              let glyph = matchCurves.glyph(ST[2]);
+			      let thing = { type: glyph.name, ST: ST, timer: 0, m: fm, hash: cg.uniqueID() };
+			      try {
+		                 thingCode[thing.hash] = new glyph.code();
+                              } catch (err) {
+		                 thingCode[thing.hash] = glyph.code;
+                              }
+			      things.push(thing);
                            }
 
 		           // ELSE ADD THE STROKE TO THE EXISTING SKETCH.
@@ -520,9 +527,10 @@ export const init = async model => {
 	    if (thing1.linkDst)
 	    for (let i = 0 ; i < thing1.linkDst.length ; i++) {
 	       let thing2 = thing1.linkDst[i];
-	       if ( thing1.code && thing1.code.output &&
-	            thing2.code && thing2.code.input )
-                 thing2.code.input(thing1.code.output());
+	       let code1 = thingCode[thing1.hash];
+	       let code2 = thingCode[thing2.hash];
+	       if (code1 && code1.output && code2 && code2.input)
+                 code2.input(code1.output());
 	    }
          }
 
@@ -542,9 +550,9 @@ export const init = async model => {
                // UPDATE A NON-SKETCH THING.
 
 	       else {
-		  if (thing.code) {
+		  if (thingCode[thing.hash]) {
 	             thing.timer += model.deltaTime;
-		     thing.strokes = matchCurves.animate(() => thing.code.update(thing.timer-1),
+		     thing.strokes = matchCurves.animate(() => thingCode[thing.hash].update(thing.timer-1),
 		                                         cg.mIdentity(), thing.timer-1, thing.ST[3]);
 		     for (let n = 0 ; n < thing.strokes.length ; n++) {
 		        let stroke = thing.strokes[n];
@@ -568,8 +576,8 @@ export const init = async model => {
 	       if (Array.isArray(thing.strokes[n]))
 	          for (let i = 0 ; i < thing.strokes[n].length ; i++)
 	             for (let j = 0 ; j < 3 ; j++) {
-	                thing.lo[j] = Math.min(thing.lo[j], thing.strokes[n][i][j] - .003);
-	                thing.hi[j] = Math.max(thing.hi[j], thing.strokes[n][i][j] + .003);
+	                thing.lo[j] = Math.min(thing.lo[j], thing.strokes[n][i][j] - .01);
+	                thing.hi[j] = Math.max(thing.hi[j], thing.strokes[n][i][j] + .01);
                      }
 	 }
 
