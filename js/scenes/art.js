@@ -1,6 +1,29 @@
 import * as cg from "../render/core/cg.js";
 import { G3 } from "../util/g3.js";
 import { descriptions } from "../util/descriptions.js";
+import { loadStereoSound, playStereoAudio } from "../util/stereo-audio.js";
+
+
+// Audio Stuff
+
+let gallerySoundBuffer = null;
+
+function preloadSounds() {
+    Promise.all([
+        loadStereoSound('../../media/sound/SFXs/demoGallery/Amb_Gallery_Stereo_LP_01.wav', buffer => gallerySoundBuffer = buffer)
+    ])
+    .then(() => {
+        //console.log('Gallery sound loaded successfully');
+    })
+    .catch(error => {
+        //console.error('An error occurred while loading sounds:', error);
+    });
+}
+
+// load SFXs
+preloadSounds();
+
+
 
 /*
    I need to be able to fetch the vector perpendicular to the screen.
@@ -20,6 +43,9 @@ for (let n = 0 ; n < descriptions.length ; n += 3) {
 }
 
 export const init = async model => {
+
+   playStereoAudio(gallerySoundBuffer);
+
    let g3 = new G3(model, draw => {
       let dMin = 10000;
       for (let n = 0 ; n < art.length ; n++) {
