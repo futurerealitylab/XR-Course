@@ -5,12 +5,9 @@ import { Gltf2Node } from "../render/nodes/gltf2.js";
 export const init = async model => {
     let speech = "";
 
-    let emptyResult = "";
-    window.pythonResult = emptyResult;
-
     model.animate(() => {
-        //aiobject.updateObjects();
-        /*
+        aiobject.updateObjects(model);
+        
         window.pythonResult = server.synchronize('pythonOutput');
 
         if (window.speech !== speech) {
@@ -34,6 +31,6 @@ export const init = async model => {
 
                 aiobject.addObject(model, prompt);
             }
-        }*/
+        }
    });
 }

@@ -10,12 +10,13 @@ export let initializeScene = () => {
 } 
 
 export let test = () => {
-   let a = new Gltf2Node({ url: '../0.glb' });
+   let fileLocation = '../' + "0.glb";
+   let a = new Gltf2Node({ url: fileLocation });
    a.translation = [0,0,-5];
    global.gltfRoot.addNode(a);
 }
 
-export let updateObjects = () => {
+export let updateObjects = (root) => {
    if (window.aiObjects === undefined) initializeScene();
 
    window.pythonResult = server.synchronize('pythonOutput');
@@ -25,9 +26,24 @@ export let updateObjects = () => {
       if (window.pythonResult !== undefined)
       {
          let result = window.pythonResult.split("+");
+
          if (result[0] === "meshyai")
          {
-            window.aiObjectResult = result[1];
+            let objectID = parseInt(result[1]);
+            window.aiObjectResult = window.pythonResult;
+            for (let i = 0; i < window.aiObjects.length; i++)
+            {
+               if (window.aiObjects[i][0] == objectID)
+               {
+                  let fileLocation = '../' + result[2];
+                  console.log(fileLocation);
+                  let node = new Gltf2Node({ url: '../0.glb' });
+                  let matrix = window.aiObjects[i][1].getMatrix();
+                  node.translation = [matrix[12],matrix[13],matrix[14]];
+                  global.gltfRoot.addNode(node);
+                  root.remove(window.aiObjects[i][1]);
+               }
+            }
          }
       }
    }
