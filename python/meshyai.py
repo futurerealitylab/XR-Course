@@ -69,5 +69,5 @@ filename = input_text[0] + ".glb"
 with open(filename, "wb") as f:
   f.write(preview_model_response.content)
 
-print("meshyai+" + filename)
+print("meshyai+" + input_text[0] + "+" + filename)
 
