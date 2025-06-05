@@ -2,20 +2,12 @@ import * as cg from "../render/core/cg.js";
 import { G3 } from "../util/g3.js";
 import { matchCurves } from "../render/core/matchCurves3D.js";
 
-/*
-	Add text value box.
-	Add voice-controlled text box.
-*/
-
 export const init = async model => {
-
-   let speech = '';
-
-   window.onSpeech = (_speech, id) => speech = _speech;
 
    let info = '';              // IN CASE WE NEED TO SHOW DEBUG INFO IN THE SCENE
    let fm;                     // FORWARD HEAD MATRIX FOR THE CLIENT BEING EVALUATED
    let np = 10;                // NUMBER OF POINTS NEEDED FOR A STROKE TO NOT BE A CLICK
+   let speech = '';            // THE MOST RECENT THING THAT ANYBODY SAID.
 
    let prevP = {},             // PREVIOUS CURSOR POSITION FOR EACH HAND OF EVERY CLIENT
        things = [],            // THINGS SHARED BETWEEN CLIENTS
@@ -26,6 +18,10 @@ export const init = async model => {
        thingAtCursor = {},     // THING AT CURSOR FOR EACH HAND OF EVERY CLIENT
        clickPointOnBG = {},    // AFTER A CLICK ON THE BACKGROUND, SET TO CLICK LOCATION
        thingBeingDrawn = {};   // THING CURRENTLY BEING DRAWN FOR EACH HAND OF EVERY CLIENT
+
+   // KEEP TRACK OF THE MOST RECENT THING THAT ANYBODY SAID.
+
+   window.onSpeech = (_speech, id) => speech = _speech;
 
    // DEFINE A NEW PROCEDURAL THING TYPE.
 
@@ -66,7 +62,7 @@ export const init = async model => {
             { text: (50*t+50>>0)/100, p: [1.1,0,0], size: .03, align: 'left' },
          ];
       }
-      this.input = _t => t = 2 * _t - 1;
+      this.input = value => t = 2 * value - 1;
       this.output = () => .5 * t + .5;
    });
 
@@ -82,7 +78,7 @@ export const init = async model => {
          [ [.2,t,0],[0,t,.2],[-.2,t,0],[0,t,-.2],[.2,t,0] ],
          { text: (50*t+50>>0)/100, p: [0,1.15,0], size: .03 },
       ];
-      this.input = _t => t = 2 * _t - 1;
+      this.input = value => t = 2 * value - 1;
       this.output = () => .5 * t + .5;
    });
 
@@ -100,19 +96,19 @@ export const init = async model => {
       this.sketch = () => [ circle(), [ circlePoint(0), [0,0,0] ] ];
       this.update = time => {
          t += rate * (time - (prevTime ?? time));
-	 prevTime = time;
+         prevTime = time;
          return [ circle(), [ circlePoint(2 * Math.PI * t), [0,0,0] ] ];
       };
       this.input = value => rate = value;
       this.output = () => t;
    });
 
-   addThingType('sinewave', function() {
+   addThingType('wave', function() {
       let t = 0;
       let wave = t => {
          let s = [];
-	 for (let n = 0 ; n <= 24 ; n++)
-	    s.push([2 * n/24 - 1, Math.sin(2 * Math.PI * n/24 - t) / Math.PI, 0]);
+         for (let n = 0 ; n <= 24 ; n++)
+            s.push([2 * n/24 - 1, Math.sin(2 * Math.PI * (n/24 - t)) / Math.PI, 0]);
          return s;
       }
       this.sketch = () => [ wave(0) ];
@@ -120,17 +116,24 @@ export const init = async model => {
       this.input = value => t = value;
    });
 
-   addThingType('speech', function() {
-      let text = '';
-      this.sketch = () => [ circle(Math.PI) ];
-      this.update = () => {
-         if (speech.length > 0 && text.length == 0)
-	    text = speech;
-         return [
-            circle(Math.PI),
-            { text: text, p: [0,0,0], size: .03 },
-         ];
+   let squircle = phase => {
+      phase = phase ?? 0;
+      let c = [];
+      for (let n = 0 ; n <= 24 ; n++) {
+         let t = 2 * Math.PI * n / 24 + phase;
+         let x = Math.sin(t);
+         let y = Math.cos(t);
+	 let r = Math.pow(x*x*x*x + y*y*y*y, 1/4);
+         c.push([x/r, y/r, 0]);
       }
+      return c;
+   }
+
+   addThingType('speech', function() {
+      let text = 'text';
+      this.onClick = () => text = speech;
+      this.sketch = () => [ squircle(Math.PI) ];
+      this.update = () => [ squircle(Math.PI), { text:text, p:[0,0,0], size:.03 } ];
    });
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -265,7 +268,7 @@ export const init = async model => {
    let g3 = new G3(model, draw => {
       if (things) {
          let hm = clientState.head(clientID);
-	 let eye = hm ? hm.slice(12,15) : null;
+         let eye = hm ? hm.slice(12,15) : null;
          for (let n = 0 ; n < things.length ; n++) {
             let thing = things[n];
             draw.color('#ff00ff').lineWidth(thing.hilit ? .006 : .003);
@@ -282,28 +285,28 @@ export const init = async model => {
                }
             }
 
-	    // IF A THING IS HIGHLIGHTED, SHOW ITS BOUNDING BOX.
+            // IF A THING IS HIGHLIGHTED, SHOW ITS BOUNDING BOX.
 
-	    if (thing.hilit) {
-	       let x0 = thing.lo[0], y0 = thing.lo[1], z0 = thing.lo[2];
-	       let x1 = thing.hi[0], y1 = thing.hi[1], z1 = thing.hi[2];
-	       draw.color('#ffffff').lineWidth(.0007)
-	           .line([x0,y0,z0],[x1,y0,z0]).line([x0,y1,z0],[x1,y1,z0])
-	           .line([x0,y0,z1],[x1,y0,z1]).line([x0,y1,z1],[x1,y1,z1])
-	           .line([x0,y0,z0],[x0,y1,z0]).line([x1,y0,z0],[x1,y1,z0])
-	           .line([x0,y0,z1],[x0,y1,z1]).line([x1,y0,z1],[x1,y1,z1])
-	           .line([x0,y0,z0],[x0,y0,z1]).line([x1,y0,z0],[x1,y0,z1])
-	           .line([x0,y1,z0],[x0,y1,z1]).line([x1,y1,z0],[x1,y1,z1]);
-	    }
+            if (thing.hilit) {
+               let x0 = thing.lo[0], y0 = thing.lo[1], z0 = thing.lo[2];
+               let x1 = thing.hi[0], y1 = thing.hi[1], z1 = thing.hi[2];
+               draw.color('#ffffff').lineWidth(.0007)
+                   .line([x0,y0,z0],[x1,y0,z0]).line([x0,y1,z0],[x1,y1,z0])
+                   .line([x0,y0,z1],[x1,y0,z1]).line([x0,y1,z1],[x1,y1,z1])
+                   .line([x0,y0,z0],[x0,y1,z0]).line([x1,y0,z0],[x1,y1,z0])
+                   .line([x0,y0,z1],[x0,y1,z1]).line([x1,y0,z1],[x1,y1,z1])
+                   .line([x0,y0,z0],[x0,y0,z1]).line([x1,y0,z0],[x1,y0,z1])
+                   .line([x0,y1,z0],[x0,y1,z1]).line([x1,y1,z0],[x1,y1,z1]);
+            }
 
-	    // SHOW LINKS BETWEEN THINGS.
+            // SHOW LINKS BETWEEN THINGS.
 
             if (thing.linkDst)
                for (let i = 0 ; i < thing.linkDst.length ; i++) {
                   let other = findThingFromID(thing.linkDst[i]);
                   let p1 = cg.mTransform(thing.m, thing.ST[3].slice(0,3));
                   let p2 = cg.mTransform(other.m, other.ST[3].slice(0,3));
-		  let p3 = eye ? cg.add(p2, cg.scale(cg.normalize(cg.subtract(eye,p2)), .01)) : p2;
+                  let p3 = eye ? cg.add(p2, cg.scale(cg.normalize(cg.subtract(eye,p2)), .01)) : p2;
                   draw.color('#ffffff').lineWidth(.002).line(p1, p2)
                                        .lineWidth(.010).line(p2, p3);
                }
@@ -346,10 +349,10 @@ export const init = async model => {
             // GET THE HEAD MATRIX FOR THIS CLIENT, FORCING ITS Y AXIS TO BE TRUE VERTICAL.
 
             fm = clientState.head(clients[I]);
-	    if (fm) {
+            if (fm) {
               let X = cg.normalize(cg.cross([0,1,0], [fm[8],fm[9],fm[10]]));
               let Z = cg.normalize(cg.cross(X, [0,1,0]));
-	      fm = [ X[0],X[1],X[2],0, 0,1,0,0, Z[0],Z[1],Z[2],0, fm[12],fm[13],fm[14],1 ];
+              fm = [ X[0],X[1],X[2],0, 0,1,0,0, Z[0],Z[1],Z[2],0, fm[12],fm[13],fm[14],1 ];
             }
 
             // LOOP THROUGH BOTH HANDS OF THE CLIENT:
@@ -371,305 +374,238 @@ export const init = async model => {
 
                // ACTIONS DEPEND ON THE CURRENT STATE OF THE HAND OR CONTROLLER:
 
-               let pinchState = clientState.pinchState(clients[I], hand, 1);
+               switch (clientState.pinchState(clients[I], hand, 1)) {
 
-               switch (hand) {
+               // WHILE NOT PINCHING:
 
-               case 'left':
-                  switch (pinchState) {
+               case 'up':
 
-		  // WHILE NOT LEFT PINCHING, KEEP TRACK OF WHICH THING IS AT THE CURSOR.
+                  // KEEP TRACK OF THE THING AT THE CURSOR, IF ANY.
 
-                  case 'up':
-                     thingAtCursor[id] = findThingAtPoint(P);
-                     if (thingAtCursor[id]) {
-                        thingAtCursor[id].hilit = 1;
-                        thingAtCursor[id].dragCount = 0;
-                     }
-                     break;
-
-                  // WHEN LEFT PINCH STARTS: HIGHLIGHT THE THING AT THE CURSOR AND SET DRAG COUNT TO ZERO.
-
-                  case 'press':
-                     if (thingAtCursor[id]) {
-                        thingAtCursor[id].hilit = 1;
-                        thingAtCursor[id].dragCount = 0;
-                     }
-                     break;
-
-                  // LEFT DRAG TO MOVE A THING. CLICK THEN DRAG TO SCALE OR SPIN A THING.
-
-                  case 'down':
-                     let thing = thingAtCursor[id];
-                     if (thing) {
-                        thing.hilit = 1;
-                        thing.dragCount++;
-
-                        let d = cg.subtract(P, prevP[id]);
-			if (clickCount[id] == 0)
-			   moveThing(thing, d);
-			else if (d[1]*d[1] > d[0]*d[0] + d[2]*d[2])
-			   scaleThing(thing, d);
-                        else
-			   spinThing(thing, d);
-                     }
-                     break;
-
-                  // LEFT CLICK TWICE TO DELETE A THING.
-
-                  case 'release':
-
-                     // AFTER CLICKING ON THE BACKGROUND OR DRAGGING: SET THE CLICK COUNT TO ZERO.
-
-                     if (! thingAtCursor[id] || thingAtCursor[id] && thingAtCursor[id].dragCount >= np)
-                        clickCount[id] = 0;
-
-                     // DOUBLE LEFT CLICK ON A THING: DELETE THE THING.
-
-                     if (thingAtCursor[id] && thingAtCursor[id].dragCount < np && ++clickCount[id] == 2) {
-                        deleteThing(thingAtCursor[id]);
-                        thingAtCursor[id] = null;
-                        clickCount[id] = 0;
-                     }
-                     break;
+                  thingAtCursor[id] = findThingAtPoint(P);
+                  if (thingAtCursor[id]) {
+                     thingAtCursor[id].hilit = 1;
+                     thingAtCursor[id].dragCount = 0;
                   }
+
+                  // IF IN MODIFY MODE: MOVE, SCALE OR SPIN A THING.
+
+                  if (modifyThing[id]) {
+                     let thing = modifyThing[id].thing;
+                     thing.hilit = true;
+                     let d = cg.subtract(P, prevP[id]);
+                     switch (modifyThing[id].state) {
+                     case 'move' : moveThing (thing, d); break;
+                     case 'scale': scaleThing(thing, d); break;
+                     case 'spin' : spinThing (thing, d); break;
+                     }
+                  }
+
                   break;
 
-               case 'right':
-                  switch (pinchState) {
+               // WHEN STARTING A PINCH:
 
-		  // WHILE NOT RIGHT PINCHING:
+               case 'press':
 
-                  case 'up':
+                  // IF NOT AT A NON-SKETCH THING AND NOT IN MODIFY MODE: START DRAWING A NEW STROKE.
 
-                     // KEEP TRACK OF THE THING AT THE CURSOR, IF ANY.
+                  thingBeingDrawn[id] = null;
+                  if (! clickPointOnBG[id] && ! modifyThing[id] && (! thingAtCursor[id] || thingAtCursor[id].type=='sketch')) {
+                     thingBeingDrawn[id] = { type: 'sketch', strokes: [ [P] ], hilit: 0, dragCount: 0 };
+                     things.push(thingBeingDrawn[id]);
+                  }
 
-                     thingAtCursor[id] = findThingAtPoint(P);
-                     if (thingAtCursor[id]) {
-                        thingAtCursor[id].hilit = 1;
-                        thingAtCursor[id].dragCount = 0;
-                     }
+                  // WHEN STARTING A PINCH ON A NON-SKETCH THING AFTER CLICKING ON THE BACKGROUND: START DRAWING A LINK.
 
-		     // IF IN MODIFY MODE: MOVE, SCALE OR SPIN A THING.
+                  linkSrc[id] = null;
+                  if (clickPointOnBG[id] && thingAtCursor[id] && thingAtCursor[id].type != 'sketch')
+                     linkSrc[id] = thingAtCursor[id];
+                  break;
 
-		     if (modifyThing[id]) {
-		        let thing = modifyThing[id].thing;
-			thing.hilit = true;
-		        let d = cg.subtract(P, prevP[id]);
-		        switch (modifyThing[id].state) {
-		        case 'move' : moveThing (thing, d); break;
-		        case 'scale': scaleThing(thing, d); break;
-		        case 'spin' : spinThing (thing, d); break;
+               // WHILE PINCHING:
+
+               case 'down':
+
+                  // DRAG WHILE DRAWING A STROKE: CONTINUE TO DRAW THE STROKE.
+
+                  if (thingBeingDrawn[id]) {
+                     thingBeingDrawn[id].strokes[0].push(P);
+                     for (let n = 0 ; n < things.length ; n++)
+                        if (isIntersect(thingBeingDrawn[id], things[n]))
+                           things[n].hilit = 1;
+                  }
+
+                  // DRAG ON A NON-SKETCH THING: SEND THE DRAG EVENT TO THE THING.
+
+                  else {
+                     let thing = thingAtCursor[id];
+                     if (thing) {
+                        thing.dragCount++;
+                        if (! modifyThing[id] && ! clickPointOnBG[id] && thingCode[thing.id] && thingCode[thing.id].onDrag) {
+                           let p = cg.mTransform(cg.mInverse(thing.m), P);
+                           let T = thing.ST[3];
+                           for (let j = 0 ; j < 3 ; j++)
+                              p[j] = (p[j] - T[j]) / T[3];
+                           thingCode[thing.id].onDrag(p);
                         }
                      }
+                  } 
 
+                  // WHEN DRAGGING OVER A THING: HILIGHT THE THING.
+
+                  let thing = findThingAtPoint(P);
+                  if (thing)
+                     thing.hilit = true;
+
+                  break;
+
+               // WHEN RELEASING A PINCH:
+
+               case 'release':
+
+                  // IF THIS WAS A DRAG GESTURE: SET THE CLICK COUNT TO ZERO.
+
+                  if (thingAtCursor[id] && thingAtCursor[id].dragCount >= np)
+                     clickCount[id] = 0;
+
+                  // IF THIS IS JUST AFTER BEING IN MODIFY MODE: END MODIFY MODE AND DO NOTHING ELSE.
+
+                  if (modifyThing[id]) {
+                     modifyThing[id] = null;
                      break;
+                  }
 
-                  // WHEN STARTING A RIGHT PINCH:
+                  // FINISHING CREATING A LINK BETWEEN TWO THINGS.
 
-                  case 'press':
-
-                     // IF NOT AT A NON-SKETCH THING AND NOT IN MODIFY MODE: START DRAWING A NEW STROKE.
-
-                     thingBeingDrawn[id] = null;
-                     if (! clickPointOnBG[id] && ! modifyThing[id] && (! thingAtCursor[id] || thingAtCursor[id].type=='sketch')) {
-                        thingBeingDrawn[id] = { type: 'sketch', strokes: [ [P] ], hilit: 0, dragCount: 0 };
-                        things.push(thingBeingDrawn[id]);
+                  if (linkSrc[id]) {
+                     let thing1 = linkSrc[id];
+                     let thing2 = findThingAtPoint(P);
+                     if (thing2 && thing2.type != 'sketch' && thing2 != thing1) {
+                        if (! thing1.linkDst) thing1.linkDst = [];
+                        if (! thing2.linkSrc) thing2.linkSrc = [];
+                        thing1.linkDst.push(thing2.id);
+                        thing2.linkSrc.push(thing1.id);
                      }
+                  }
 
-                     // WHEN STARTING A RIGHT PINCH ON A NON-SKETCH THING AFTER CLICKING ON THE BACKGROUND: START DRAWING A LINK.
+                  // IF WAS CLICKING ON A NON-SKETCH THING: SEND THE CLICK EVENT TO THE THING.
 
-                     linkSrc[id] = null;
-                     if (clickPointOnBG[id] && thingAtCursor[id] && thingAtCursor[id].type != 'sketch')
-                        linkSrc[id] = thingAtCursor[id];
-                     break;
-
-                  // WHILE RIGHT PINCHING:
-
-                  case 'down':
-
-                     // RIGHT DRAG WHILE DRAWING A STROKE: CONTINUE TO DRAW THE STROKE.
-
-                     if (thingBeingDrawn[id]) {
-                        thingBeingDrawn[id].strokes[0].push(P);
-                        for (let n = 0 ; n < things.length ; n++)
-                           if (isIntersect(thingBeingDrawn[id], things[n]))
-                              things[n].hilit = 1;
-                     }
-
-                     // RIGHT DRAG ON A NON-SKETCH THING: SEND THE DRAG EVENT TO THE THING.
-
-                     else {
+                  if (! clickPointOnBG[id]) {
+                     if (thingAtCursor[id] && thingAtCursor[id].dragCount < np && thingAtCursor[id].type != 'sketch') {
                         let thing = thingAtCursor[id];
-			if (thing) {
-                           thing.dragCount++;
-                           if (! modifyThing[id] && ! clickPointOnBG[id] && thingCode[thing.id] && thingCode[thing.id].onDrag) {
-                              let p = cg.mTransform(cg.mInverse(thing.m), P);
-                              let T = thing.ST[3];
-                              for (let j = 0 ; j < 3 ; j++)
-                                 p[j] = (p[j] - T[j]) / T[3];
-                              thingCode[thing.id].onDrag(p);
-                           }
+                        if (thingCode[thing.id] && thingCode[thing.id].onClick) {
+                           let p = cg.mTransform(cg.mInverse(thing.m), P);
+                           let T = thing.ST[3];
+                           for (let j = 0 ; j < 3 ; j++)
+                              p[j] = (p[j] - T[j]) / T[3];
+                           thingCode[thing.id].onClick(p);
                         }
-                     } 
+                     }
+                  }
 
-		     // WHEN RIGHT DRAGGING OVER A THING: HILIGHT THE THING.
+                  // IF WAS CLICKING ON A THING AFTER CLICKING ON THE BACKGROUND: ENTER MODIFY MODE.
 
-                     let thing = findThingAtPoint(P);
-		     if (thing)
-		        thing.hilit = true;
+                  if (clickPointOnBG[id] && thingAtCursor[id] && thingAtCursor[id].dragCount < np) {
 
-                     break;
+                     // MODIFY MODE TYPE DEPENDS ON COMPASS DIRECTION OF BACKGROUND CLICK AROUND THE THING:
 
-                  // WHEN RELEASING A RIGHT PINCH:
+                     let x = cg.dot(cg.subtract(clickPointOnBG[id], P), [fm[0],fm[1],fm[2]]);
+                     let y = clickPointOnBG[id][1] - P[1];
+                     modifyThing[id] = { thing: thingAtCursor[id] };
+                     modifyThing[id].state = x > 0 && x*x > y*y ? 'delete' :         // EAST
+                                             y > 0 && x*x < y*y ? 'scale' :          // NORTH
+                                             x < 0 && x*x > y*y ? 'move' :           // WEST
+                                                                  'spin' ;           // SOUTH
 
-                  case 'release':
+                     // IF THE CLICK ON THE BACKGROUND WAS TO THE RIGHT OF THE THING: DELETE THE THING.
 
-		     // IF THIS WAS A DRAG GESTURE: SET THE CLICK COUNT TO ZERO.
-
-                     if (thingAtCursor[id] && thingAtCursor[id].dragCount >= np)
-                        clickCount[id] = 0;
-
-                     // IF THIS IS JUST AFTER BEING IN MODIFY MODE: END MODIFY MODE AND DO NOTHING ELSE.
-
-                     if (modifyThing[id]) {
+                     if (modifyThing[id] && modifyThing[id].state == 'delete') {
+                        deleteThing(thingAtCursor[id]);
+                        thingAtCursor[id] = null;
                         modifyThing[id] = null;
-			break;
                      }
+                  }
 
-                     // FINISHING CREATING A LINK BETWEEN TWO THINGS.
+                  // IF JUST FINISHED DRAWING A STROKE:
 
-                     if (linkSrc[id]) {
-                        let thing1 = linkSrc[id];
-                        let thing2 = findThingAtPoint(P);
-                        if (thing2 && thing2.type != 'sketch' && thing2 != thing1) {
-                           if (! thing1.linkDst) thing1.linkDst = [];
-                           if (! thing2.linkSrc) thing2.linkSrc = [];
-                           thing1.linkDst.push(thing2.id);
-                           thing2.linkSrc.push(thing1.id);
-                        }
-                     }
+                  clickPointOnBG[id] = null;
+                  if (thingBeingDrawn[id]) {
+                     let td = thingBeingDrawn[id];
 
-                     // IF RIGHT CLICK ON A NON-SKETCH THING: SEND THE CLICK EVENT TO THE THING.
+                     // IF THE STROKE IS VERY SMALL OR QUICK, CLASSIFY IT AS A CLICK STROKE.
 
-                     if (! clickPointOnBG[id]) {
-                        if (thingAtCursor[id] && thingAtCursor[id].dragCount < np && thingAtCursor[id].type != 'sketch') {
-                           let thing = thingAtCursor[id];
-                           if (thingCode[thing.id] && thingCode[thing.id].onClick) {
-                              let p = cg.mTransform(cg.mInverse(thing.m), P);
-                              let T = thing.ST[3];
-                              for (let j = 0 ; j < 3 ; j++)
-                                 p[j] = (p[j] - T[j]) / T[3];
-                              thingCode[thing.id].onClick(p);
+                     let isClickStroke = Math.max(td.hi[0]-td.lo[0],td.hi[1]-td.lo[1],td.hi[2]-td.lo[2]) < .03
+                                         || td.strokes[0].length < np;
+
+                     // DETECT A CLICK STROKE ON THE BACKGROUND.
+
+                     if (isClickStroke) {
+                        clickPointOnBG[id] = P;
+                        for (let n = 0 ; n < things.length ; n++)
+                           if (things[n] != td && isThingAtPoint(things[n], P)) {
+                              clickPointOnBG[id] = null;
+                              break;
                            }
-                        }
+                     }  
+
+                     // IF THE STROKE INTERSECTS AN EXISTING SKETCH:
+
+                     let sketch = null;
+                     for (let n = 0 ; n < things.length ; n++) {
+                        let thing = things[n];
+                        if (thing!=td && thing.type=='sketch' && isIntersect(thing,td))
+                           sketch = thing;
                      }
+                     if (sketch) {
 
-                     // RIGHT CLICK ON A THING AFTER CLICKING ON THE BACKGROUND: ENTER MODIFY MODE.
-
-                     if (clickPointOnBG[id] && thingAtCursor[id] && thingAtCursor[id].dragCount < np) {
-
-                        // MODIFY MODE TYPE DEPENDS ON COMPASS DIRECTION OF BACKGROUND CLICK AROUND THE THING:
-
-                        let x = cg.dot(cg.subtract(clickPointOnBG[id], P), [fm[0],fm[1],fm[2]]);
-                        let y = clickPointOnBG[id][1] - P[1];
-			modifyThing[id] = { thing: thingAtCursor[id] };
-			modifyThing[id].state = x > 0 && x*x > y*y ? 'delete' :         // EAST
-			                        y > 0 && x*x < y*y ? 'scale' :          // NORTH
-			                        x < 0 && x*x > y*y ? 'move' :           // WEST
-						                     'spin' ;           // SOUTH
-
-                        // IF THE RIGHT CLICK ON THE BACKGROUND WAS TO THE RIGHT OF THE THING: DELETE THE THING.
-
-                        if (modifyThing[id] && modifyThing[id].state == 'delete') {
-                           deleteThing(thingAtCursor[id]);
-                           thingAtCursor[id] = null;
-			   modifyThing[id] = null;
-                        }
-                     }
-
-                     // JUST FINISHED DRAWING A STROKE:
-
-                     clickPointOnBG[id] = null;
-                     if (thingBeingDrawn[id]) {
-		        let td = thingBeingDrawn[id];
-
-		        // IF THE STROKE IS VERY SMALL OR QUICK, CLASSIFY IT AS A CLICK STROKE.
-
-			let isClickStroke = Math.max(td.hi[0]-td.lo[0],td.hi[1]-td.lo[1],td.hi[2]-td.lo[2]) < .03
-                                            || td.strokes[0].length < np;
-
-                        // DETECT A CLICK STROKE ON THE BACKGROUND.
+                        // IF THIS WAS A CLICK STROKE ON A SKETCH: CONVERT THE SKETCH TO A THING.
 
                         if (isClickStroke) {
-                           clickPointOnBG[id] = P;
-                           for (let n = 0 ; n < things.length ; n++)
-                              if (things[n] != td && isThingAtPoint(things[n], P)) {
-                                 clickPointOnBG[id] = null;
-                                 break;
+
+                           // FIRST TRANSFORM THE SKETCH STROKES INTO THE INTERNAL COORDINATE SYSTEM OF THE THING.
+
+                           let im = cg.mInverse(fm);
+                           let strokes = sketch.strokes;
+                           let ss = [];
+                           for (let n = 0 ; n < strokes.length ; n++)
+                              if (Array.isArray(strokes[n])) {
+                                 let s = [];
+                                 for (let i = 0 ; i < strokes[n].length ; i++)
+                                    s.push(cg.mTransform(im, strokes[n][i]));
+                                 ss.push(s);
                               }
-                        }  
 
-                        // IF THE STROKE INTERSECTS AN EXISTING SKETCH:
+                           // THEN RECOGNIZE THE STROKES, THEN TRANSFORM BACK.
 
-                        let sketch = null;
-                        for (let n = 0 ; n < things.length ; n++) {
-                           let thing = things[n];
-                           if (thing!=td && thing.type=='sketch' && isIntersect(thing,td))
-                              sketch = thing;
-                        }
-                        if (sketch) {
+                           let ST = matchCurves.recognize(ss);
+                           for (let k = 0 ; k <= 1 ; k++)
+                              for (let n = 0 ; n < ST[k].length ; n++)
+                                 for (let i = 0 ; i < ST[k][n].length ; i++)
+                                    ST[k][n][i] = cg.mTransform(fm, ST[k][n][i]);
 
-                           // IF A CLICK STROKE ON A SKETCH: CONVERT THE SKETCH TO A THING.
+                           // DELETE THE ORIGINAL SKETCH.
 
-                           if (isClickStroke) {
+                           deleteThing(sketch);
 
-                              // FIRST TRANSFORM THE SKETCH STROKES INTO THE INTERNAL COORDINATE SYSTEM OF THE THING.
+                           // CREATE THE NEW NON-SKETCH THING AND ADD IT TO THE SCENE.
 
-                              let im = cg.mInverse(fm);
-                              let strokes = sketch.strokes;
-                              let ss = [];
-                              for (let n = 0 ; n < strokes.length ; n++)
-                                 if (Array.isArray(strokes[n])) {
-                                    let s = [];
-                                    for (let i = 0 ; i < strokes[n].length ; i++)
-                                       s.push(cg.mTransform(im, strokes[n][i]));
-                                    ss.push(s);
-                                 }
-
-                              // THEN RECOGNIZE THE STROKES, THEN TRANSFORM BACK.
-
-                              let ST = matchCurves.recognize(ss);
-                              for (let k = 0 ; k <= 1 ; k++)
-                                 for (let n = 0 ; n < ST[k].length ; n++)
-                                    for (let i = 0 ; i < ST[k][n].length ; i++)
-                                       ST[k][n][i] = cg.mTransform(fm, ST[k][n][i]);
-
-                              // DELETE THE ORIGINAL SKETCH.
-
-                              deleteThing(sketch);
-
-                              // CREATE THE NEW NON-SKETCH THING AND ADD IT TO THE SCENE.
-
-                              let glyph = matchCurves.glyph(ST[2]);
-                              things.push( { type: glyph.name, ST: ST, timer: 0, m: fm, id: cg.uniqueID() } );
-                           }
-
-                           // ELSE APPEND THIS NEW STROKE TO THE EXISTING SKETCH.
-
-                           else {
-                              sketch.strokes.push(td.strokes[0]);
-                              deleteThing(td);
-                           }
+                           let glyph = matchCurves.glyph(ST[2]);
+                           things.push( { type: glyph.name, ST: ST, timer: 0, m: fm, id: cg.uniqueID() } );
                         }
 
-                        // IF THIS WAS A CLICK STROKE: DELETE IT.
+                        // ELSE APPEND THIS NEW STROKE TO THE EXISTING SKETCH.
 
-                        if (td && isClickStroke)
+                        else {
+                           sketch.strokes.push(td.strokes[0]);
                            deleteThing(td);
-                        thingBeingDrawn[id] = null;
+                        }
                      }
-                     break;
+
+                     // IF THIS WAS A CLICK STROKE: DELETE IT.
+
+                     if (td && isClickStroke)
+                        deleteThing(td);
+                     thingBeingDrawn[id] = null;
                   }
                   break;
                }
@@ -697,9 +633,9 @@ export const init = async model => {
             let thing = things[n];
             if (thing.type != 'sketch') {
 
-	       // MAKE SURE THE THING HAS ASSOCIATED CODE.
+               // MAKE SURE THE THING HAS ASSOCIATED CODE.
 
-	       if (! thingCode[thing.id]) {
+               if (! thingCode[thing.id]) {
                   let glyph = matchCurves.glyph(thing.ST[2]);
                   try {
                      thingCode[thing.id] = new glyph.code();
@@ -727,8 +663,10 @@ export const init = async model => {
                         if (Array.isArray(stroke))
                            for (let i = 0 ; i < stroke.length ; i++)
                               stroke[i] = cg.mTransform(thing.m, stroke[i]);
-                        else
+                        if (stroke.p)
                            stroke.p = cg.mTransform(thing.m, stroke.p);
+                        if (stroke.size)
+                           stroke.size *= cg.norm(thing.m.slice(0,3));
                      }
                   }
                }
