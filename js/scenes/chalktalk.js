@@ -13,10 +13,10 @@ export const init = async model => {
        things = [],            // THINGS SHARED BETWEEN CLIENTS
        linkSrc = {},           // THE SOURCE OF THE LINK BEING DRAWN
        thingCode = {},         // CODE FOR THING INSTANCES
+       clickOnBG = {},         // AFTER A CLICK ON THE BACKGROUND, SET CLICK INFO
        clickCount = {},        // NUMBER OF CLICKS IN A ROW FOR EACH HAND OF EVERY CLIENT
        modifyThing = {},       // SET TO TRUE AFTER A CLICK ON THE BACKGROUND
        thingAtCursor = {},     // THING AT CURSOR FOR EACH HAND OF EVERY CLIENT
-       clickPointOnBG = {},    // AFTER A CLICK ON THE BACKGROUND, SET TO CLICK LOCATION
        thingBeingDrawn = {};   // THING CURRENTLY BEING DRAWN FOR EACH HAND OF EVERY CLIENT
 
    // KEEP TRACK OF THE MOST RECENT THING THAT ANYBODY SAID.
@@ -65,7 +65,6 @@ export const init = async model => {
    });
 
    addThingType('ySlider', function() {
-      this.hud = true;
       let t = 0;
       this.onDrag = p => t = Math.max(-1, Math.min(1, p[1]));
       this.onClick = this.onDrag;
@@ -89,7 +88,6 @@ export const init = async model => {
    }
 
    addThingType('timer', function() {
-      this.hud = true;
       let rate = 0, t = 0, prevTime;
       this.sketch = () => [ circle(), [ circlePoint(0), [0,0,0] ] ];
       this.update = time => {
@@ -136,7 +134,6 @@ export const init = async model => {
    }
 
    addThingType('speech', function() {
-      this.hud = true;
       let text = 'text';
       this.onClick = () => text = speech;
       this.sketch = () => [ squircle(Math.PI) ];
@@ -418,15 +415,25 @@ export const init = async model => {
                   // IF NOT AT A NON-SKETCH THING AND NOT IN MODIFY MODE: START DRAWING A NEW STROKE.
 
                   thingBeingDrawn[id] = null;
-                  if (! clickPointOnBG[id] && ! modifyThing[id] && (! thingAtCursor[id] || thingAtCursor[id].type=='sketch')) {
+                  if (! clickOnBG[id] && ! modifyThing[id] && (! thingAtCursor[id] || thingAtCursor[id].type=='sketch')) {
                      thingBeingDrawn[id] = { type: 'sketch', strokes: [ [P] ], hilit: 0, dragCount: 0 };
                      things.push(thingBeingDrawn[id]);
                   }
 
-                  // WHEN STARTING A PINCH ON A NON-SKETCH THING AFTER CLICKING ON THE BACKGROUND: START DRAWING A LINK.
+		  // CLICK ON BACKGROUND FOLLOWED BY PINCH ON A THING:
+
+                  if (clickOnBG[id] && thingAtCursor[id]) {
+		     let center = computeThingCenter(thingAtCursor[id]);
+                     let x = cg.dot(cg.subtract(clickOnBG[id].p, center), [fm[0],fm[1],fm[2]]);
+                     let y = clickOnBG[id].p[1] - center[1];
+		     let dir = ((4 * (Math.atan2(y, x) + Math.PI/8) / Math.PI >> 0) + 8) % 8;
+		     clickOnBG[id].dir = (8 + 4 * (Math.atan2(y, x) + Math.PI/8) / Math.PI >> 0) % 8;
+		  }
+
+                  // START A PINCH ON A NON-SKETCH THING AFTER CLICK TO ITS LEFT ON THE BACKGROUND: START DRAWING A LINK.
 
                   linkSrc[id] = null;
-                  if (clickPointOnBG[id] && thingAtCursor[id] && thingAtCursor[id].type != 'sketch')
+                  if (clickOnBG[id] && clickOnBG[id].dir == 4 && thingAtCursor[id].type != 'sketch')
                      linkSrc[id] = thingAtCursor[id];
                   break;
 
@@ -449,7 +456,7 @@ export const init = async model => {
                      let thing = thingAtCursor[id];
                      if (thing) {
                         thing.dragCount++;
-                        if (! modifyThing[id] && ! clickPointOnBG[id] && thingCode[thing.id] && thingCode[thing.id].onDrag) {
+                        if (! modifyThing[id] && ! clickOnBG[id] && thingCode[thing.id] && thingCode[thing.id].onDrag) {
                            let p = cg.mTransform(cg.mInverse(thing.m), P);
                            let T = thing.ST[3];
                            for (let j = 0 ; j < 3 ; j++)
@@ -498,7 +505,7 @@ export const init = async model => {
 
                   // IF WAS CLICKING ON A NON-SKETCH THING: SEND THE CLICK EVENT TO THE THING.
 
-                  if (! clickPointOnBG[id]) {
+                  if (! clickOnBG[id]) {
                      if (thingAtCursor[id] && thingAtCursor[id].dragCount < np && thingAtCursor[id].type != 'sketch') {
                         let thing = thingAtCursor[id];
                         if (thingCode[thing.id] && thingCode[thing.id].onClick) {
@@ -513,30 +520,26 @@ export const init = async model => {
 
                   // IF WAS CLICKING ON A THING AFTER CLICKING ON THE BACKGROUND: ENTER MODIFY MODE.
 
-                  if (clickPointOnBG[id] && thingAtCursor[id] && thingAtCursor[id].dragCount < np) {
-
-                     // MODIFY MODE TYPE DEPENDS ON COMPASS DIRECTION OF BACKGROUND CLICK AROUND THE THING:
-
-                     let x = cg.dot(cg.subtract(clickPointOnBG[id], P), [fm[0],fm[1],fm[2]]);
-                     let y = clickPointOnBG[id][1] - P[1];
-                     modifyThing[id] = { thing: thingAtCursor[id] };
-                     modifyThing[id].state = x > 0 && x*x > y*y ? 'delete' :         // EAST
-                                             y > 0 && x*x < y*y ? 'scale' :          // NORTH
-                                             x < 0 && x*x > y*y ? 'move' :           // WEST
-                                                                  'spin' ;           // SOUTH
-
-                     // IF THE CLICK ON THE BACKGROUND WAS TO THE RIGHT OF THE THING: DELETE THE THING.
-
-                     if (modifyThing[id] && modifyThing[id].state == 'delete') {
-                        deleteThing(thingAtCursor[id]);
+                  if (clickOnBG[id] && thingAtCursor[id] && thingAtCursor[id].dragCount < np) {
+                     let thing = thingAtCursor[id];
+		     switch (clickOnBG[id].dir) {
+		     case 0:
+                        deleteThing(thing);
                         thingAtCursor[id] = null;
-                        modifyThing[id] = null;
-                     }
+			break;
+		     case 2: modifyThing[id] = { thing: thing, state: 'scale' } ; break;
+		     case 4: modifyThing[id] = { thing: thing, state: 'move'  } ; break;
+		     case 6: modifyThing[id] = { thing: thing, state: 'spin'  } ; break;
+		     }
                   }
+
+                  if (clickOnBG[id] && thingAtCursor[id] && thingAtCursor[id].dragCount >= np)
+		     if (clickOnBG[id].dir == 6)
+		        thingAtCursor[id].hud = ! thingAtCursor[id].hud;
 
                   // IF JUST FINISHED DRAWING A STROKE:
 
-                  clickPointOnBG[id] = null;
+                  clickOnBG[id] = null;
                   if (thingBeingDrawn[id]) {
                      let td = thingBeingDrawn[id];
 
@@ -548,10 +551,10 @@ export const init = async model => {
                      // DETECT A CLICK STROKE ON THE BACKGROUND.
 
                      if (isClickStroke) {
-                        clickPointOnBG[id] = P;
+                        clickOnBG[id] = { p: P };
                         for (let n = 0 ; n < things.length ; n++)
                            if (things[n] != td && isThingAtPoint(things[n], P)) {
-                              clickPointOnBG[id] = null;
+                              clickOnBG[id] = null;
                               break;
                            }
                      }  
@@ -647,7 +650,6 @@ export const init = async model => {
                   let glyph = matchCurves.glyph(thing.ST[2]);
                   try {
                      thingCode[thing.id] = new glyph.code();
-                     thing.hud = thingCode[thing.id].hud;
                   } catch (err) {
                      thingCode[thing.id] = glyph.code;
                   }
@@ -681,9 +683,8 @@ export const init = async model => {
                      }
 
 		     if (thing.hud) {
-                        let center = computeThingCenter(thing);
-		        let rayDir = cg.normalize(cg.subtract(fm.slice(12,15), center));
-		        spinThingByTheta(thing, Math.atan2(rayDir[0], rayDir[2]) - Math.atan2(m[8], m[10]), true);
+		        let ray = cg.subtract(fm.slice(12,15), computeThingCenter(thing));
+		        spinThingByTheta(thing, Math.atan2(ray[0], ray[2]) - Math.atan2(m[8], m[10]), true);
                      }
                   }
                }
