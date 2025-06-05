@@ -57,8 +57,6 @@ export const init = async model => {
          return [
             [ [-1,0,0],[1,0,0] ],
             [ [t,-.2,0],[t,.2,0] ],
-            [ [t,0,-.2],[t,0,.2] ],
-            [ [t,.2,0],[t,0,.2],[t,-.2,0],[t,0,-.2],[t,.2,0] ],
             { text: (50*t+50>>0)/100, p: [1.1,0,0], size: .03, align: 'left' },
          ];
       }
@@ -67,6 +65,7 @@ export const init = async model => {
    });
 
    addThingType('ySlider', function() {
+      this.hud = true;
       let t = 0;
       this.onDrag = p => t = Math.max(-1, Math.min(1, p[1]));
       this.onClick = this.onDrag;
@@ -74,8 +73,6 @@ export const init = async model => {
       this.update = time => [
          [ [0,1,0],[0,-1,0] ],
          [ [-.2,t,0],[.2,t,0] ],
-         [ [0,t,-.2],[0,t,.2] ],
-         [ [.2,t,0],[0,t,.2],[-.2,t,0],[0,t,-.2],[.2,t,0] ],
          { text: (50*t+50>>0)/100, p: [0,1.15,0], size: .03 },
       ];
       this.input = value => t = 2 * value - 1;
@@ -92,12 +89,21 @@ export const init = async model => {
    }
 
    addThingType('timer', function() {
+      this.hud = true;
       let rate = 0, t = 0, prevTime;
       this.sketch = () => [ circle(), [ circlePoint(0), [0,0,0] ] ];
       this.update = time => {
          t += rate * (time - (prevTime ?? time));
          prevTime = time;
-         return [ circle(), [ circlePoint(2 * Math.PI * t), [0,0,0] ] ];
+	 let min = t >> 0;
+	 let sec = (60 * t % 60) >> 0;
+	 let text = min + ':' + (sec < 10 ? '0' : '') + sec;
+         return [
+	    circle(),
+	    [ circlePoint(2 * Math.PI * t), [0,0,0] ],
+	    { text: text, p: [0,-.5,0], size: .03 },
+
+	 ];
       };
       this.input = value => rate = value;
       this.output = () => t;
@@ -130,6 +136,7 @@ export const init = async model => {
    }
 
    addThingType('speech', function() {
+      this.hud = true;
       let text = 'text';
       this.onClick = () => text = speech;
       this.sketch = () => [ squircle(Math.PI) ];
@@ -228,8 +235,9 @@ export const init = async model => {
 
    // SPIN A THING AROUND ITS CENTER.
 
-   let spinThing = (thing, d) => {
-      let theta = 20 * cg.dot(d, [fm[0],fm[4],fm[8]]);
+   let spinThing = (thing, d) => spinThingByTheta(thing, 20 * cg.dot(d, [fm[0],fm[4],fm[8]]));
+
+   let spinThingByTheta = (thing, theta, noMatrix) => {
       let c = Math.cos(theta), s = Math.sin(theta);
       let center = computeThingCenter(thing);
       let spin = p => {
@@ -248,7 +256,7 @@ export const init = async model => {
          else
             stroke.p = spin(stroke.p);
       }
-      if (thing.m) {
+      if (! noMatrix && thing.m) {
          for (let j = 0 ; j < 3 ; j++)
             thing.m[12 + j] -= center[j];
          thing.m = cg.mMultiply(cg.mRotateY(theta), thing.m);
@@ -623,7 +631,7 @@ export const init = async model => {
                let code1 = thingCode[thing1.id];
                let code2 = thingCode[thing2.id];
                if (code1 && code1.output && code2 && code2.input)
-                 code2.input(code1.output());
+                  code2.input(code1.output());
             }
          }
 
@@ -639,6 +647,7 @@ export const init = async model => {
                   let glyph = matchCurves.glyph(thing.ST[2]);
                   try {
                      thingCode[thing.id] = new glyph.code();
+                     thing.hud = thingCode[thing.id].hud;
                   } catch (err) {
                      thingCode[thing.id] = glyph.code;
                   }
@@ -658,15 +667,23 @@ export const init = async model => {
                      thing.timer += model.deltaTime;
                      thing.strokes = matchCurves.animate(() => thingCode[thing.id].update(thing.timer-1),
                                                          cg.mIdentity(), thing.timer-1, thing.ST[3]);
+
+	             let m = thing.m;
                      for (let n = 0 ; n < thing.strokes.length ; n++) {
                         let stroke = thing.strokes[n];
                         if (Array.isArray(stroke))
                            for (let i = 0 ; i < stroke.length ; i++)
-                              stroke[i] = cg.mTransform(thing.m, stroke[i]);
+                              stroke[i] = cg.mTransform(m, stroke[i]);
                         if (stroke.p)
-                           stroke.p = cg.mTransform(thing.m, stroke.p);
+                           stroke.p = cg.mTransform(m, stroke.p);
                         if (stroke.size)
-                           stroke.size *= cg.norm(thing.m.slice(0,3));
+                           stroke.size *= cg.norm(m.slice(0,3));
+                     }
+
+		     if (thing.hud) {
+                        let center = computeThingCenter(thing);
+		        let rayDir = cg.normalize(cg.subtract(fm.slice(12,15), center));
+		        spinThingByTheta(thing, Math.atan2(rayDir[0], rayDir[2]) - Math.atan2(m[8], m[10]), true);
                      }
                   }
                }
