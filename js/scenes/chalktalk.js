@@ -3,14 +3,15 @@ import { G3 } from "../util/g3.js";
 import { matchCurves } from "../render/core/matchCurves3D.js";
 
 /*
-	Add pendulum.
-	Add clock (rate controller).
-	Add wave generator.
 	Add text value box.
 	Add voice-controlled text box.
 */
 
 export const init = async model => {
+
+   let speech = '';
+
+   window.onSpeech = (_speech, id) => speech = _speech;
 
    let info = '';              // IN CASE WE NEED TO SHOW DEBUG INFO IN THE SCENE
    let fm;                     // FORWARD HEAD MATRIX FOR THE CLIENT BEING EVALUATED
@@ -86,10 +87,11 @@ export const init = async model => {
    });
 
    let circlePoint = t => [ Math.sin(t), Math.cos(t), 0 ];
-   let circle = () => {
+   let circle = phase => {
+      phase = phase ?? 0;
       let c = [];
       for (let n = 0 ; n <= 24 ; n++)
-         c.push(circlePoint(2 * Math.PI * n / 24));
+         c.push(circlePoint(2 * Math.PI * n / 24 + phase));
       return c;
    }
 
@@ -116,6 +118,19 @@ export const init = async model => {
       this.sketch = () => [ wave(0) ];
       this.update = () => [ wave(t) ];
       this.input = value => t = value;
+   });
+
+   addThingType('speech', function() {
+      let text = '';
+      this.sketch = () => [ circle(Math.PI) ];
+      this.update = () => {
+         if (speech.length > 0 && text.length == 0)
+	    text = speech;
+         return [
+            circle(Math.PI),
+            { text: text, p: [0,0,0], size: .03 },
+         ];
+      }
    });
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -320,8 +335,9 @@ export const init = async model => {
 
          // START BY UN-HILIGHTING ALL THINGS.
 
-         for (let n = 0 ; n < things.length ; n++)
-            things[n].hilit = 0;
+         if (things)
+            for (let n = 0 ; n < things.length ; n++)
+               things[n].hilit = 0;
 
          // LOOP THROUGH EVERY CLIENT:
 
