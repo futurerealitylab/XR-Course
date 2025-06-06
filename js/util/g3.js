@@ -5,7 +5,8 @@ import { computeHandPose, fingerWidth } from "../render/core/avatars.js";
 let pz = .75;
 
 let Projected = function() {
-   let em, mf, ex, ey, ez, a,b,c, d,e,f, g,h,i, j,k,l, B, C;
+   this.setUpright = state => isUpright = state;
+   let em, mf, ex, ey, ez, a,b,c, d,e,f, g,h,i, j,k,l, B, C, isUpright = false;
    this.getMatrix = () => mf;
    this.getScale = p => .5 * pz / (pz - (c*p[0] + f*p[1] + i*p[2] + l));
    this.projectPoint = p => {
@@ -15,6 +16,11 @@ let Projected = function() {
    }
    this.update = view => {
       em = cg.mMultiply(clay.inverseRootMatrix, clay.root().inverseViewMatrix(view));
+      if (isUpright) {
+         let X = cg.normalize(cg.cross([0,1,0], [em[8],em[9],em[10]]));
+         let Z = cg.normalize(cg.cross(X, [0,1,0]));
+         em = [ X[0],X[1],X[2],0, 0,1,0,0, Z[0],Z[1],Z[2],0, em[12],em[13],em[14],1 ];
+      }
       this.tilt = Math.atan2(em[1], Math.sqrt(em[0]*em[0]+em[2]*em[2]));
       ex = em[12];
       ey = em[13];
@@ -187,6 +193,7 @@ export let G3 = function(model, callback) {
       return this;
    }
    this.lineWidth = lw => { lineWidth = lw; return this; }
+   this.setUpright = state => projected.setUpright(state);
    this.text = (text,center,alignment,x,y,rotation) => {
       let p = projected.projectPoint(center);
       if (p) {
@@ -315,7 +322,10 @@ export let G3 = function(model, callback) {
          for (let n = 0 ; n < nd ; n++)
             sortedDisplayList.push(displayList[n]);
          sortedDisplayList.sort((a,b) => a[0] - b[0]);
-
+/*
+	 g2[view].setColor('#ffffffa0');
+	 g2[view].fillRect(-1,-1,2,2);
+*/
          for (let n = 0 ; n < nd ; n++) {
             let item = sortedDisplayList[n];
             switch (item[1]) {

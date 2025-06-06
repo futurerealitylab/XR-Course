@@ -2,6 +2,9 @@ import * as cg from "../render/core/cg.js";
 import { G3 } from "../util/g3.js";
 import { matchCurves } from "../render/core/matchCurves3D.js";
 
+let elephant = new Image();
+elephant.src = 'media/images/elephant.png';
+
 export const init = async model => {
 
    let info = '';              // IN CASE WE NEED TO SHOW DEBUG INFO IN THE SCENE
@@ -137,7 +140,11 @@ export const init = async model => {
       let text = 'text';
       this.onClick = () => text = speech;
       this.sketch = () => [ squircle(Math.PI) ];
-      this.update = () => [ squircle(Math.PI), { text:text, p:[0,0,0], size:.03 } ];
+      this.update = () => [
+         squircle(Math.PI),
+	 { text:text, p:[0,0,0], size:.03 },
+	 { image:elephant, p:[0,0,0], size: .2 },
+      ];
    });
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -301,6 +308,8 @@ export const init = async model => {
                      draw.textHeight(stroke.size);
                   draw.text(stroke.text, stroke.p, stroke.align ?? 'center', stroke.x ?? 0, stroke.y ?? 0);
                }
+               else if (stroke.image !== undefined)
+                  draw.image(stroke.image, stroke.p, 0,0, 0,stroke.size);
             }
 	    
             // IF A THING IS HIGHLIGHTED, SHOW ITS BOUNDING BOX.
@@ -332,6 +341,7 @@ export const init = async model => {
       }
       draw.text(info, [0,1.2,0]);
    });
+   g3.setUpright(true);
 
    // DETERMINE WHETHER A THING CONTAINS A 3D POINT.
 
