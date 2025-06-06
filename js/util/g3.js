@@ -3,19 +3,22 @@ import { G2 } from "./g2.js";
 import { computeHandPose, fingerWidth } from "../render/core/avatars.js";
 
 let pz = .75;
+let yShift = 0;
 
 let Projected = function() {
    this.setUpright = state => isUpright = state;
-   let em, mf, ex, ey, ez, a,b,c, d,e,f, g,h,i, j,k,l, B, C, isUpright = false;
+   let em, mf, ex, ey, ez, a,b,c, d,e,f, g,h,i, j,k,l, B, C, isUpright = false, cm;
    this.getMatrix = () => mf;
    this.getScale = p => .5 * pz / (pz - (c*p[0] + f*p[1] + i*p[2] + l));
    this.projectPoint = p => {
       let X = p[0] - ex, Y = p[1] - ey, Z = p[2] - ez;
       let z = -C / (c*X + f*Y + i*Z);
-      return z < 0 ? null : [z * (a*X + d*Y + g*Z), z * (b*X + e*Y + h*Z) + B, z];
+      yShift = isUpright ? (-1.1 - 7 * cm[9]) : 0;
+      return z < 0 ? null : [z * (a*X + d*Y + g*Z), z * (b*X + e*Y + h*Z) + B - .005 - .2*yShift, z];
    }
    this.update = view => {
-      em = cg.mMultiply(clay.inverseRootMatrix, clay.root().inverseViewMatrix(view));
+      cm = clay.root().inverseViewMatrix(view);
+      em = cg.mMultiply(clay.inverseRootMatrix, cm);
       if (isUpright) {
          let X = cg.normalize(cg.cross([0,1,0], [em[8],em[9],em[10]]));
          let Z = cg.normalize(cg.cross(X, [0,1,0]));
@@ -37,6 +40,7 @@ let Projected = function() {
 let projected = new Projected();
 
 export let G3 = function(model, callback) {
+   projected.setUpright(false);
    const DRAW = 0, FILL = 1, IMAGE = 2, LINE = 3, TEXT = 4;
 
    let color = '#000000',
@@ -57,7 +61,7 @@ export let G3 = function(model, callback) {
    for (let view = 0 ; view <= 1 ; view++) {
       g2[view] = new G2(false, 2040);
       screen[view] = model.add();
-      screen[view].add('square').setTxtr(g2[view].getCanvas()).view(view).move(0,.177,.6).scale(.2);
+      screen[view].add('square').setTxtr(g2[view].getCanvas()).view(view).move(0,.177+.039,.6).scale(.2);
       g2[view].render = function() { callback(draw); }
    }
 
@@ -241,6 +245,7 @@ export let G3 = function(model, callback) {
       for (view = 0 ; view <= 1 ; view++) {
          projected.update(view);
          screen[view].setMatrix(projected.getMatrix());
+         screen[view].child(0).identity().view(view).move(0,.177+.04*yShift,.6).scale(.2);
 
          nd = 0;
          g2[view].update();
