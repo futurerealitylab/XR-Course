@@ -1,16 +1,16 @@
 import * as aiobject from "/js/util/aiobject.js";
+import * as global from "../global.js";
+import { Gltf2Node } from "../render/nodes/gltf2.js";
 
 export const init = async model => {
     let speech = "";
 
-    let aiRunning = false;
-
-    let emptyResult = "";
-    window.pythonResult = emptyResult;
-
     model.animate(() => {
+        aiobject.updateObjects(model);
+        
         window.pythonResult = server.synchronize('pythonOutput');
-        if (window.speech !== speech && !aiRunning) {
+
+        if (window.speech !== speech) {
             speech = window.speech.toLowerCase();
 
             if (speech.includes("generate")) {
@@ -28,6 +28,8 @@ export const init = async model => {
                         startRecording = true;
                     }
                 }
+
+                aiobject.addObject(model, prompt);
             }
         }
    });

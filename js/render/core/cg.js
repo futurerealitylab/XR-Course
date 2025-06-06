@@ -325,6 +325,14 @@ export let noise = (x,y,z) => {
 
 // GEOMETRY METHODS
 
+export let isPointNearLine = (P, A, B, near) => {
+   let N = normalize(subtract(B,A));
+   let t = dot(P,N) - dot(A,N);
+   if (t < -near || t > dot(B,N) - dot(A,N) + near)
+      return false;
+   return distance(P, A + t * N) < near;
+}
+
 export let isLineIntersectPoly = (A, B, P) => {
    let V = A.concat(1);
    let W = normalize(subtract(B,A)).concat(0);

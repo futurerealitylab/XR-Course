@@ -219,18 +219,24 @@ function MatchCurves() {
    this.animate = (f, m, time, T) => {
       let src = f(time);
       m = cg.mMultiply(cg.mTranslate(T[0],T[1],T[2]),
-          cg.mMultiply(cg.mScale(T[3],T[3],T[3]*cg.ease(time/2)), m));
+          cg.mMultiply(cg.mScale(T[3],T[3],T[3]*cg.ease(2*time)), m));
       let dst = [];
       for (let n = 0 ; n < src.length ; n++) {
-         let curve = [];
-         for (let i = 0 ; i < src[n].length ; i++)
-            curve.push(cg.mTransform(m, src[n][i]));
-         dst.push(curve);
+         let item = src[n];
+	 if (Array.isArray(item)) {
+            for (let i = 0 ; i < item.length ; i++)
+               item[i] = cg.mTransform(m, item[i]);
+            dst.push(item);
+         }
+         else if (item.p) {
+	    item.p = cg.mTransform(m, item.p);
+            dst.push(item);
+         }
       }
       return dst;
    }
 }
- 
+
 export let matchCurves = new MatchCurves();
 
 addGlyphs(matchCurves);

@@ -64,10 +64,10 @@ preview_model_url = preview_task["model_urls"]["glb"]
 preview_model_response = requests.get(preview_model_url)
 preview_model_response.raise_for_status()
 
-filename = "../media/gltf/" + input_text[0] + ".glb"
+filename = input_text[0] + ".glb"
 
 with open(filename, "wb") as f:
   f.write(preview_model_response.content)
 
-print(filename)
+print("meshyai+" + input_text[0] + "+" + filename)
 
