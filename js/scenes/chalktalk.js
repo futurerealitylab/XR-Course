@@ -272,6 +272,19 @@ export const init = async model => {
 
    let g3 = new G3(model, draw => {
       if (things) {
+
+         // TURN ANY HUD THING TOWARD EACH CLIENT WHEN DISPLAYING.
+
+         if (draw.view() == 0)
+            for (let n = 0 ; n < things.length ; n++) {
+	       let thing = things[n];
+	       if (thing.hud) {
+	          let m = thing.m;
+	          let ray = cg.subtract(thing.fp, computeThingCenter(thing));
+	          spinThingByTheta(thing, Math.atan2(ray[0], ray[2]) - Math.atan2(m[8], m[10]), true);
+               }
+            }
+
          let hm = clientState.head(clientID);
          let eye = hm ? hm.slice(12,15) : null;
          for (let n = 0 ; n < things.length ; n++) {
@@ -289,7 +302,7 @@ export const init = async model => {
                   draw.text(stroke.text, stroke.p, stroke.align ?? 'center', stroke.x ?? 0, stroke.y ?? 0);
                }
             }
-
+	    
             // IF A THING IS HIGHLIGHTED, SHOW ITS BOUNDING BOX.
 
             if (thing.hilit) {
@@ -682,10 +695,10 @@ export const init = async model => {
                            stroke.size *= cg.norm(m.slice(0,3));
                      }
 
-		     if (thing.hud) {
-		        let ray = cg.subtract(fm.slice(12,15), computeThingCenter(thing));
-		        spinThingByTheta(thing, Math.atan2(ray[0], ray[2]) - Math.atan2(m[8], m[10]), true);
-                     }
+		     // IF HUD, PREPARE TO TURN THING TOWARD EACH CLIENT WHEN DISPLAYING IT.
+
+		     if (thing.hud)
+		        thing.fp = fm.slice(12,15);
                   }
                }
             }
