@@ -341,7 +341,6 @@ export const init = async model => {
       }
       draw.text(info, [0,1.2,0]);
    });
-   g3.setUpright(true);
 
    // DETERMINE WHETHER A THING CONTAINS A 3D POINT.
 

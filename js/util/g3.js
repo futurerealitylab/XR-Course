@@ -7,7 +7,7 @@ let yShift = 0;
 
 let Projected = function() {
    this.setUpright = state => isUpright = state;
-   let em, mf, ex, ey, ez, a,b,c, d,e,f, g,h,i, j,k,l, B, C, isUpright = false, cm;
+   let em, mf, ex, ey, ez, a,b,c, d,e,f, g,h,i, j,k,l, B, C, isUpright = true, cm;
    this.getMatrix = () => mf;
    this.getScale = p => .5 * pz / (pz - (c*p[0] + f*p[1] + i*p[2] + l));
    this.projectPoint = p => {
@@ -40,7 +40,7 @@ let Projected = function() {
 let projected = new Projected();
 
 export let G3 = function(model, callback) {
-   projected.setUpright(false);
+   projected.setUpright(true);
    const DRAW = 0, FILL = 1, IMAGE = 2, LINE = 3, TEXT = 4;
 
    let color = '#000000',

@@ -35,6 +35,7 @@ export const init = async model => {
          }
       }
    });
+   g3.setUpright(false);
 
    let delta = 1/30;
    model.animate(() => {
