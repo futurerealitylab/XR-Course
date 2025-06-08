@@ -10,7 +10,7 @@ export const init = async model => {
    let info = '';              // IN CASE WE NEED TO SHOW DEBUG INFO IN THE SCENE
    let fm;                     // FORWARD HEAD MATRIX FOR THE CLIENT BEING EVALUATED
    let np = 10;                // NUMBER OF POINTS NEEDED FOR A STROKE TO NOT BE A CLICK
-   let speech = '';            // THE MOST RECENT THING THAT ANYBODY SAID.
+   let speech = '';            // THE MOST RECENT THING THAT ANYBODY SAID
 
    let prevP = {},             // PREVIOUS CURSOR POSITION FOR EACH HAND OF EVERY CLIENT
        things = [],            // THINGS SHARED BETWEEN CLIENTS
@@ -137,17 +137,42 @@ export const init = async model => {
    }
 
    addThingType('speech', function() {
-      let text = 'text';
-      this.onClick = () => text = speech;
+      let text = 'thing', image;
+      this.onClick = () => {
+         if (text == 'thing')
+	    text = speech;
+         else
+	    image = elephant;
+      }
       this.sketch = () => [ squircle(Math.PI) ];
-      this.update = () => [
-         squircle(Math.PI),
-	 { text:text, p:[0,0,0], size:.03 },
-	 { image:elephant, p:[0,0,0], size: .2 },
-      ];
+      this.update = () => {
+         let graphics = [
+	    squircle(Math.PI),
+         ];
+	 if (image)
+	    graphics.push( { image:elephant, p:[0,0,0], size: .2 } );
+         else
+	    graphics.push( { text:text, p:[0,0,0], size:.03 } );
+	 return graphics;
+      }
    });
 
 ///////////////////////////////////////////////////////////////////////////////
+
+   let containsLink = (links, thing) => {
+      if (links)
+         for (let i = 0 ; i < links.length ; i++)
+            if (links[i] == thing.id)
+	       return true;
+      return false;
+   }
+
+   let removeLink = (links, thing) => {
+      if (links)
+         for (let i = 0 ; i < links.length ; i++)
+            if (links[i] == thing.id)
+               links.splice(i, 1);
+   }
 
    // DELETE A THING FROM THE SCENE.
 
@@ -158,18 +183,10 @@ export const init = async model => {
             break;
          }
 
-      // ALSO REMOVE ANY LINKS TO OR FROM THE THING.
+      // ALSO REMOVE ANY LINKS TO THE THING.
 
-      let removeLink = links => {
-         if (links)
-            for (let i = 0 ; i < links.length ; i++)
-               if (links[i] == thing.id)
-                  links.splice(i, 1);
-      }
-      for (let n = 0 ; n < things.length ; n++) {
-         removeLink(things[n].linkSrc);
-         removeLink(things[n].linkDst);
-      }
+      for (let n = 0 ; n < things.length ; n++)
+         removeLink(things[n].links, thing);
    }
 
    // FIND A THING, GIVEN ITS UNIQUE ID.
@@ -285,7 +302,7 @@ export const init = async model => {
          if (draw.view() == 0)
             for (let n = 0 ; n < things.length ; n++) {
 	       let thing = things[n];
-	       if (thing.hud) {
+	       if (thing.hud && thing.m) {
 	          let m = thing.m;
 	          let ray = cg.subtract(thing.fp, computeThingCenter(thing));
 	          spinThingByTheta(thing, Math.atan2(ray[0], ray[2]) - Math.atan2(m[8], m[10]), true);
@@ -328,18 +345,29 @@ export const init = async model => {
 
             // SHOW LINKS BETWEEN THINGS.
 
-            if (thing.linkDst)
-               for (let i = 0 ; i < thing.linkDst.length ; i++) {
-                  let other = findThingFromID(thing.linkDst[i]);
-                  let p1 = cg.mTransform(thing.m, thing.ST[3].slice(0,3));
-                  let p2 = cg.mTransform(other.m, other.ST[3].slice(0,3));
+            if (thing.links) {
+	       let thing1 = thing;
+               for (let i = 0 ; i < thing1.links.length ; i++) {
+                  let thing2 = findThingFromID(thing1.links[i]);
+                  let p1 = cg.mTransform(thing1.m, thing1.ST[3].slice(0,3));
+                  let p2 = cg.mTransform(thing2.m, thing2.ST[3].slice(0,3));
                   let p3 = eye ? cg.add(p2, cg.scale(cg.normalize(cg.subtract(eye,p2)), .01)) : p2;
-                  draw.color('#ffffff').lineWidth(.002).line(p1, p2)
-                                       .lineWidth(.010).line(p2, p3);
+		  let lw = thing1.linkAtCursor ? .005 : .002;
+                  draw.color('#ffffff').lineWidth(.010).line(p2,p3).lineWidth(lw).line(p1, p2);
+
+                  // DRAW A DIRECTIONAL ARROWHEAD IN THE MIDDLE OF EACH LINK.
+
+                  let p = cg.mix(p1, p2, .5);
+		  let u = cg.normalize(cg.subtract(p2, p1));
+		  let v = cg.normalize(cg.cross(cg.cross(u,[0,1,0]),u));
+		  let pa = cg.add(p, cg.add(cg.scale(u,-.01),cg.scale(v, .01)));
+		  let pb = cg.add(p, cg.add(cg.scale(u,-.01),cg.scale(v,-.01)));
+		  draw.line(pa,p).line(p,pb);
                }
+            }
          }
       }
-      draw.text(info, [0,1.2,0]);
+      draw.text(info, [0,1,0]);
    });
 
    // DETERMINE WHETHER A THING CONTAINS A 3D POINT.
@@ -407,14 +435,6 @@ export const init = async model => {
 
                case 'up':
 
-                  // KEEP TRACK OF THE THING AT THE CURSOR, IF ANY.
-
-                  thingAtCursor[id] = findThingAtPoint(P);
-                  if (thingAtCursor[id]) {
-                     thingAtCursor[id].hilit = 1;
-                     thingAtCursor[id].dragCount = 0;
-                  }
-
                   // IF IN MODIFY MODE: MOVE, SCALE OR SPIN A THING.
 
                   if (modifyThing[id]) {
@@ -427,6 +447,48 @@ export const init = async model => {
                      case 'spin' : spinThing (thing, d); break;
                      }
                   }
+		  
+		  else {
+
+                     // KEEP TRACK OF THE THING AT THE CURSOR, IF ANY.
+
+                     thingAtCursor[id] = findThingAtPoint(P);
+                     if (thingAtCursor[id]) {
+                        thingAtCursor[id].hilit = 1;
+                        thingAtCursor[id].dragCount = 0;
+                     }
+
+		     // CHECK FOR A LINK AT THE CURSOR FOR THIS HAND OF THIS CLIENT.
+
+		     for (let n = 0 ; n < things.length ; n++) {
+		        let thing1 = things[n];
+
+			// FOR EACH THING, START WITH NO LINKS AT THE CURSOR.
+
+			if (thing1.linkAtCursor && thing1.linkAtCursor[id]) {
+			   delete thing1.linkAtCursor[id];
+			   if (Object.keys(thing1.linkAtCursor).length == 0)
+			      delete thing1.linkAtCursor;
+                        }
+		        if (thing1.links)
+
+			   //  LOOP THROUGH THE ALL THING'S LINKS.
+
+		           for (let i = 0 ; i < thing1.links.length ; i++) {
+			      let thing2 = findThingFromID(thing1.links[i]);
+                              let p = cg.mix(cg.mTransform(thing1.m, thing1.ST[3].slice(0,3)),
+                                             cg.mTransform(thing2.m, thing2.ST[3].slice(0,3)), .5);
+
+			      //  ADD A LINK AT THE CURSOR IF ONE IS FOUND.
+
+                              if (cg.distance(p, P) < .02) {
+			         if (! thing1.linkAtCursor)
+				    thing1.linkAtCursor = {};
+			         thing1.linkAtCursor[id] = thing2.id;
+                              }
+			   }
+		     }
+		  }
 
                   break;
 
@@ -500,6 +562,37 @@ export const init = async model => {
 
                case 'release':
 
+	          // IF CLICKED ON A LINK, REMOVE THE LINK AND DO NOTHING ELSE.
+
+                  let removedLink = false;
+                  for (let n = 0 ; n < things.length ; n++) {
+		     let thing = things[n];
+
+		     // IF A THING HAS A LINK AT THE CURSOR FOR THIS HAND OF THIS CLIENT:
+
+		     if (thing.linkAtCursor && thing.linkAtCursor[id]) {
+
+                        // REMOVE THE LINK.
+
+		        removeLink(thing.links, findThingFromID(thing.linkAtCursor[id]));
+
+                        // DELETE THE THING'S LINK AT THE CURSOR FOR THIS HAND OF THIS CLIENT.
+
+			delete thing.linkAtCursor[id];
+			if (Object.keys(thing.linkAtCursor).length == 0)
+			   delete thing.linkAtCursor;
+			removedLink = true;
+		     }
+		  }
+		  if (removedLink) {
+
+                     // THEN DELETE THE DRAWN STROKE AND DO NOTHING ELSE.
+
+                     deleteThing(thingBeingDrawn[id]);
+                     thingBeingDrawn[id] = null;
+		     break;
+                  }
+
                   // IF THIS WAS A DRAG GESTURE: SET THE CLICK COUNT TO ZERO.
 
                   if (thingAtCursor[id] && thingAtCursor[id].dragCount >= np)
@@ -518,10 +611,9 @@ export const init = async model => {
                      let thing1 = linkSrc[id];
                      let thing2 = findThingAtPoint(P);
                      if (thing2 && thing2.type != 'sketch' && thing2 != thing1) {
-                        if (! thing1.linkDst) thing1.linkDst = [];
-                        if (! thing2.linkSrc) thing2.linkSrc = [];
-                        thing1.linkDst.push(thing2.id);
-                        thing2.linkSrc.push(thing1.id);
+                        if (! thing1.links)
+			   thing1.links = [];
+                        thing1.links.push(thing2.id);
                      }
                   }
 
@@ -650,9 +742,9 @@ export const init = async model => {
 
          for (let n = 0 ; n < things.length ; n++) {
             let thing1 = things[n];
-            if (thing1.linkDst)
-            for (let i = 0 ; i < thing1.linkDst.length ; i++) {
-               let thing2 = findThingFromID(thing1.linkDst[i]);
+            if (thing1.links)
+            for (let i = 0 ; i < thing1.links.length ; i++) {
+               let thing2 = findThingFromID(thing1.links[i]);
                let code1 = thingCode[thing1.id];
                let code2 = thingCode[thing2.id];
                if (code1 && code1.output && code2 && code2.input)
