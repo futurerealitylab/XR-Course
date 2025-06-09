@@ -4,6 +4,9 @@ import { matchCurves } from "../render/core/matchCurves3D.js";
 
 let elephant = new Image();
 elephant.src = 'media/images/elephant.png';
+let images = {
+   elephant: elephant
+};
 
 export const init = async model => {
 
@@ -150,9 +153,9 @@ export const init = async model => {
             squircle(Math.PI),
          ];
          if (image)
-            graphics.push( { image:elephant, p:[0,0,0], size: .2 } );
+            graphics.push( { image: "elephant", p:[0,0,0], size: .2 } );
          else
-            graphics.push( { text:text, p:[0,0,0], size:.03 } );
+            graphics.push( { text: text, p:[0,0,0], size:.03 } );
          return graphics;
       }
    });
@@ -369,7 +372,7 @@ export const init = async model => {
                   draw.text(stroke.text, stroke.p, stroke.align ?? 'center', stroke.x ?? 0, stroke.y ?? 0);
                }
                else if (stroke.image !== undefined)
-                  draw.image(stroke.image, stroke.p, 0,0, 0,stroke.size);
+                  draw.image(images[stroke.image], stroke.p, 0,0, 0,stroke.size);
             }
             
             // IF A THING IS HIGHLIGHTED, SHOW ITS BOUNDING BOX.
