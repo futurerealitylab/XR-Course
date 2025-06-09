@@ -162,7 +162,7 @@ export const init = async model => {
    let containsLink = (links, thing) => {
       if (links)
          for (let i = 0 ; i < links.length ; i++)
-            if (links[i] == thing.id)
+            if (links[i].id == thing.id)
 	       return true;
       return false;
    }
@@ -170,7 +170,7 @@ export const init = async model => {
    let removeLink = (links, thing) => {
       if (links)
          for (let i = 0 ; i < links.length ; i++)
-            if (links[i] == thing.id)
+            if (links[i].id == thing.id)
                links.splice(i, 1);
    }
 
@@ -348,12 +348,11 @@ export const init = async model => {
             if (thing.links) {
 	       let thing1 = thing;
                for (let i = 0 ; i < thing1.links.length ; i++) {
-                  let thing2 = findThingFromID(thing1.links[i]);
+                  let thing2 = findThingFromID(thing1.links[i].id);
                   let p1 = cg.mTransform(thing1.m, thing1.ST[3].slice(0,3));
                   let p2 = cg.mTransform(thing2.m, thing2.ST[3].slice(0,3));
                   let p3 = eye ? cg.add(p2, cg.scale(cg.normalize(cg.subtract(eye,p2)), .01)) : p2;
-		  let lw = thing1.linkAtCursor ? .005 : .002;
-                  draw.color('#ffffff').lineWidth(.010).line(p2,p3).lineWidth(lw).line(p1, p2);
+                  draw.color('#ffffff').lineWidth(.01).line(p2,p3).lineWidth(.002).line(p1, p2);
 
                   // DRAW A DIRECTIONAL ARROWHEAD IN THE MIDDLE OF EACH LINK.
 
@@ -367,7 +366,7 @@ export const init = async model => {
             }
          }
       }
-      draw.text(info, [0,1,0]);
+      draw.text(info, [0,.8,0]);
    });
 
    // DETERMINE WHETHER A THING CONTAINS A 3D POINT.
@@ -462,30 +461,12 @@ export const init = async model => {
 
 		     for (let n = 0 ; n < things.length ; n++) {
 		        let thing1 = things[n];
-
-			// FOR EACH THING, START WITH NO LINKS AT THE CURSOR.
-
-			if (thing1.linkAtCursor && thing1.linkAtCursor[id]) {
-			   delete thing1.linkAtCursor[id];
-			   if (Object.keys(thing1.linkAtCursor).length == 0)
-			      delete thing1.linkAtCursor;
-                        }
 		        if (thing1.links)
-
-			   //  LOOP THROUGH THE ALL THING'S LINKS.
-
 		           for (let i = 0 ; i < thing1.links.length ; i++) {
-			      let thing2 = findThingFromID(thing1.links[i]);
+			      let thing2 = findThingFromID(thing1.links[i].id);
                               let p = cg.mix(cg.mTransform(thing1.m, thing1.ST[3].slice(0,3)),
                                              cg.mTransform(thing2.m, thing2.ST[3].slice(0,3)), .5);
-
-			      //  ADD A LINK AT THE CURSOR IF ONE IS FOUND.
-
-                              if (cg.distance(p, P) < .02) {
-			         if (! thing1.linkAtCursor)
-				    thing1.linkAtCursor = {};
-			         thing1.linkAtCursor[id] = thing2.id;
-                              }
+			      thing1.links[i].at[id] = cg.distance(p, P) < .01;
 			   }
 		     }
 		  }
@@ -562,32 +543,25 @@ export const init = async model => {
 
                case 'release':
 
-	          // IF CLICKED ON A LINK, REMOVE THE LINK AND DO NOTHING ELSE.
+	          // IF CLICKED ON THE MIDDLE OF A LINK, REMOVE THE LINK.
 
-                  let removedLink = false;
+                  let isLinkRemoved = false;
                   for (let n = 0 ; n < things.length ; n++) {
 		     let thing = things[n];
+		     if (thing.links) {
+		        for (let i = 0 ; i < thing.links.length ; i++) {
+			   if (thing.links[i].at[id]) {
+		              removeLink(thing.links, findThingFromID(thing.links[i].id));
+			      isLinkRemoved = true;
+			      break;
+                           }
+                        }
+                     }
+                  }
 
-		     // IF A THING HAS A LINK AT THE CURSOR FOR THIS HAND OF THIS CLIENT:
+                  // IF A LINK WAS JUST REMOVED, DELETE THE DRAWN STROKE AND DO NOTHING ELSE.
 
-		     if (thing.linkAtCursor && thing.linkAtCursor[id]) {
-
-                        // REMOVE THE LINK.
-
-		        removeLink(thing.links, findThingFromID(thing.linkAtCursor[id]));
-
-                        // DELETE THE THING'S LINK AT THE CURSOR FOR THIS HAND OF THIS CLIENT.
-
-			delete thing.linkAtCursor[id];
-			if (Object.keys(thing.linkAtCursor).length == 0)
-			   delete thing.linkAtCursor;
-			removedLink = true;
-		     }
-		  }
-		  if (removedLink) {
-
-                     // THEN DELETE THE DRAWN STROKE AND DO NOTHING ELSE.
-
+		  if (isLinkRemoved) {
                      deleteThing(thingBeingDrawn[id]);
                      thingBeingDrawn[id] = null;
 		     break;
@@ -613,7 +587,7 @@ export const init = async model => {
                      if (thing2 && thing2.type != 'sketch' && thing2 != thing1) {
                         if (! thing1.links)
 			   thing1.links = [];
-                        thing1.links.push(thing2.id);
+                        thing1.links.push( { id: thing2.id, at: {} } );
                      }
                   }
 
@@ -743,13 +717,13 @@ export const init = async model => {
          for (let n = 0 ; n < things.length ; n++) {
             let thing1 = things[n];
             if (thing1.links)
-            for (let i = 0 ; i < thing1.links.length ; i++) {
-               let thing2 = findThingFromID(thing1.links[i]);
-               let code1 = thingCode[thing1.id];
-               let code2 = thingCode[thing2.id];
-               if (code1 && code1.output && code2 && code2.input)
-                  code2.input(code1.output());
-            }
+               for (let i = 0 ; i < thing1.links.length ; i++) {
+                  let thing2 = findThingFromID(thing1.links[i].id);
+                  let code1 = thingCode[thing1.id];
+                  let code2 = thingCode[thing2.id];
+                  if (code1 && code1.output && code2 && code2.input)
+                     code2.input(code1.output());
+               }
          }
 
          // UPDATE THE APPEARANCE OF NON-SKETCH THINGS.
