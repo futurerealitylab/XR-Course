@@ -292,6 +292,14 @@ export const init = async model => {
                                      && thing1.lo[1] < thing2.hi[1] && thing2.lo[1] < thing1.hi[1]
                                      && thing1.lo[2] < thing2.hi[2] && thing2.lo[2] < thing1.hi[2];
 
+   // PLACEHOLDER FOR COMPRESSING AND DECOMPRESSING STROKES - NOT YET IMPLEMENTED:
+
+   let compressStrokes = thing => {
+   }
+
+   let uncompressStrokes = thing => {
+   }
+
    // RENDER THE SCENE FOR THIS CLIENT.
 
    let g3 = new G3(model, draw => {
@@ -755,6 +763,10 @@ export const init = async model => {
                if (thing.timer < 1) {
                   thing.timer += 1.8 * model.deltaTime;
                   thing.strokes = matchCurves.mix(thing.ST[0], thing.ST[1], cg.ease(thing.timer));
+		  if (thing.timer >= 1) {
+		     thing.ST[0] = null;
+		     thing.ST[1] = null;
+		  }
                }
 
                // UPDATE THE APPEARANCE OF A NON-SKETCH THING.
@@ -799,10 +811,17 @@ export const init = async model => {
                         thing.lo[j] = Math.min(thing.lo[j], thing.strokes[n][i][j] - .01);
                         thing.hi[j] = Math.max(thing.hi[j], thing.strokes[n][i][j] + .01);
                      }
+
+            // THEN COMPRESS STROKES TO A MORE COMPACT FORM BEFORE SENDING TO OTHER CLIENTS.
+
+            compressStrokes(thing);
          }
 
          return things;
       });
+      if (things)
+         for (let n = 0 ; n < things.length ; n++)
+	    uncompressStrokes(things[n]);
       g3.update();
    });
 }
