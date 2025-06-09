@@ -352,7 +352,14 @@ export const init = async model => {
                   let p1 = cg.mTransform(thing1.m, thing1.ST[3].slice(0,3));
                   let p2 = cg.mTransform(thing2.m, thing2.ST[3].slice(0,3));
                   let p3 = eye ? cg.add(p2, cg.scale(cg.normalize(cg.subtract(eye,p2)), .01)) : p2;
-                  draw.color('#ffffff').lineWidth(.01).line(p2,p3).lineWidth(.002).line(p1, p2);
+
+		  let isHilit = false;
+		  for (let id in thing.links[i].at)
+		     if (thing.links[i].at[id])
+		        isHilit = true;
+
+                  draw.color('#ffffff').lineWidth(.010).line(p2, p3)
+		                       .lineWidth(isHilit ? .005 : .002).line(p1, p2);
 
                   // DRAW A DIRECTIONAL ARROWHEAD IN THE MIDDLE OF EACH LINK.
 
@@ -466,7 +473,7 @@ export const init = async model => {
 			      let thing2 = findThingFromID(thing1.links[i].id);
                               let p = cg.mix(cg.mTransform(thing1.m, thing1.ST[3].slice(0,3)),
                                              cg.mTransform(thing2.m, thing2.ST[3].slice(0,3)), .5);
-			      thing1.links[i].at[id] = cg.distance(p, P) < .01;
+			      thing1.links[i].at[id] = cg.distance(p, P) < .02;
 			   }
 		     }
 		  }
