@@ -7,7 +7,7 @@ export async function loadStereoSound(url, bufferSetter) {
         const arrayBuffer = await response.arrayBuffer();
         const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
         bufferSetter(audioBuffer);
-        console.log(`Sound loaded successfully from ${url}`);
+//        console.log(`Sound loaded successfully from ${url}`);
     } catch (error) {
         console.error(`Error loading sound from ${url}:`, error);
     }
