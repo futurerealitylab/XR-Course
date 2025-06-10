@@ -56,6 +56,8 @@ function preloadSounds() {
 preloadSounds();
 
 export const init = async model => {
+    let avatars = model.add();
+
     inputEvents.onClick = async hand => {
         const id = findBall(inputEvents.pos(hand));
         if (id === -1) return;
@@ -165,6 +167,8 @@ export const init = async model => {
         while (model.nChildren() > 0)
             model.remove(0);
 
+        avatars = model.add();
+
         // UI balls
         model.add('sphere').move(balls[0]).scale(radius).color(getColorForRecordBall()); // Record
         model.add('sphere').move(balls[1]).scale(radius).color([0, 0.6, 1]);              // Play
@@ -178,5 +182,34 @@ export const init = async model => {
         const m = soundAnchor.getGlobalMatrix();
         updateSoundPosition([m[12], m[13], m[14]]);
         model.remove(soundAnchor);
+
+        // Avatar rendering block
+        for (let n = 0; n < clients.length; n++) {
+            let id = clients[n];
+            if (id !== clientID && clientState.isXR(id)) {
+                let avatar = avatars.add();
+                avatar.add('ringZ')
+                    .setMatrix(clientState.head(id))
+                    .move(0, 0.01, 0)
+                    .scale(0.1, 0.12, 0.4)
+                    .opacity(0.7);
+                for (let hand of ['left', 'right']) {
+                    if (clientState.isHand(id)) {
+                        for (let i = 0; i < 5; i++) {
+                            avatar.add('sphere')
+                                .move(clientState.finger(id, hand, i))
+                                .scale(0.01)
+                                .opacity(0.7);
+                        }
+                    } else {
+                        avatar.add('sphere')
+                            .move(clientState.finger(id, hand, 1))
+                            .color(clientState.button(id, hand, 0) ? [2, 2, 2] : [1, 1, 1])
+                            .scale(0.02)
+                            .opacity(0.7);
+                    }
+                }
+            }
+        }
     });
 };

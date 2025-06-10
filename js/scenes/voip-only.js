@@ -6,6 +6,8 @@ let workletNode = null;
 const connectedPeers = {};
 const playbackQueues = {};
 
+let avatars = null;
+
 export const init = async model => {
    console.log("[VOIP] Starting VOIP system");
 
@@ -66,7 +68,6 @@ export const init = async model => {
                if (Array.isArray(data)) {
                   const floatData = new Float32Array(data);
 
-                  // RESAMPLING: 16kHz → audioCtx.sampleRate
                   const ratio = audioCtx.sampleRate / 16000;
                   const resampledLength = Math.floor(floatData.length * ratio);
                   const resampledBuffer = new Float32Array(resampledLength);
@@ -96,6 +97,40 @@ export const init = async model => {
                   lastPlaybackTime = playTime;
                }
             };
+         }
+      }
+
+      // Avatars rendering
+      if (avatars) model.remove(avatars);
+      avatars = model.add();
+
+      for (let n = 0; n < clients.length; n++) {
+         let id = clients[n];
+         if (id !== clientID && clientState.isXR(id)) {
+            let avatar = avatars.add();
+
+            avatar.add('ringZ')
+               .setMatrix(clientState.head(id))
+               .move(0, 0.01, 0)
+               .scale(0.1, 0.12, 0.4)
+               .opacity(0.7);
+
+            for (let hand of ['left', 'right']) {
+               if (clientState.isHand(id)) {
+                  for (let i = 0; i < 5; i++) {
+                     avatar.add('sphere')
+                        .move(clientState.finger(id, hand, i))
+                        .scale(0.01)
+                        .opacity(0.7);
+                  }
+               } else {
+                  avatar.add('sphere')
+                     .move(clientState.finger(id, hand, 1))
+                     .color(clientState.button(id, hand, 0) ? [2, 2, 2] : [1, 1, 1])
+                     .scale(0.02)
+                     .opacity(0.7);
+               }
+            }
          }
       }
    });

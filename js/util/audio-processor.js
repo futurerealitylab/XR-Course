@@ -19,12 +19,12 @@ class AudioProcessor extends AudioWorkletProcessor {
           }
           output[i] = sum / (end - start || 1);
        }
- 
+ /*
        this.port.postMessage({
           type: 'debug',
           message: `[Worklet] Downsampled length: ${output.length} from ${buffer.length}`
        });
- 
+ */
        return output;
     }
  
