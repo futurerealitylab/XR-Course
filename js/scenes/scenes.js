@@ -56,6 +56,7 @@ export default () => {
             { name: "speech1"            , path: "./speech1.js"            , public: true  },
             { name: "speech2"            , path: "./speech2.js"            , public: true  },
             { name: "speech3"            , path: "./speech3.js"            , public: true  },
+            { name: "audio-share-test"   , path: "./audio-share-test.js"   , public: true  },
 
             { name: "aiquery"            , path: "./demoAIQuery.js"        , public: true  },
             { name: "aiquery-console"    , path: "./demoAIQueryConsole.js" , public: true  },

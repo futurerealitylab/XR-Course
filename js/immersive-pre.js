@@ -12,7 +12,8 @@ import { EventBus } from "./primitive/eventbus.js";
 import { init as handTrackerInit } from "/js/render/core/videoHandTracker.js";
 import * as DefaultSystemEvents from "./primitive/event.js";
 import { dataSendToUnity } from "./data/dataToUnity.js";
-/*
+
+// head tracking for spatial audio
 import {
     loadAudioSources,
     updateAudioSources,
@@ -25,7 +26,7 @@ import {
 import {
     resonanceScene,
 } from "./util/spatial-audio.js";
-*/
+
 import { Client as WSClient } from "./util/websocket-client.js";
 import { updateController, controllerMatrix,  buttonState, joyStickState} from "./render/core/controllerInput.js";
 import * as keyboardInput from "./util/input_keyboard.js";
@@ -1047,7 +1048,7 @@ function onXRFrame(t, frame) {
     }
 */
     global.scene().drawXRFrame(frame, pose, time);
-/*
+
     if (pose && resonance) {
         resonance.setListenerFromMatrix({ elements: pose.transform.matrix });
     }
@@ -1055,7 +1056,7 @@ function onXRFrame(t, frame) {
     if (pose && resonanceScene) {
         resonanceScene.setListenerFromMatrix({ elements: pose.transform.matrix });
     }
-*/
+
     global.scene().endFrame();
 }
 
