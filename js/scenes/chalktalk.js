@@ -2,11 +2,13 @@ import * as cg from "../render/core/cg.js";
 import { G3 } from "../util/g3.js";
 import { matchCurves } from "../render/core/matchCurves3D.js";
 
-let elephant = new Image();
-elephant.src = 'media/images/elephant.png';
-let images = {
-   elephant: elephant
-};
+let imageNames = 'car,dog,elephant,fish,house'.split(',');
+let images = {};
+for (let i = 0 ; i < imageNames.length ; i++) {
+   let name = imageNames[i];
+   images[name] = new Image();
+   images[name].src = 'media/images/' + name + '.png';
+}
 
 export const init = async model => {
 
@@ -140,21 +142,24 @@ export const init = async model => {
    }
 
    addThingType('speech', function() {
-      let text = 'thing', image;
+      let text = 'thing', imageName;
       this.onClick = () => {
-         if (text == 'thing')
-            text = speech;
-         else
-            image = elephant;
+         imageName = null;
+	 for (let i = 0 ; i < imageNames.length ; i++) {
+	    let name = imageNames[i];
+	    if (speech.toLowerCase().indexOf(name) >= 0)
+               imageName = name;
+         }
+	 text = imageName ? '' : speech;
       }
       this.sketch = () => [ squircle(Math.PI) ];
       this.update = () => {
-         let graphics = [
-            squircle(Math.PI),
-         ];
-         if (image)
-            graphics.push( { image: "elephant", p:[0,0,0], size: .2 } );
-         else
+         let graphics = [ ];
+	 if (! imageName)
+            graphics.push(squircle(Math.PI));
+         if (imageName)
+            graphics.push( { image: imageName, p:[0,0,0], size: .15 } );
+         if (text)
             graphics.push( { text: text, p:[0,0,0], size:.03 } );
          return graphics;
       }
@@ -207,7 +212,12 @@ export const init = async model => {
       let strokes = thing.strokes, center = [0,0,0], count = 0;
       for (let n = 0 ; n < strokes.length ; n++) {
          let stroke = strokes[n];
-         if (Array.isArray(stroke))
+         if (stroke.image !== undefined) {
+	    center = stroke.p;
+	    count = 1;
+	    break;
+         }
+         else if (Array.isArray(stroke))
             for (let i = 0 ; i < stroke.length ; i++, count++)
                center = cg.add(center, stroke[i]);
       }
@@ -395,8 +405,8 @@ export const init = async model => {
                let thing1 = thing;
                for (let i = 0 ; i < thing1.links.length ; i++) {
                   let thing2 = findThingFromID(thing1.links[i].id);
-                  let p1 = cg.mTransform(thing1.m, thing1.ST[3].slice(0,3));
-                  let p2 = cg.mTransform(thing2.m, thing2.ST[3].slice(0,3));
+                  let p1 = transformOutof(thing1, [0,0,0]);
+                  let p2 = transformOutof(thing2, [0,0,0]);
                   let p3 = eye ? cg.add(p2, cg.scale(cg.normalize(cg.subtract(eye,p2)), .01)) : p2;
 
                   let isHilit = false;
@@ -436,6 +446,28 @@ export const init = async model => {
             return things[n];
       return null;
    }
+
+   // TRANSFORM A POINT INTO OR OUT OF THE INTERNAL COORDS OF A THING.
+
+   let transformOutof = (thing, p) => {
+      let T = thing.ST[3];
+      let q = [];
+      for (let j = 0 ; j < 3 ; j++)
+         q[j] = T[3] * p[j] + T[j];
+      return cg.mTransform(thing.m, q);
+   }
+
+   let transformInto = (thing, p) => {
+      let q = cg.mTransform(cg.mInverse(thing.m), p);
+      let T = thing.ST[3];
+      for (let j = 0 ; j < 3 ; j++)
+         q[j] = (q[j] - T[j]) / T[3];
+      return q;
+   } 
+
+   // IS THIS A NON-SKETCH THING?
+
+   let isNonsketch = thing => thing && thing.type != 'sketch';
 
    model.animate(() => {
 
@@ -517,8 +549,8 @@ export const init = async model => {
                         if (thing1.links)
                            for (let i = 0 ; i < thing1.links.length ; i++) {
                               let thing2 = findThingFromID(thing1.links[i].id);
-                              let p = cg.mix(cg.mTransform(thing1.m, thing1.ST[3].slice(0,3)),
-                                             cg.mTransform(thing2.m, thing2.ST[3].slice(0,3)), .5);
+                              let p = cg.mix(transformOutof(thing1, [0,0,0]),
+                                             transformOutof(thing2, [0,0,0]), .5);
                               thing1.links[i].at[id] = cg.distance(p, P) < .02;
                            }
                      }
@@ -574,13 +606,8 @@ export const init = async model => {
                      let thing = thingAtCursor[id];
                      if (thing) {
                         thing.dragCount++;
-                        if (! modifyThing[id] && ! clickOnBG[id] && thingCode[thing.id] && thingCode[thing.id].onDrag) {
-                           let p = cg.mTransform(cg.mInverse(thing.m), P);
-                           let T = thing.ST[3];
-                           for (let j = 0 ; j < 3 ; j++)
-                              p[j] = (p[j] - T[j]) / T[3];
-                           thingCode[thing.id].onDrag(p);
-                        }
+                        if (! modifyThing[id] && ! clickOnBG[id] && thingCode[thing.id] && thingCode[thing.id].onDrag)
+                           thingCode[thing.id].onDrag(transformInto(thing, P));
                      }
                   } 
 
@@ -646,17 +673,10 @@ export const init = async model => {
 
                   // IF WAS CLICKING ON A NON-SKETCH THING: SEND THE CLICK EVENT TO THE THING.
 
-                  if (! clickOnBG[id]) {
-                     if (thingAtCursor[id] && thingAtCursor[id].dragCount < np && thingAtCursor[id].type != 'sketch') {
-                        let thing = thingAtCursor[id];
-                        if (thingCode[thing.id] && thingCode[thing.id].onClick) {
-                           let p = cg.mTransform(cg.mInverse(thing.m), P);
-                           let T = thing.ST[3];
-                           for (let j = 0 ; j < 3 ; j++)
-                              p[j] = (p[j] - T[j]) / T[3];
-                           thingCode[thing.id].onClick(p);
-                        }
-                     }
+                  if (! clickOnBG[id] && thingAtCursor[id] && thingAtCursor[id].type != 'sketch' && thingAtCursor[id].dragCount < np) {
+                     let thing = thingAtCursor[id];
+                     if (thingCode[thing.id] && thingCode[thing.id].onClick)
+                        thingCode[thing.id].onClick(transformInto(thing, P));
                   }
 
                   // IF WAS CLICKING ON A THING AFTER CLICKING ON THE BACKGROUND: ENTER MODIFY MODE.
@@ -842,19 +862,30 @@ export const init = async model => {
             let thing = things[n];
             thing.lo = [ 1000, 1000, 1000 ];
             thing.hi = [-1000,-1000,-1000 ];
-            for (let n = 0 ; n < thing.strokes.length ; n++)
-               if (Array.isArray(thing.strokes[n]))
-                  for (let i = 0 ; i < thing.strokes[n].length ; i++)
+            for (let n = 0 ; n < thing.strokes.length ; n++) {
+	       let stroke = thing.strokes[n];
+               if (Array.isArray(stroke))
+                  for (let i = 0 ; i < stroke.length ; i++)
                      for (let j = 0 ; j < 3 ; j++) {
-                        thing.lo[j] = Math.min(thing.lo[j], thing.strokes[n][i][j] - .01);
-                        thing.hi[j] = Math.max(thing.hi[j], thing.strokes[n][i][j] + .01);
+                        thing.lo[j] = Math.min(thing.lo[j], stroke[i][j]);
+                        thing.hi[j] = Math.max(thing.hi[j], stroke[i][j]);
                      }
+               else if (stroke.image !== undefined) {
+	          let size = stroke.size;
+		  for (let j = 0 ; j < 3 ; j++) {
+	             thing.lo[j] = Math.min(thing.lo[j], stroke.p[j] - size/2);
+	             thing.hi[j] = Math.max(thing.hi[j], stroke.p[j] + size/2);
+                  }
+	       }
+	    }
 
-            // THEN COMPRESS STROKES TO A MORE COMPACT FORM BEFORE SENDING TO OTHER CLIENTS.
-
+            for (let j = 0 ; j < 3 ; j++) {
+               thing.lo[j] -= .01;
+               thing.hi[j] += .01;
+            }
          }
 /*
-         if (things)
+         if (things) // COMPRESS STROKES BEFORE SENDING.
             for (let n = 0 ; n < things.length ; n++)
                if (things[n].type == 'sketch')
                   compressStrokes(things[n]);
@@ -862,7 +893,7 @@ export const init = async model => {
          return things;
       });
 /*
-      if (things)
+      if (things) // UNCOMPRESS AFTER RECEIVING.
          for (let n = 0 ; n < things.length ; n++)
             if (things[n].type == 'sketch')
                uncompressStrokes(things[n]);
