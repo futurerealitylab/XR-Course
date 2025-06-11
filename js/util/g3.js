@@ -3,18 +3,27 @@ import { G2 } from "./g2.js";
 import { computeHandPose, fingerWidth } from "../render/core/avatars.js";
 
 let pz = .75;
+let yShift = 0;
 
 let Projected = function() {
-   let em, mf, ex, ey, ez, a,b,c, d,e,f, g,h,i, j,k,l, B, C;
+   this.setUpright = state => isUpright = state;
+   let em, mf, ex, ey, ez, a,b,c, d,e,f, g,h,i, j,k,l, B, C, isUpright = true, cm;
    this.getMatrix = () => mf;
    this.getScale = p => .5 * pz / (pz - (c*p[0] + f*p[1] + i*p[2] + l));
    this.projectPoint = p => {
       let X = p[0] - ex, Y = p[1] - ey, Z = p[2] - ez;
       let z = -C / (c*X + f*Y + i*Z);
-      return z < 0 ? null : [z * (a*X + d*Y + g*Z), z * (b*X + e*Y + h*Z) + B, z];
+      yShift = isUpright ? (-1.1 - 7 * cm[9]) : 0;
+      return z < 0 ? null : [z * (a*X + d*Y + g*Z), z * (b*X + e*Y + h*Z) + B - .005 - .2*yShift, z];
    }
    this.update = view => {
-      em = cg.mMultiply(clay.inverseRootMatrix, clay.root().inverseViewMatrix(view));
+      cm = clay.root().inverseViewMatrix(view);
+      em = cg.mMultiply(clay.inverseRootMatrix, cm);
+      if (isUpright) {
+         let X = cg.normalize(cg.cross([0,1,0], [em[8],em[9],em[10]]));
+         let Z = cg.normalize(cg.cross(X, [0,1,0]));
+         em = [ X[0],X[1],X[2],0, 0,1,0,0, Z[0],Z[1],Z[2],0, em[12],em[13],em[14],1 ];
+      }
       this.tilt = Math.atan2(em[1], Math.sqrt(em[0]*em[0]+em[2]*em[2]));
       ex = em[12];
       ey = em[13];
@@ -31,6 +40,7 @@ let Projected = function() {
 let projected = new Projected();
 
 export let G3 = function(model, callback) {
+   projected.setUpright(true);
    const DRAW = 0, FILL = 1, IMAGE = 2, LINE = 3, TEXT = 4;
 
    let color = '#000000',
@@ -51,7 +61,7 @@ export let G3 = function(model, callback) {
    for (let view = 0 ; view <= 1 ; view++) {
       g2[view] = new G2(false, 2040);
       screen[view] = model.add();
-      screen[view].add('square').setTxtr(g2[view].getCanvas()).view(view).move(0,.177,.6).scale(.2);
+      screen[view].add('square').setTxtr(g2[view].getCanvas()).view(view).move(0,.177+.039,.6).scale(.2);
       g2[view].render = function() { callback(draw); }
    }
 
@@ -187,6 +197,7 @@ export let G3 = function(model, callback) {
       return this;
    }
    this.lineWidth = lw => { lineWidth = lw; return this; }
+   this.setUpright = state => projected.setUpright(state);
    this.text = (text,center,alignment,x,y,rotation) => {
       let p = projected.projectPoint(center);
       if (p) {
@@ -234,6 +245,7 @@ export let G3 = function(model, callback) {
       for (view = 0 ; view <= 1 ; view++) {
          projected.update(view);
          screen[view].setMatrix(projected.getMatrix());
+         screen[view].child(0).identity().view(view).move(0,.177+.04*yShift,.6).scale(.2);
 
          nd = 0;
          g2[view].update();
@@ -315,7 +327,10 @@ export let G3 = function(model, callback) {
          for (let n = 0 ; n < nd ; n++)
             sortedDisplayList.push(displayList[n]);
          sortedDisplayList.sort((a,b) => a[0] - b[0]);
-
+/*
+	 g2[view].setColor('#ffffffa0');
+	 g2[view].fillRect(-1,-1,2,2);
+*/
          for (let n = 0 ; n < nd ; n++) {
             let item = sortedDisplayList[n];
             switch (item[1]) {

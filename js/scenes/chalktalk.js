@@ -2,12 +2,20 @@ import * as cg from "../render/core/cg.js";
 import { G3 } from "../util/g3.js";
 import { matchCurves } from "../render/core/matchCurves3D.js";
 
+let imageNames = 'car,dog,elephant,fish,house'.split(',');
+let images = {};
+for (let i = 0 ; i < imageNames.length ; i++) {
+   let name = imageNames[i];
+   images[name] = new Image();
+   images[name].src = 'media/images/' + name + '.png';
+}
+
 export const init = async model => {
 
    let info = '';              // IN CASE WE NEED TO SHOW DEBUG INFO IN THE SCENE
    let fm;                     // FORWARD HEAD MATRIX FOR THE CLIENT BEING EVALUATED
    let np = 10;                // NUMBER OF POINTS NEEDED FOR A STROKE TO NOT BE A CLICK
-   let speech = '';            // THE MOST RECENT THING THAT ANYBODY SAID.
+   let speech = '';            // THE MOST RECENT THING THAT ANYBODY SAID
 
    let prevP = {},             // PREVIOUS CURSOR POSITION FOR EACH HAND OF EVERY CLIENT
        things = [],            // THINGS SHARED BETWEEN CLIENTS
@@ -93,15 +101,15 @@ export const init = async model => {
       this.update = time => {
          t += rate * (time - (prevTime ?? time));
          prevTime = time;
-	 let min = t >> 0;
-	 let sec = (60 * t % 60) >> 0;
-	 let text = min + ':' + (sec < 10 ? '0' : '') + sec;
+         let min = t >> 0;
+         let sec = (60 * t % 60) >> 0;
+         let text = min + ':' + (sec < 10 ? '0' : '') + sec;
          return [
-	    circle(),
-	    [ circlePoint(2 * Math.PI * t), [0,0,0] ],
-	    { text: text, p: [0,-.5,0], size: .03 },
+            circle(),
+            [ circlePoint(2 * Math.PI * t), [0,0,0] ],
+            { text: text, p: [0,-.5,0], size: .03 },
 
-	 ];
+         ];
       };
       this.input = value => rate = value;
       this.output = () => t;
@@ -127,20 +135,52 @@ export const init = async model => {
          let t = 2 * Math.PI * n / 24 + phase;
          let x = Math.sin(t);
          let y = Math.cos(t);
-	 let r = Math.pow(x*x*x*x + y*y*y*y, 1/4);
+         let r = Math.pow(x*x*x*x + y*y*y*y, 1/4);
          c.push([x/r, y/r, 0]);
       }
       return c;
    }
 
    addThingType('speech', function() {
-      let text = 'text';
-      this.onClick = () => text = speech;
+      let text = 'thing', imageName;
+      this.onClick = () => {
+         imageName = null;
+	 for (let i = 0 ; i < imageNames.length ; i++) {
+	    let name = imageNames[i];
+	    if (speech.toLowerCase().indexOf(name) >= 0)
+               imageName = name;
+         }
+	 text = imageName ? '' : speech;
+      }
       this.sketch = () => [ squircle(Math.PI) ];
-      this.update = () => [ squircle(Math.PI), { text:text, p:[0,0,0], size:.03 } ];
+      this.update = () => {
+         let graphics = [ ];
+	 if (! imageName)
+            graphics.push(squircle(Math.PI));
+         if (imageName)
+            graphics.push( { image: imageName, p:[0,0,0], size: .15 } );
+         if (text)
+            graphics.push( { text: text, p:[0,0,0], size:.03 } );
+         return graphics;
+      }
    });
 
 ///////////////////////////////////////////////////////////////////////////////
+
+   let containsLink = (links, thing) => {
+      if (links)
+         for (let i = 0 ; i < links.length ; i++)
+            if (links[i].id == thing.id)
+               return true;
+      return false;
+   }
+
+   let removeLink = (links, thing) => {
+      if (links)
+         for (let i = 0 ; i < links.length ; i++)
+            if (links[i].id == thing.id)
+               links.splice(i, 1);
+   }
 
    // DELETE A THING FROM THE SCENE.
 
@@ -151,18 +191,10 @@ export const init = async model => {
             break;
          }
 
-      // ALSO REMOVE ANY LINKS TO OR FROM THE THING.
+      // ALSO REMOVE ANY LINKS TO THE THING.
 
-      let removeLink = links => {
-         if (links)
-            for (let i = 0 ; i < links.length ; i++)
-               if (links[i] == thing.id)
-                  links.splice(i, 1);
-      }
-      for (let n = 0 ; n < things.length ; n++) {
-         removeLink(things[n].linkSrc);
-         removeLink(things[n].linkDst);
-      }
+      for (let n = 0 ; n < things.length ; n++)
+         removeLink(things[n].links, thing);
    }
 
    // FIND A THING, GIVEN ITS UNIQUE ID.
@@ -180,7 +212,12 @@ export const init = async model => {
       let strokes = thing.strokes, center = [0,0,0], count = 0;
       for (let n = 0 ; n < strokes.length ; n++) {
          let stroke = strokes[n];
-         if (Array.isArray(stroke))
+         if (stroke.image !== undefined) {
+	    center = stroke.p;
+	    count = 1;
+	    break;
+         }
+         else if (Array.isArray(stroke))
             for (let i = 0 ; i < stroke.length ; i++, count++)
                center = cg.add(center, stroke[i]);
       }
@@ -268,10 +305,66 @@ export const init = async model => {
                                      && thing1.lo[1] < thing2.hi[1] && thing2.lo[1] < thing1.hi[1]
                                      && thing1.lo[2] < thing2.hi[2] && thing2.lo[2] < thing1.hi[2];
 
+   // PLACEHOLDER FOR COMPRESSING AND DECOMPRESSING STROKES - NOT YET IMPLEMENTED:
+
+   /*
+      To compress things of type 'stroke' we create a parallel structure for each stroke.
+      The structure contains the start position of the stroke. Subsequent points are then
+      e encoded as the difference from the previous point. This lets us use a single byte
+      (-127 mm to +127 mm, which equals -5 inches to +5 inches) for the difference in each
+      of x,y and z. When compressing, we also delete the contents of the original stroke.
+      This results in a compression factor of 4. To uncompress, we reconstruct the stroke
+      contents from the compressed data, and remove the temporary data structure.
+
+      Still working on this. It won't be functional until we shift strokes data over to use
+      integer millimeters, and then do proper rounding when transforming strokes.
+   */
+
+   let compressStrokes = thing => {
+      thing.cs = [];
+      for (let n = 0 ; n < thing.strokes.length ; n++)
+         if (Array.isArray(thing.strokes[n])) {
+            let stroke = thing.strokes[n];
+            let pd = { p: stroke[0] };
+            pd.d = new Int8Array(3 * stroke.length - 3);
+            for (let i = 0 ; i < pd.d.length / 3 ; i++)
+               for (let j = 0 ; j < 3 ; j++)
+                  pd.d[3 * i + j] = 1000 * (stroke[i+1][j] - stroke[i][j]);
+            thing.cs[n] = pd;
+            thing.strokes[n] = [];
+         }
+   }
+
+   let uncompressStrokes = thing => {
+      for (let n = 0 ; n < thing.strokes.length ; n++)
+         if (Array.isArray(thing.strokes[n])) {
+            let pd = thing.cs[n];
+            let stroke = [ pd.p ];
+            let add = (i,j) => stroke[i][j] + pd.d[3 * i + j] / 1000;
+            for (let i = 0 ; i < pd.d.length / 3 ; i++)
+               stroke.push([ add(i,0), add(i,1), add(i,2) ]);
+            thing.strokes[n] = stroke;
+         }
+      delete thing.cs;
+   }
+
    // RENDER THE SCENE FOR THIS CLIENT.
 
    let g3 = new G3(model, draw => {
       if (things) {
+
+         // TURN ANY HUD THING TOWARD EACH CLIENT WHEN DISPLAYING.
+
+         if (draw.view() == 0)
+            for (let n = 0 ; n < things.length ; n++) {
+               let thing = things[n];
+               if (thing.hud && thing.m) {
+                  let m = thing.m;
+                  let ray = cg.subtract(thing.fp, computeThingCenter(thing));
+                  spinThingByTheta(thing, Math.atan2(ray[0], ray[2]) - Math.atan2(m[8], m[10]), true);
+               }
+            }
+
          let hm = clientState.head(clientID);
          let eye = hm ? hm.slice(12,15) : null;
          for (let n = 0 ; n < things.length ; n++) {
@@ -288,8 +381,10 @@ export const init = async model => {
                      draw.textHeight(stroke.size);
                   draw.text(stroke.text, stroke.p, stroke.align ?? 'center', stroke.x ?? 0, stroke.y ?? 0);
                }
+               else if (stroke.image !== undefined)
+                  draw.image(images[stroke.image], stroke.p, 0,0, 0,stroke.size);
             }
-
+            
             // IF A THING IS HIGHLIGHTED, SHOW ITS BOUNDING BOX.
 
             if (thing.hilit) {
@@ -306,18 +401,35 @@ export const init = async model => {
 
             // SHOW LINKS BETWEEN THINGS.
 
-            if (thing.linkDst)
-               for (let i = 0 ; i < thing.linkDst.length ; i++) {
-                  let other = findThingFromID(thing.linkDst[i]);
-                  let p1 = cg.mTransform(thing.m, thing.ST[3].slice(0,3));
-                  let p2 = cg.mTransform(other.m, other.ST[3].slice(0,3));
+            if (thing.links) {
+               let thing1 = thing;
+               for (let i = 0 ; i < thing1.links.length ; i++) {
+                  let thing2 = findThingFromID(thing1.links[i].id);
+                  let p1 = transformOutof(thing1, [0,0,0]);
+                  let p2 = transformOutof(thing2, [0,0,0]);
                   let p3 = eye ? cg.add(p2, cg.scale(cg.normalize(cg.subtract(eye,p2)), .01)) : p2;
-                  draw.color('#ffffff').lineWidth(.002).line(p1, p2)
-                                       .lineWidth(.010).line(p2, p3);
+
+                  let isHilit = false;
+                  for (let id in thing.links[i].at)
+                     if (thing.links[i].at[id])
+                        isHilit = true;
+
+                  draw.color('#ffffff').lineWidth(.010).line(p2, p3)
+                                       .lineWidth(isHilit ? .005 : .002).line(p1, p2);
+
+                  // DRAW A DIRECTIONAL ARROWHEAD IN THE MIDDLE OF EACH LINK.
+
+                  let p = cg.mix(p1, p2, .5);
+                  let u = cg.normalize(cg.subtract(p2, p1));
+                  let v = cg.normalize(cg.cross(cg.cross(u,[0,1,0]),u));
+                  let pa = cg.add(p, cg.add(cg.scale(u,-.01),cg.scale(v, .01)));
+                  let pb = cg.add(p, cg.add(cg.scale(u,-.01),cg.scale(v,-.01)));
+                  draw.line(pa,p).line(p,pb);
                }
+            }
          }
       }
-      draw.text(info, [0,1.2,0]);
+      draw.text(info, [0,.8,0]);
    });
 
    // DETERMINE WHETHER A THING CONTAINS A 3D POINT.
@@ -334,6 +446,28 @@ export const init = async model => {
             return things[n];
       return null;
    }
+
+   // TRANSFORM A POINT INTO OR OUT OF THE INTERNAL COORDS OF A THING.
+
+   let transformOutof = (thing, p) => {
+      let T = thing.ST[3];
+      let q = [];
+      for (let j = 0 ; j < 3 ; j++)
+         q[j] = T[3] * p[j] + T[j];
+      return cg.mTransform(thing.m, q);
+   }
+
+   let transformInto = (thing, p) => {
+      let q = cg.mTransform(cg.mInverse(thing.m), p);
+      let T = thing.ST[3];
+      for (let j = 0 ; j < 3 ; j++)
+         q[j] = (q[j] - T[j]) / T[3];
+      return q;
+   } 
+
+   // IS THIS A NON-SKETCH THING?
+
+   let isNonsketch = thing => thing && thing.type != 'sketch';
 
    model.animate(() => {
 
@@ -385,14 +519,6 @@ export const init = async model => {
 
                case 'up':
 
-                  // KEEP TRACK OF THE THING AT THE CURSOR, IF ANY.
-
-                  thingAtCursor[id] = findThingAtPoint(P);
-                  if (thingAtCursor[id]) {
-                     thingAtCursor[id].hilit = 1;
-                     thingAtCursor[id].dragCount = 0;
-                  }
-
                   // IF IN MODIFY MODE: MOVE, SCALE OR SPIN A THING.
 
                   if (modifyThing[id]) {
@@ -403,6 +529,30 @@ export const init = async model => {
                      case 'move' : moveThing (thing, d); break;
                      case 'scale': scaleThing(thing, d); break;
                      case 'spin' : spinThing (thing, d); break;
+                     }
+                  }
+                  
+                  else {
+
+                     // KEEP TRACK OF THE THING AT THE CURSOR, IF ANY.
+
+                     thingAtCursor[id] = findThingAtPoint(P);
+                     if (thingAtCursor[id]) {
+                        thingAtCursor[id].hilit = 1;
+                        thingAtCursor[id].dragCount = 0;
+                     }
+
+                     // CHECK FOR A LINK AT THE CURSOR FOR THIS HAND OF THIS CLIENT.
+
+                     for (let n = 0 ; n < things.length ; n++) {
+                        let thing1 = things[n];
+                        if (thing1.links)
+                           for (let i = 0 ; i < thing1.links.length ; i++) {
+                              let thing2 = findThingFromID(thing1.links[i].id);
+                              let p = cg.mix(transformOutof(thing1, [0,0,0]),
+                                             transformOutof(thing2, [0,0,0]), .5);
+                              thing1.links[i].at[id] = cg.distance(p, P) < .02;
+                           }
                      }
                   }
 
@@ -420,15 +570,15 @@ export const init = async model => {
                      things.push(thingBeingDrawn[id]);
                   }
 
-		  // CLICK ON BACKGROUND FOLLOWED BY PINCH ON A THING:
+                  // CLICK ON BACKGROUND FOLLOWED BY PINCH ON A THING:
 
                   if (clickOnBG[id] && thingAtCursor[id]) {
-		     let center = computeThingCenter(thingAtCursor[id]);
+                     let center = computeThingCenter(thingAtCursor[id]);
                      let x = cg.dot(cg.subtract(clickOnBG[id].p, center), [fm[0],fm[1],fm[2]]);
                      let y = clickOnBG[id].p[1] - center[1];
-		     let dir = ((4 * (Math.atan2(y, x) + Math.PI/8) / Math.PI >> 0) + 8) % 8;
-		     clickOnBG[id].dir = (8 + 4 * (Math.atan2(y, x) + Math.PI/8) / Math.PI >> 0) % 8;
-		  }
+                     let dir = ((4 * (Math.atan2(y, x) + Math.PI/8) / Math.PI >> 0) + 8) % 8;
+                     clickOnBG[id].dir = (8 + 4 * (Math.atan2(y, x) + Math.PI/8) / Math.PI >> 0) % 8;
+                  }
 
                   // START A PINCH ON A NON-SKETCH THING AFTER CLICK TO ITS LEFT ON THE BACKGROUND: START DRAWING A LINK.
 
@@ -456,13 +606,8 @@ export const init = async model => {
                      let thing = thingAtCursor[id];
                      if (thing) {
                         thing.dragCount++;
-                        if (! modifyThing[id] && ! clickOnBG[id] && thingCode[thing.id] && thingCode[thing.id].onDrag) {
-                           let p = cg.mTransform(cg.mInverse(thing.m), P);
-                           let T = thing.ST[3];
-                           for (let j = 0 ; j < 3 ; j++)
-                              p[j] = (p[j] - T[j]) / T[3];
-                           thingCode[thing.id].onDrag(p);
-                        }
+                        if (! modifyThing[id] && ! clickOnBG[id] && thingCode[thing.id] && thingCode[thing.id].onDrag)
+                           thingCode[thing.id].onDrag(transformInto(thing, P));
                      }
                   } 
 
@@ -477,6 +622,30 @@ export const init = async model => {
                // WHEN RELEASING A PINCH:
 
                case 'release':
+
+                  // IF CLICKED ON THE MIDDLE OF A LINK, REMOVE THE LINK.
+
+                  let isLinkRemoved = false;
+                  for (let n = 0 ; n < things.length ; n++) {
+                     let thing = things[n];
+                     if (thing.links) {
+                        for (let i = 0 ; i < thing.links.length ; i++) {
+                           if (thing.links[i].at[id]) {
+                              removeLink(thing.links, findThingFromID(thing.links[i].id));
+                              isLinkRemoved = true;
+                              break;
+                           }
+                        }
+                     }
+                  }
+
+                  // IF A LINK WAS JUST REMOVED, DELETE THE DRAWN STROKE AND DO NOTHING ELSE.
+
+                  if (isLinkRemoved) {
+                     deleteThing(thingBeingDrawn[id]);
+                     thingBeingDrawn[id] = null;
+                     break;
+                  }
 
                   // IF THIS WAS A DRAG GESTURE: SET THE CLICK COUNT TO ZERO.
 
@@ -496,46 +665,38 @@ export const init = async model => {
                      let thing1 = linkSrc[id];
                      let thing2 = findThingAtPoint(P);
                      if (thing2 && thing2.type != 'sketch' && thing2 != thing1) {
-                        if (! thing1.linkDst) thing1.linkDst = [];
-                        if (! thing2.linkSrc) thing2.linkSrc = [];
-                        thing1.linkDst.push(thing2.id);
-                        thing2.linkSrc.push(thing1.id);
+                        if (! thing1.links)
+                           thing1.links = [];
+                        thing1.links.push( { id: thing2.id, at: {} } );
                      }
                   }
 
                   // IF WAS CLICKING ON A NON-SKETCH THING: SEND THE CLICK EVENT TO THE THING.
 
-                  if (! clickOnBG[id]) {
-                     if (thingAtCursor[id] && thingAtCursor[id].dragCount < np && thingAtCursor[id].type != 'sketch') {
-                        let thing = thingAtCursor[id];
-                        if (thingCode[thing.id] && thingCode[thing.id].onClick) {
-                           let p = cg.mTransform(cg.mInverse(thing.m), P);
-                           let T = thing.ST[3];
-                           for (let j = 0 ; j < 3 ; j++)
-                              p[j] = (p[j] - T[j]) / T[3];
-                           thingCode[thing.id].onClick(p);
-                        }
-                     }
+                  if (! clickOnBG[id] && thingAtCursor[id] && thingAtCursor[id].type != 'sketch' && thingAtCursor[id].dragCount < np) {
+                     let thing = thingAtCursor[id];
+                     if (thingCode[thing.id] && thingCode[thing.id].onClick)
+                        thingCode[thing.id].onClick(transformInto(thing, P));
                   }
 
                   // IF WAS CLICKING ON A THING AFTER CLICKING ON THE BACKGROUND: ENTER MODIFY MODE.
 
                   if (clickOnBG[id] && thingAtCursor[id] && thingAtCursor[id].dragCount < np) {
                      let thing = thingAtCursor[id];
-		     switch (clickOnBG[id].dir) {
-		     case 0:
+                     switch (clickOnBG[id].dir) {
+                     case 0:
                         deleteThing(thing);
                         thingAtCursor[id] = null;
-			break;
-		     case 2: modifyThing[id] = { thing: thing, state: 'scale' } ; break;
-		     case 4: modifyThing[id] = { thing: thing, state: 'move'  } ; break;
-		     case 6: modifyThing[id] = { thing: thing, state: 'spin'  } ; break;
-		     }
+                        break;
+                     case 2: modifyThing[id] = { thing: thing, state: 'scale' } ; break;
+                     case 4: modifyThing[id] = { thing: thing, state: 'move'  } ; break;
+                     case 6: modifyThing[id] = { thing: thing, state: 'spin'  } ; break;
+                     }
                   }
 
                   if (clickOnBG[id] && thingAtCursor[id] && thingAtCursor[id].dragCount >= np)
-		     if (clickOnBG[id].dir == 6)
-		        thingAtCursor[id].hud = ! thingAtCursor[id].hud;
+                     if (clickOnBG[id].dir == 6)
+                        thingAtCursor[id].hud = ! thingAtCursor[id].hud;
 
                   // IF JUST FINISHED DRAWING A STROKE:
 
@@ -628,14 +789,14 @@ export const init = async model => {
 
          for (let n = 0 ; n < things.length ; n++) {
             let thing1 = things[n];
-            if (thing1.linkDst)
-            for (let i = 0 ; i < thing1.linkDst.length ; i++) {
-               let thing2 = findThingFromID(thing1.linkDst[i]);
-               let code1 = thingCode[thing1.id];
-               let code2 = thingCode[thing2.id];
-               if (code1 && code1.output && code2 && code2.input)
-                  code2.input(code1.output());
-            }
+            if (thing1.links)
+               for (let i = 0 ; i < thing1.links.length ; i++) {
+                  let thing2 = findThingFromID(thing1.links[i].id);
+                  let code1 = thingCode[thing1.id];
+                  let code2 = thingCode[thing2.id];
+                  if (code1 && code1.output && code2 && code2.input)
+                     code2.input(code1.output());
+               }
          }
 
          // UPDATE THE APPEARANCE OF NON-SKETCH THINGS.
@@ -660,6 +821,10 @@ export const init = async model => {
                if (thing.timer < 1) {
                   thing.timer += 1.8 * model.deltaTime;
                   thing.strokes = matchCurves.mix(thing.ST[0], thing.ST[1], cg.ease(thing.timer));
+                  if (thing.timer >= 1) {
+                     thing.ST[0] = null; // AFTER THIS POINT, THESE ARE NO LONGER NEEDED.
+                     thing.ST[1] = null; // DELETING THEM SAVES BANDWIDTH BETWEEN CLIENTS.
+                  }
                }
 
                // UPDATE THE APPEARANCE OF A NON-SKETCH THING.
@@ -670,7 +835,7 @@ export const init = async model => {
                      thing.strokes = matchCurves.animate(() => thingCode[thing.id].update(thing.timer-1),
                                                          cg.mIdentity(), thing.timer-1, thing.ST[3]);
 
-	             let m = thing.m;
+                     let m = thing.m;
                      for (let n = 0 ; n < thing.strokes.length ; n++) {
                         let stroke = thing.strokes[n];
                         if (Array.isArray(stroke))
@@ -682,10 +847,10 @@ export const init = async model => {
                            stroke.size *= cg.norm(m.slice(0,3));
                      }
 
-		     if (thing.hud) {
-		        let ray = cg.subtract(fm.slice(12,15), computeThingCenter(thing));
-		        spinThingByTheta(thing, Math.atan2(ray[0], ray[2]) - Math.atan2(m[8], m[10]), true);
-                     }
+                     // IF HUD, PREPARE TO TURN THING TOWARD EACH CLIENT WHEN DISPLAYING IT.
+
+                     if (thing.hud)
+                        thing.fp = fm.slice(12,15);
                   }
                }
             }
@@ -697,17 +862,42 @@ export const init = async model => {
             let thing = things[n];
             thing.lo = [ 1000, 1000, 1000 ];
             thing.hi = [-1000,-1000,-1000 ];
-            for (let n = 0 ; n < thing.strokes.length ; n++)
-               if (Array.isArray(thing.strokes[n]))
-                  for (let i = 0 ; i < thing.strokes[n].length ; i++)
+            for (let n = 0 ; n < thing.strokes.length ; n++) {
+	       let stroke = thing.strokes[n];
+               if (Array.isArray(stroke))
+                  for (let i = 0 ; i < stroke.length ; i++)
                      for (let j = 0 ; j < 3 ; j++) {
-                        thing.lo[j] = Math.min(thing.lo[j], thing.strokes[n][i][j] - .01);
-                        thing.hi[j] = Math.max(thing.hi[j], thing.strokes[n][i][j] + .01);
+                        thing.lo[j] = Math.min(thing.lo[j], stroke[i][j]);
+                        thing.hi[j] = Math.max(thing.hi[j], stroke[i][j]);
                      }
-         }
+               else if (stroke.image !== undefined) {
+	          let size = stroke.size;
+		  for (let j = 0 ; j < 3 ; j++) {
+	             thing.lo[j] = Math.min(thing.lo[j], stroke.p[j] - size/2);
+	             thing.hi[j] = Math.max(thing.hi[j], stroke.p[j] + size/2);
+                  }
+	       }
+	    }
 
+            for (let j = 0 ; j < 3 ; j++) {
+               thing.lo[j] -= .01;
+               thing.hi[j] += .01;
+            }
+         }
+/*
+         if (things) // COMPRESS STROKES BEFORE SENDING.
+            for (let n = 0 ; n < things.length ; n++)
+               if (things[n].type == 'sketch')
+                  compressStrokes(things[n]);
+*/
          return things;
       });
+/*
+      if (things) // UNCOMPRESS AFTER RECEIVING.
+         for (let n = 0 ; n < things.length ; n++)
+            if (things[n].type == 'sketch')
+               uncompressStrokes(things[n]);
+*/
       g3.update();
    });
 }
