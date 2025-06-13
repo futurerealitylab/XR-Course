@@ -13,11 +13,12 @@ let Projected = function() {
    this.projectPoint = p => {
       let X = p[0] - ex, Y = p[1] - ey, Z = p[2] - ez;
       let z = -C / (c*X + f*Y + i*Z);
-      yShift = isUpright ? (-1.1 - 7 * cm[9]) : 0;
       return z < 0 ? null : [z * (a*X + d*Y + g*Z), z * (b*X + e*Y + h*Z) + B - .005 - .2*yShift, z];
    }
    this.update = view => {
       cm = clay.root().inverseViewMatrix(view);
+      if (view == 0)
+         yShift = isUpright ? (-1.1 - 7 * cm[9]) : 0;
       em = cg.mMultiply(clay.inverseRootMatrix, cm);
       if (isUpright) {
          let X = cg.normalize(cg.cross([0,1,0], [em[8],em[9],em[10]]));
@@ -327,10 +328,7 @@ export let G3 = function(model, callback) {
          for (let n = 0 ; n < nd ; n++)
             sortedDisplayList.push(displayList[n]);
          sortedDisplayList.sort((a,b) => a[0] - b[0]);
-/*
-	 g2[view].setColor('#ffffffa0');
-	 g2[view].fillRect(-1,-1,2,2);
-*/
+
          for (let n = 0 ; n < nd ; n++) {
             let item = sortedDisplayList[n];
             switch (item[1]) {
