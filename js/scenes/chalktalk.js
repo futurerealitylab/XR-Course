@@ -221,23 +221,12 @@ export const init = async model => {
             for (let i = 0 ; i < stroke.length ; i++, count++)
                center = cg.add(center, stroke[i]);
       }
-      return cg.scale(center, 1 / count);
+      return cg.mTransform(thing.m, cg.scale(center, 1 / count));
    }
 
    // MOVE THE POSITION OF A THING.
 
    let moveThing = (thing, d) => {
-      let strokes = thing.strokes;
-      for (let n = 0 ; n < strokes.length ; n++) {
-         let stroke = strokes[n];
-         if (Array.isArray(stroke))
-            for (let i = 0 ; i < stroke.length ; i++)
-               for (let j = 0 ; j < 3 ; j++)
-                  stroke[i][j] += d[j];
-         else
-            for (let j = 0 ; j < 3 ; j++)
-               stroke.p[j] += d[j];
-      }
       if (thing.m)
          for (let j = 0 ; j < 3 ; j++)
             thing.m[12 + j] += d[j];
@@ -248,16 +237,7 @@ export const init = async model => {
    let scaleThing = (thing, d) => {
       let s = 1 + 4 * d[1];
       let center = computeThingCenter(thing);
-      let strokes = thing.strokes;
       let scale = p => cg.add(cg.scale(cg.subtract(p, center), s), center);
-      for (let n = 0 ; n < strokes.length ; n++) {
-         let stroke = strokes[n];
-         if (Array.isArray(stroke))
-            for (let i = 0 ; i < stroke.length ; i++)
-               stroke[i] = scale(stroke[i]);
-         else if (stroke.p)
-            stroke.p = scale(stroke.p);
-      }
       if (thing.m) {
          for (let j = 0 ; j < 3 ; j++)
             thing.m[12 + j] -= center[j];
@@ -274,22 +254,6 @@ export const init = async model => {
    let spinThingByTheta = (thing, theta, noMatrix) => {
       let c = Math.cos(theta), s = Math.sin(theta);
       let center = computeThingCenter(thing);
-      let spin = p => {
-         p = cg.subtract(p, center);
-         let x = p[0], z = p[2];
-         p[0] =  c * x + s * z;
-         p[2] = -s * x + c * z;
-         return cg.add(p, center);
-      }
-      let strokes = thing.strokes;
-      for (let n = 0 ; n < strokes.length ; n++) {
-         let stroke = strokes[n];
-         if (Array.isArray(stroke))
-            for (let i = 0 ; i < stroke.length ; i++)
-               stroke[i] = spin(stroke[i]);
-         else
-            stroke.p = spin(stroke.p);
-      }
       if (! noMatrix && thing.m) {
          for (let j = 0 ; j < 3 ; j++)
             thing.m[12 + j] -= center[j];
@@ -326,20 +290,25 @@ export const init = async model => {
          let eye = hm ? hm.slice(12,15) : null;
          for (let n = 0 ; n < things.length ; n++) {
             let thing = things[n];
-            draw.color('#ff00ff').lineWidth(thing.hilit ? .006 : .003);
+            draw.color('#00ffff').lineWidth(thing.hilit ? .006 : .003);
+	    let m = thing.m;
             let strokes = thing.strokes;
             for (let n = 0 ; n < strokes.length ; n++) {
                let stroke = strokes[n];
-               if (Array.isArray(stroke))
-                  for (let i = 0 ; i < stroke.length - 1 ; i++)
-                     draw.line(stroke[i], stroke[i+1]);
+               if (Array.isArray(stroke)) {
+	          let s = [];
+                  for (let i = 0 ; i < stroke.length ; i++)
+		     s.push(cg.mTransform(m, stroke[i]));
+                  for (let i = 0 ; i < s.length - 1 ; i++)
+                     draw.line(s[i], s[i+1]);
+               }
                else if (stroke.text !== undefined) {
                   if (stroke.size)
-                     draw.textHeight(stroke.size);
-                  draw.text(stroke.text, stroke.p, stroke.align ?? 'center', stroke.x ?? 0, stroke.y ?? 0);
+                     draw.textHeight(cg.norm(m.slice(0,3)) * stroke.size);
+                  draw.text(stroke.text, cg.mTransform(m, stroke.p), stroke.align ?? 'center', stroke.x ?? 0, stroke.y ?? 0);
                }
                else if (stroke.image !== undefined)
-                  draw.image(images[stroke.image], stroke.p, 0,0, 0,stroke.size);
+                  draw.image(images[stroke.image], cg.mTransform(m, stroke.p), 0,0, 0,stroke.size);
             }
             
             // IF A THING IS HIGHLIGHTED, SHOW ITS BOUNDING BOX.
@@ -523,7 +492,12 @@ export const init = async model => {
 
                   thingBeingDrawn[id] = null;
                   if (! clickOnBG[id] && ! modifyThing[id] && (! thingAtCursor[id] || thingAtCursor[id].type=='sketch')) {
-                     thingBeingDrawn[id] = { type: 'sketch', strokes: [ [P] ], hilit: 0, dragCount: 0 };
+                     thingBeingDrawn[id] = { id: cg.uniqueID(),
+		                             type: 'sketch',
+					     m: cg.mIdentity(),
+					     strokes: [ [P] ],
+					     hilit: 0,
+					     dragCount: 0 };
                      things.push(thingBeingDrawn[id]);
                   }
 
@@ -691,7 +665,7 @@ export const init = async model => {
 
                         if (isClickStroke) {
 
-                           // FIRST TRANSFORM THE SKETCH STROKES INTO THE INTERNAL COORDINATE SYSTEM OF THE THING.
+                           // TRANSFORM THE SKETCH STROKES INTO THE INTERNAL COORDINATE SYSTEM OF THE THING.
 
                            let im = cg.mInverse(fm);
                            let strokes = sketch.strokes;
@@ -704,20 +678,10 @@ export const init = async model => {
                                  ss.push(s);
                               }
 
-                           // THEN RECOGNIZE THE STROKES, THEN TRANSFORM BACK.
+                           // RECOGNIZE THE STROKES, DELETE THE SKETCH, CREATE AND ADD THE NEW THING TO THE SCENE.
 
                            let ST = matchCurves.recognize(ss);
-                           for (let k = 0 ; k <= 1 ; k++)
-                              for (let n = 0 ; n < ST[k].length ; n++)
-                                 for (let i = 0 ; i < ST[k][n].length ; i++)
-                                    ST[k][n][i] = cg.mTransform(fm, ST[k][n][i]);
-
-                           // DELETE THE ORIGINAL SKETCH.
-
                            deleteThing(sketch);
-
-                           // CREATE THE NEW NON-SKETCH THING AND ADD IT TO THE SCENE.
-
                            let glyph = matchCurves.glyph(ST[2]);
                            things.push( { type: glyph.name, ST: ST, timer: 0, m: fm, id: cg.uniqueID() } );
                         }
@@ -792,19 +756,7 @@ export const init = async model => {
                      thing.strokes = matchCurves.animate(() => thingCode[thing.id].update(thing.timer-1),
                                                          cg.mIdentity(), thing.timer-1, thing.ST[3]);
 
-                     let m = thing.m;
-                     for (let n = 0 ; n < thing.strokes.length ; n++) {
-                        let stroke = thing.strokes[n];
-                        if (Array.isArray(stroke))
-                           for (let i = 0 ; i < stroke.length ; i++)
-                              stroke[i] = cg.mTransform(m, stroke[i]);
-                        if (stroke.p)
-                           stroke.p = cg.mTransform(m, stroke.p);
-                        if (stroke.size)
-                           stroke.size *= cg.norm(m.slice(0,3));
-                     }
-
-                     // IF HUD, PREPARE TO TURN THING TOWARD EACH CLIENT WHEN DISPLAYING IT.
+                     // IF HUD, PREPARE TO TURN THE THING TOWARD EACH CLIENT WHEN DISPLAYING IT.
 
                      if (thing.hud)
                         thing.fp = fm.slice(12,15);
@@ -817,6 +769,8 @@ export const init = async model => {
 
          for (let n = 0 ; n < things.length ; n++) {
             let thing = things[n];
+	    let m = thing.m;
+	    let scale = cg.norm(m.slice(0,3));
             thing.lo = [ 1000, 1000, 1000 ];
             thing.hi = [-1000,-1000,-1000 ];
             for (let n = 0 ; n < thing.strokes.length ; n++) {
@@ -825,19 +779,22 @@ export const init = async model => {
 	       // IF THIS CONTAINS STROKES, BUILD A BOUNDING BOX BASED ON THE STROKES.
 
                if (Array.isArray(stroke))
-                  for (let i = 0 ; i < stroke.length ; i++)
+                  for (let i = 0 ; i < stroke.length ; i++) {
+		     let p = cg.mTransform(m, stroke[i]);
                      for (let j = 0 ; j < 3 ; j++) {
-                        thing.lo[j] = Math.min(thing.lo[j], stroke[i][j]);
-                        thing.hi[j] = Math.max(thing.hi[j], stroke[i][j]);
+                        thing.lo[j] = Math.min(thing.lo[j], p[j]);
+                        thing.hi[j] = Math.max(thing.hi[j], p[j]);
                      }
+                  }
 
                // IF THIS IS AN IMAGE, ITS BOUNDING BOX IS A CUBE.
 
                else if (stroke.image !== undefined) {
-	          let size = stroke.size;
+		  let p = cg.mTransform(m, stroke.p);
+		  let size = scale * stroke.size;
 		  for (let j = 0 ; j < 3 ; j++) {
-	             thing.lo[j] = Math.min(thing.lo[j], stroke.p[j] - size/2);
-	             thing.hi[j] = Math.max(thing.hi[j], stroke.p[j] + size/2);
+	             thing.lo[j] = Math.min(thing.lo[j], p[j] - size / 2);
+	             thing.hi[j] = Math.max(thing.hi[j], p[j] + size / 2);
                   }
 	       }
 	    }
