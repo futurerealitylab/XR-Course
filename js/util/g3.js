@@ -12,8 +12,8 @@ let Projected = function() {
    this.getScale = p => .5 * pz / (pz - (c*p[0] + f*p[1] + i*p[2] + l));
    this.projectPoint = p => {
       let X = p[0] - ex, Y = p[1] - ey, Z = p[2] - ez;
-      let z = -C / (c*X + f*Y + i*Z);
-      return z < 0 ? null : [z * (a*X + d*Y + g*Z), z * (b*X + e*Y + h*Z) + B - .005 - .2*yShift, z];
+      let z = -C / (c*X + i*Z);
+      return z < 0 ? null : [z * (a*X + g*Z), z * e*Y + B, z];
    }
    this.update = view => {
       cm = clay.root().inverseViewMatrix(view);
@@ -25,16 +25,15 @@ let Projected = function() {
          let Z = cg.normalize(cg.cross(X, [0,1,0]));
          em = [ X[0],X[1],X[2],0, 0,1,0,0, Z[0],Z[1],Z[2],0, em[12],em[13],em[14],1 ];
       }
-      this.tilt = Math.atan2(em[1], Math.sqrt(em[0]*em[0]+em[2]*em[2]));
       ex = em[12];
       ey = em[13];
       ez = em[14];
       mf = cg.mMultiply(em, cg.mTranslate([0,-.22,-pz]));
       let m = cg.mInverse(mf);
       a=m[0],b=m[1],c=m[2], d=m[4],e=m[5],f=m[6],g=m[8],h=m[9],i=m[10],j=m[12],k=m[13],l=m[14];
-      this.tilt = Math.atan2(d, Math.sqrt(a*a + g*g));
-      B = b * ex + e * ey + h * ez + k;
-      C = c * ex + f * ey + i * ez + l;
+
+      B = e * ey + k - .005 - .2*yShift;
+      C = c * ex + i * ez + l;
    }
 }
 
@@ -87,13 +86,10 @@ export let G3 = function(model, callback) {
          return false;
 
       let scale = projected.getScale(center);
-      let sin = scale * Math.sin(projected.tilt);
-      let cos = scale * Math.cos(projected.tilt);
-
       let path2D = [];
       for (let n = 0 ; n < path.length ; n++)
-         path2D.push([ p[0] + cos * path[n][0] + sin * path[n][1],
-                       p[1] - sin * path[n][0] + cos * path[n][1] ]);
+         path2D.push([ p[0] + scale * path[n][0],
+                       p[1] - scale * path[n][1] ]);
 
       p_path  = path2D;
       p_z     = p[2];
@@ -171,7 +167,7 @@ export let G3 = function(model, callback) {
             dl[4] = p[1] + y * scale;
             dl[5] = 2 * w * scale;
             dl[6] = 2 * h * scale;
-            dl[7] = -projected.tilt / (Math.PI/2);
+            dl[7] = 0;
             dl[8] = sx;
             dl[9] = sy;
             dl[10] = sw;
@@ -212,12 +208,10 @@ export let G3 = function(model, callback) {
          dl[3] = font;
          dl[4] = textHeight * scale;
          dl[5] = text;
-         let cos = scale * Math.cos(projected.tilt);
-         let sin = scale * Math.sin(projected.tilt);
-         dl[6] = p[0] + cos * x + sin * y;
-         dl[7] = p[1] - sin * x + cos * y;
+         dl[6] = p[0] + scale * x;
+         dl[7] = p[1] - scale * y;
          dl[8] = cg.def(alignment, 'center');
-         dl[9] = cg.def(rotation,0) - projected.tilt / (Math.PI/2);
+         dl[9] = cg.def(rotation,0);
       }
       return this;
    }

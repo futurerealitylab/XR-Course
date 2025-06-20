@@ -305,49 +305,6 @@ export const init = async model => {
                                      && thing1.lo[1] < thing2.hi[1] && thing2.lo[1] < thing1.hi[1]
                                      && thing1.lo[2] < thing2.hi[2] && thing2.lo[2] < thing1.hi[2];
 
-   // PLACEHOLDER FOR COMPRESSING AND DECOMPRESSING STROKES - NOT YET IMPLEMENTED:
-
-   /*
-      To compress things of type 'stroke' we create a parallel structure for each stroke.
-      The structure contains the start position of the stroke. Subsequent points are then
-      e encoded as the difference from the previous point. This lets us use a single byte
-      (-127 mm to +127 mm, which equals -5 inches to +5 inches) for the difference in each
-      of x,y and z. When compressing, we also delete the contents of the original stroke.
-      This results in a compression factor of 4. To uncompress, we reconstruct the stroke
-      contents from the compressed data, and remove the temporary data structure.
-
-      Still working on this. It won't be functional until we shift strokes data over to use
-      integer millimeters, and then do proper rounding when transforming strokes.
-   */
-
-   let compressStrokes = thing => {
-      thing.cs = [];
-      for (let n = 0 ; n < thing.strokes.length ; n++)
-         if (Array.isArray(thing.strokes[n])) {
-            let stroke = thing.strokes[n];
-            let pd = { p: stroke[0] };
-            pd.d = new Int8Array(3 * stroke.length - 3);
-            for (let i = 0 ; i < pd.d.length / 3 ; i++)
-               for (let j = 0 ; j < 3 ; j++)
-                  pd.d[3 * i + j] = 1000 * (stroke[i+1][j] - stroke[i][j]);
-            thing.cs[n] = pd;
-            thing.strokes[n] = [];
-         }
-   }
-
-   let uncompressStrokes = thing => {
-      for (let n = 0 ; n < thing.strokes.length ; n++)
-         if (Array.isArray(thing.strokes[n])) {
-            let pd = thing.cs[n];
-            let stroke = [ pd.p ];
-            let add = (i,j) => stroke[i][j] + pd.d[3 * i + j] / 1000;
-            for (let i = 0 ; i < pd.d.length / 3 ; i++)
-               stroke.push([ add(i,0), add(i,1), add(i,2) ]);
-            thing.strokes[n] = stroke;
-         }
-      delete thing.cs;
-   }
-
    // RENDER THE SCENE FOR THIS CLIENT.
 
    let g3 = new G3(model, draw => {
@@ -864,12 +821,18 @@ export const init = async model => {
             thing.hi = [-1000,-1000,-1000 ];
             for (let n = 0 ; n < thing.strokes.length ; n++) {
 	       let stroke = thing.strokes[n];
+
+	       // IF THIS CONTAINS STROKES, BUILD A BOUNDING BOX BASED ON THE STROKES.
+
                if (Array.isArray(stroke))
                   for (let i = 0 ; i < stroke.length ; i++)
                      for (let j = 0 ; j < 3 ; j++) {
                         thing.lo[j] = Math.min(thing.lo[j], stroke[i][j]);
                         thing.hi[j] = Math.max(thing.hi[j], stroke[i][j]);
                      }
+
+               // IF THIS IS AN IMAGE, ITS BOUNDING BOX IS A CUBE.
+
                else if (stroke.image !== undefined) {
 	          let size = stroke.size;
 		  for (let j = 0 ; j < 3 ; j++) {
@@ -879,25 +842,15 @@ export const init = async model => {
 	       }
 	    }
 
+	    // MAKE THE BOUNDING BOX SLIGHTLY LARGER THAN THE THING ITSELF.
+
             for (let j = 0 ; j < 3 ; j++) {
                thing.lo[j] -= .01;
                thing.hi[j] += .01;
             }
          }
-/*
-         if (things) // COMPRESS STROKES BEFORE SENDING.
-            for (let n = 0 ; n < things.length ; n++)
-               if (things[n].type == 'sketch')
-                  compressStrokes(things[n]);
-*/
          return things;
       });
-/*
-      if (things) // UNCOMPRESS AFTER RECEIVING.
-         for (let n = 0 ; n < things.length ; n++)
-            if (things[n].type == 'sketch')
-               uncompressStrokes(things[n]);
-*/
       g3.update();
    });
 }
