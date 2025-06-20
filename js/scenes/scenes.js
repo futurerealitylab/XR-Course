@@ -11,6 +11,8 @@ export default () => {
    return {
       enableSceneReloading: true,
       scenes: [ 
+            { name: "cubes"              , path: "./cubes.js"              , public: true  },
+
             { name: "draw"               , path: "./draw.js"               , public: true  },
             { name: "chalktalk"          , path: "./chalktalk.js"          , public: true  },
             { name: "shared1"            , path: "./shared1.js"            , public: true  },
