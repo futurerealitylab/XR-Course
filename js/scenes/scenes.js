@@ -1,7 +1,7 @@
 import * as global from "../global.js";
 import { Gltf2Node } from "../render/nodes/gltf2.js";
 
-export let buddha;
+// export let buddha;
 
 export default () => {
    global.scene().addNode(new Gltf2Node({
@@ -146,6 +146,7 @@ export default () => {
 //          { name: "snow"               , path: "./demoSnowDots.js"       , public: false },
 //          { name: "snow2"              , path: "./demoSnow2.js"          , public: false},
             { name: "statue"             , path: "./demoGLTF.js"           , public: true },
+            { name: "buddha"             , path: "./demoBuddha.js"           , public: true },
             { name: "aiobject"           , path: "./demoGenerativeAIModel.js", public: true },
             { name: "chatgpt"            , path: "./demoChatGPT.js"        , public: true },
 //          { name: "attic"              , path: "./attic.js"              , public: false },
