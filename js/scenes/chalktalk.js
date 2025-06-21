@@ -16,18 +16,19 @@ export const init = async model => {
 
    let drawColor = '#ff00ff';  // DEFAULT DRAWING COLOR
    let info = '';              // IN CASE WE NEED TO SHOW DEBUG INFO IN THE SCENE
+   let isNewClient = true;     // TRUE ONLY WHEN A CLIENT FIRST LOADS
    let fm;                     // FORWARD HEAD MATRIX FOR THE CLIENT BEING EVALUATED
    let np = 10;                // NUMBER OF POINTS NEEDED FOR A STROKE TO NOT BE A CLICK
    let speech = '';            // THE MOST RECENT THING THAT ANYBODY SAID
 
    let prevP = {},             // PREVIOUS CURSOR POSITION FOR EACH HAND OF EVERY CLIENT
        things = [],            // THINGS SHARED BETWEEN CLIENTS
-       strokes = {},           // CACHED STROKES IN EACH CLIENT
        linkSrc = {},           // THE SOURCE OF THE LINK BEING DRAWN
        thingCode = {},         // CODE FOR THING INSTANCES
        clickOnBG = {},         // AFTER A CLICK ON THE BACKGROUND, SET CLICK INFO
        clickCount = {},        // NUMBER OF CLICKS IN A ROW FOR EACH HAND OF EVERY CLIENT
        modifyThing = {},       // SET TO TRUE AFTER A CLICK ON THE BACKGROUND
+       strokesCache = {},      // STROKES CACHED IN EACH CLIENT
        thingAtCursor = {},     // THING AT CURSOR FOR EACH HAND OF EVERY CLIENT
        thingBeingDrawn = {};   // THING CURRENTLY BEING DRAWN FOR EACH HAND OF EVERY CLIENT
 
@@ -255,16 +256,13 @@ export const init = async model => {
 
    let spinThing = (thing, d) => spinThingByTheta(thing, 20 * cg.dot(d, [fm[0],fm[4],fm[8]]));
 
-   let spinThingByTheta = (thing, theta, noMatrix) => {
-      let c = Math.cos(theta), s = Math.sin(theta);
+   let spinThingByTheta = (thing, theta) => {
       let center = computeThingCenter(thing);
-      if (! noMatrix && thing.m) {
-         for (let j = 0 ; j < 3 ; j++)
-            thing.m[12 + j] -= center[j];
-         thing.m = cg.mMultiply(cg.mRotateY(theta), thing.m);
-         for (let j = 0 ; j < 3 ; j++)
-            thing.m[12 + j] += center[j];
-      }
+      for (let j = 0 ; j < 3 ; j++)
+         thing.m[12 + j] -= center[j];
+      thing.m = cg.mMultiply(cg.mRotateY(theta), thing.m);
+      for (let j = 0 ; j < 3 ; j++)
+         thing.m[12 + j] += center[j];
    }
 
    // DETERMINE WHETHER THE BOUNDING BOXES OF TWO THINGS INTERSECT.
@@ -286,7 +284,7 @@ export const init = async model => {
                if (thing.hud && thing.m) {
                   let m = thing.m;
                   let ray = cg.subtract(thing.fp, computeThingCenter(thing));
-                  spinThingByTheta(thing, Math.atan2(ray[0], ray[2]) - Math.atan2(m[8], m[10]), true);
+                  spinThingByTheta(thing, Math.atan2(ray[0], ray[2]) - Math.atan2(m[8], m[10]));
                }
             }
 
@@ -368,7 +366,7 @@ export const init = async model => {
                                                   p[1] > thing.lo[1] && p[1] < thing.hi[1] &&
                                                   p[2] > thing.lo[2] && p[2] < thing.hi[2] ;
 
-   // RETURN THE THING (IF ANY) THAT IS AT A 3D POINT.
+   // RETURN THE THING, IF ANY, THAT IS AT A 3D POINT.
 
    let findThingAtPoint = p => {
       for (let n = 0 ; n < things.length ; n++)
@@ -395,15 +393,9 @@ export const init = async model => {
       return q;
    } 
 
-   // IS THIS A NON-SKETCH THING?
-
-   let isNonsketch = thing => thing && thing.type != 'sketch';
-
-   let isNewClient = true;
-
    model.animate(() => {
 
-      // WHEN A NEW CLIENT JOINS, MAKE SURE IT WILL RECEIVE ALL EXISTING STROKES.
+      // WHEN A NEW CLIENT JOINS, MAKE SURE IT RECEIVES ALL EXISTING STROKES AT FIRST.
 
       chalktalkState = server.synchronize('chalktalkState');
 
@@ -699,7 +691,7 @@ export const init = async model => {
                                  ss.push(s);
                               }
 
-                           // RECOGNIZE THE STROKES, DELETE THE SKETCH, CREATE AND ADD THE NEW THING TO THE SCENE.
+                           // RECOGNIZE THE STROKES, DELETE THE SKETCH, CREATE THE NEW THING, ADD IT TO THE SCENE.
 
                            let ST = matchCurves.recognize(ss);
                            deleteThing(sketch);
@@ -803,7 +795,7 @@ export const init = async model => {
             for (let n = 0 ; n < thing.strokes.length ; n++) {
 	       let stroke = thing.strokes[n];
 
-	       // IF THIS CONTAINS STROKES, BUILD A BOUNDING BOX BASED ON THE STROKES.
+	       // IF THIS THING HAS STROKES, BUILD A BOUNDING BOX BASED ON ITS STROKES.
 
                if (Array.isArray(stroke))
                   for (let i = 0 ; i < stroke.length ; i++) {
@@ -814,7 +806,7 @@ export const init = async model => {
                      }
                   }
 
-               // IF THIS IS AN IMAGE, ITS BOUNDING BOX IS A CUBE.
+               // IF THIS IS AN IMAGE, MAKE ITS BOUNDING BOX A CUBE.
 
                else if (stroke.image !== undefined) {
 		  let p = cg.mTransform(m, stroke.p);
@@ -843,7 +835,7 @@ export const init = async model => {
 	    server.broadcastGlobal('chalktalkState');
          }
 
-         // USE CACHED STROKES FOR THINGS WITH STROKES THAT HAVE NOT CHANGED.
+         // RELY ON CACHED STROKES FOR THINGS WHOSE STROKES HAVE NOT CHANGED.
 
 	 else {
             for (let n = 0 ; n < things.length ; n++)
@@ -854,16 +846,16 @@ export const init = async model => {
          return things;
       });
 
-      // IF STROKES WERE NOT SENT FOR ANY CLIENT, USED CACHED STROKES.
+      // FOR ANY THING WHOSE STROKES WERE NOT SENT, USED CACHED STROKES.
 
       if (things)
          for (let n = 0 ; n < things.length ; n++) {
 	    let thing = things[n];
 	    let id = thing.id;
             if (thing.updatedStrokes)
-	       strokes[id] = thing.strokes;
+	       strokesCache[id] = thing.strokes;
             else
-	       thing.strokes = strokes[id] ?? [];
+	       thing.strokes = strokesCache[id] ?? [];
 	 }
 
       g3.update();
