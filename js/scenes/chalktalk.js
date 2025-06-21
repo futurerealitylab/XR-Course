@@ -10,8 +10,11 @@ for (let i = 0 ; i < imageNames.length ; i++) {
    images[name].src = 'media/images/' + name + '.png';
 }
 
+server.init('chalktalkState', { newClient: 30 });
+
 export const init = async model => {
 
+   let drawColor = '#ff00ff';  // DEFAULT DRAWING COLOR
    let info = '';              // IN CASE WE NEED TO SHOW DEBUG INFO IN THE SCENE
    let fm;                     // FORWARD HEAD MATRIX FOR THE CLIENT BEING EVALUATED
    let np = 10;                // NUMBER OF POINTS NEEDED FOR A STROKE TO NOT BE A CLICK
@@ -19,6 +22,7 @@ export const init = async model => {
 
    let prevP = {},             // PREVIOUS CURSOR POSITION FOR EACH HAND OF EVERY CLIENT
        things = [],            // THINGS SHARED BETWEEN CLIENTS
+       strokes = {},           // CACHED STROKES IN EACH CLIENT
        linkSrc = {},           // THE SOURCE OF THE LINK BEING DRAWN
        thingCode = {},         // CODE FOR THING INSTANCES
        clickOnBG = {},         // AFTER A CLICK ON THE BACKGROUND, SET CLICK INFO
@@ -287,10 +291,10 @@ export const init = async model => {
             }
 
          let hm = clientState.head(clientID);
-         let eye = hm ? hm.slice(12,15) : null;
+         let eye = hm && Array.isArray(hm) ? hm.slice(12,15) : null;
          for (let n = 0 ; n < things.length ; n++) {
             let thing = things[n];
-            draw.color('#00ffff').lineWidth(thing.hilit ? .006 : .003);
+            draw.color(drawColor).lineWidth(thing.hilit ? .006 : .003);
 	    let m = thing.m;
             let strokes = thing.strokes;
             for (let n = 0 ; n < strokes.length ; n++) {
@@ -395,7 +399,19 @@ export const init = async model => {
 
    let isNonsketch = thing => thing && thing.type != 'sketch';
 
+   let isNewClient = true;
+
    model.animate(() => {
+
+      // WHEN A NEW CLIENT JOINS, MAKE SURE IT WILL RECEIVE ALL EXISTING STROKES.
+
+      chalktalkState = server.synchronize('chalktalkState');
+
+      if (isNewClient) {
+         chalktalkState.newClient = 30;
+	 server.broadcastGlobal('chalktalkState');
+	 isNewClient = false;
+      }
 
       // COMPUTE THE SHARED STATE OF THINGS IN THE SCENE FOR THIS ANIMATION FRAME.
 
@@ -404,8 +420,10 @@ export const init = async model => {
          // START BY UN-HILIGHTING ALL THINGS.
 
          if (things)
-            for (let n = 0 ; n < things.length ; n++)
+            for (let n = 0 ; n < things.length ; n++) {
                things[n].hilit = 0;
+	       things[n].updatedStrokes = false;
+            }
 
          // LOOP THROUGH EVERY CLIENT:
 
@@ -497,6 +515,7 @@ export const init = async model => {
 					     m: cg.mIdentity(),
 					     strokes: [ [P] ],
 					     hilit: 0,
+					     updatedStrokes: true,
 					     dragCount: 0 };
                      things.push(thingBeingDrawn[id]);
                   }
@@ -525,6 +544,7 @@ export const init = async model => {
                   // DRAG WHILE DRAWING A STROKE: CONTINUE TO DRAW THE STROKE.
 
                   if (thingBeingDrawn[id]) {
+		     thingBeingDrawn[id].updatedStrokes = true;
                      thingBeingDrawn[id].strokes[0].push(P);
                      for (let n = 0 ; n < things.length ; n++)
                         if (isIntersect(thingBeingDrawn[id], things[n]))
@@ -634,6 +654,7 @@ export const init = async model => {
                   clickOnBG[id] = null;
                   if (thingBeingDrawn[id]) {
                      let td = thingBeingDrawn[id];
+		     td.updatedStrokes = true;
 
                      // IF THE STROKE IS VERY SMALL OR QUICK, CLASSIFY IT AS A CLICK STROKE.
 
@@ -690,6 +711,7 @@ export const init = async model => {
 
                         else {
                            sketch.strokes.push(td.strokes[0]);
+			   sketch.updatedStrokes = true;
                            deleteThing(td);
                         }
                      }
@@ -705,6 +727,9 @@ export const init = async model => {
                prevP[id] = P;
             }
          }
+
+	 if (! things)
+	    return things;
 
          // PROPAGATE VALUES ACROSS LINKS.
 
@@ -742,6 +767,7 @@ export const init = async model => {
                if (thing.timer < 1) {
                   thing.timer += 1.8 * model.deltaTime;
                   thing.strokes = matchCurves.mix(thing.ST[0], thing.ST[1], cg.ease(thing.timer));
+		  thing.updatedStrokes = true;
                   if (thing.timer >= 1) {
                      thing.ST[0] = null; // AFTER THIS POINT, THESE ARE NO LONGER NEEDED.
                      thing.ST[1] = null; // DELETING THEM SAVES BANDWIDTH BETWEEN CLIENTS.
@@ -755,6 +781,7 @@ export const init = async model => {
                      thing.timer += model.deltaTime;
                      thing.strokes = matchCurves.animate(() => thingCode[thing.id].update(thing.timer-1),
                                                          cg.mIdentity(), thing.timer-1, thing.ST[3]);
+		     thing.updatedStrokes = true;
 
                      // IF HUD, PREPARE TO TURN THE THING TOWARD EACH CLIENT WHEN DISPLAYING IT.
 
@@ -806,8 +833,39 @@ export const init = async model => {
                thing.hi[j] += .01;
             }
          }
+
+         // UNLESS A NEW CLIENT HAS RECENTLY JOINED
+
+         if (chalktalkState.newClient > 0) {
+            for (let n = 0 ; n < things.length ; n++)
+               things[n].updatedStrokes = true;
+            chalktalkState.newClient--;
+	    server.broadcastGlobal('chalktalkState');
+         }
+
+         // USE CACHED STROKES FOR THINGS WITH STROKES THAT HAVE NOT CHANGED.
+
+	 else {
+            for (let n = 0 ; n < things.length ; n++)
+               if (! things[n].updatedStrokes)
+                  things[n].strokes = [];
+         }
+
          return things;
       });
+
+      // IF STROKES WERE NOT SENT FOR ANY CLIENT, USED CACHED STROKES.
+
+      if (things)
+         for (let n = 0 ; n < things.length ; n++) {
+	    let thing = things[n];
+	    let id = thing.id;
+            if (thing.updatedStrokes)
+	       strokes[id] = thing.strokes;
+            else
+	       thing.strokes = strokes[id] ?? [];
+	 }
+
       g3.update();
    });
 }
