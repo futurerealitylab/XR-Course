@@ -2,7 +2,7 @@ import * as cg from "../render/core/cg.js";
 import { G3 } from "../util/g3.js";
 import { matchCurves } from "../render/core/matchCurves3D.js";
 
-let imageNames = 'car,cup,dog,elephant,fish,house'.split(',');
+let imageNames = 'car,cup,dog,elephant,fish,horse,house'.split(',');
 let images = {};
 for (let i = 0 ; i < imageNames.length ; i++) {
    let name = imageNames[i];
