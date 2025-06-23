@@ -2,7 +2,7 @@ import * as cg from "../render/core/cg.js";
 import { G3 } from "../util/g3.js";
 import { matchCurves } from "../render/core/matchCurves3D.js";
 
-let imageNames = 'car,cup,dog,elephant,fish,horse,house,moose,rhinoceros,shoe,toaster'.split(',');
+let imageNames = 'apple,bear,car,cup,dog,elephant,fish,horse,house,moose,rhinoceros,shoe,toaster'.split(',');
 let images = {};
 for (let i = 0 ; i < imageNames.length ; i++) {
    let name = imageNames[i];
@@ -62,66 +62,67 @@ export const init = async model => {
    });
 
    addThingType('xSlider', function() {
-      let t = 0;
-      this.onDrag = p => t = Math.max(-1, Math.min(1, p[0]));
+      this.state = 0;
+      this.onDrag = p => this.state = Math.max(-1, Math.min(1, p[0]));
       this.onClick = this.onDrag;
-      this.sketch = () => [ [ [-1,0,0],[1,0,0] ], [ [t,.2,0],[t,-.2,0] ] ];
+      this.sketch = () => [ [ [-1,0,0],[1,0,0] ], [ [this.state,.2,0],[this.state,-.2,0] ] ];
       this.update = time => {
          return [
             [ [-1,0,0],[1,0,0] ],
-            [ [t,-.2,0],[t,.2,0] ],
-            { text: (50*t+50>>0)/100, p: [1.1,0,0], size: .03, align: 'left' },
+            [ [this.state,-.2,0],[this.state,.2,0] ],
+            { text: (50*this.state+50>>0)/100, p: [1.1,0,0], size: .03, align: 'left' },
          ];
       }
-      this.input = value => t = 2 * value - 1;
-      this.output = () => .5 * t + .5;
+      this.input = value => this.state = 2 * value - 1;
+      this.output = () => .5 * this.state + .5;
    });
 
    addThingType('ySlider', function() {
-      let t = 0;
-      this.onDrag = p => t = Math.max(-1, Math.min(1, p[1]));
+      this.state = 0;
+      this.onDrag = p => this.state = Math.max(-1, Math.min(1, p[1]));
       this.onClick = this.onDrag;
-      this.sketch = () => [ [ [0,1,0],[0,-1,0] ], [ [-.2,t,0],[.2,t,0] ] ];
+      this.sketch = () => [ [ [0,1,0],[0,-1,0] ], [ [-.2,this.state,0],[.2,this.state,0] ] ];
       this.update = time => [
          [ [0,1,0],[0,-1,0] ],
-         [ [-.2,t,0],[.2,t,0] ],
-         { text: (50*t+50>>0)/100, p: [0,1.15,0], size: .03 },
+         [ [-.2,this.state,0],[.2,this.state,0] ],
+         { text: (50*this.state+50>>0)/100, p: [0,1.15,0], size: .03 },
       ];
-      this.input = value => t = 2 * value - 1;
-      this.output = () => .5 * t + .5;
+      this.input = value => this.state = 2 * value - 1;
+      this.output = () => .5 * this.state + .5;
    });
 
-   let circlePoint = t => [ Math.sin(t), Math.cos(t), 0 ];
-   let circle = phase => {
-      phase = phase ?? 0;
-      let c = [];
-      for (let n = 0 ; n <= 24 ; n++)
-         c.push(circlePoint(2 * Math.PI * n / 24 + phase));
-      return c;
-   }
-
    addThingType('timer', function() {
-      let rate = 0, t = 0, prevTime;
+      let circlePoint = t => [ Math.sin(t), Math.cos(t), 0 ];
+      let circle = phase => {
+         phase = phase ?? 0;
+         let c = [];
+         for (let n = 0 ; n <= 24 ; n++)
+            c.push(circlePoint(2 * Math.PI * n / 24 + phase));
+         return c;
+      }
+      let prevTime, rate = 0;
+
+      this.state = 0;
       this.sketch = () => [ circle(), [ circlePoint(0), [0,0,0] ] ];
       this.update = time => {
-         t += rate * (time - (prevTime ?? time));
+         this.state += rate * (time - (prevTime ?? time));
          prevTime = time;
-         let min = t >> 0;
-         let sec = (60 * t % 60) >> 0;
+         let min = this.state >> 0;
+         let sec = (60 * this.state % 60) >> 0;
          let text = min + ':' + (sec < 10 ? '0' : '') + sec;
          return [
             circle(),
-            [ circlePoint(2 * Math.PI * t), [0,0,0] ],
+            [ circlePoint(2 * Math.PI * this.state), [0,0,0] ],
             { text: text, p: [0,-.5,0], size: .03 },
 
          ];
       };
       this.input = value => rate = value;
-      this.output = () => t;
+      this.output = () => this.state;
    });
 
    addThingType('wave', function() {
-      let t = 0;
+      this.state = 0;
       let wave = t => {
          let s = [];
          for (let n = 0 ; n <= 24 ; n++)
@@ -129,56 +130,50 @@ export const init = async model => {
          return s;
       }
       this.sketch = () => [ wave(0) ];
-      this.update = () => [ wave(t) ];
-      this.input = value => t = value;
+      this.update = () => [ wave(this.state) ];
+      this.input = value => this.state = value;
    });
 
-   let squircle = phase => {
-      phase = phase ?? 0;
-      let c = [];
-      for (let n = 0 ; n <= 24 ; n++) {
-         let t = 2 * Math.PI * n / 24 + phase;
-         let x = Math.sin(t);
-         let y = Math.cos(t);
-         let r = Math.pow(x*x*x*x + y*y*y*y, 1/4);
-         c.push([x/r, y/r, 0]);
-      }
-      return c;
-   }
-
    addThingType('speech', function() {
-      let text = 'thing', imageName;
+      let squircle = phase => {
+         phase = phase ?? 0;
+         let c = [];
+         for (let n = 0 ; n <= 24 ; n++) {
+            let t = 2 * Math.PI * n / 24 + phase;
+            let x = Math.sin(t);
+            let y = Math.cos(t);
+            let r = Math.pow(x*x*x*x + y*y*y*y, 1/4);
+            c.push([x/r, y/r, 0]);
+         }
+         return c;
+      }
+
+      this.state = { text: 'thing' };
       this.onClick = () => {
-         imageName = null;
+         delete this.state.image;
 	 for (let i = 0 ; i < imageNames.length ; i++) {
 	    let name = imageNames[i];
 	    if (speech.toLowerCase().indexOf(name) >= 0)
-               imageName = name;
+               this.state.image = name;
          }
-	 text = imageName ? '' : speech;
+	 this.state.text = this.state.image ? '' : speech;
       }
       this.sketch = () => [ squircle(Math.PI) ];
       this.update = () => {
-         let graphics = [ ];
-	 if (! imageName)
+         let graphics = [];
+	 if (! this.state.image)
             graphics.push(squircle(Math.PI));
-         if (imageName)
-            graphics.push( { image: imageName, p:[0,0,0], size: .15 } );
-         if (text)
-            graphics.push( { text: text, p:[0,0,0], size:.03 } );
+         if (this.state.image)
+            graphics.push( { image: this.state.image, p:[0,0,0], size: .15 } );
+         if (this.state.text)
+            graphics.push( { text: this.state.text, p:[0,0,0], size:.03 } );
          return graphics;
       }
    });
 
 ///////////////////////////////////////////////////////////////////////////////
 
-   let containsLink = (links, thing) => {
-      if (links)
-         for (let i = 0 ; i < links.length ; i++)
-            if (links[i].id == thing.id)
-               return true;
-      return false;
-   }
+   // REMOVE ANY LINK TO A THING FROM A SET OF LINKS.
 
    let removeLink = (links, thing) => {
       if (links)
