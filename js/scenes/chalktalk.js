@@ -2,7 +2,7 @@ import * as cg from "../render/core/cg.js";
 import { G3 } from "../util/g3.js";
 import { matchCurves } from "../render/core/matchCurves3D.js";
 
-let imageNames = 'apple,bear,car,cup,dog,elephant,fish,goat,horse,house,igloo,moose,rhinoceros,shoe,toaster'.split(',');
+let imageNames = 'apple,bear,car,cup,document,dog,elephant,fish,goat,horse,house,igloo,moose,rhinoceros,shoe,toaster'.split(',');
 let images = {};
 for (let i = 0 ; i < imageNames.length ; i++) {
    let name = imageNames[i];
@@ -290,6 +290,7 @@ export const init = async model => {
             let thing = things[n];
             draw.color(drawColor).lineWidth(thing.hilit ? .006 : .003);
 	    let m = thing.m;
+	    let scale = cg.norm(m.slice(0,3));
             let strokes = thing.strokes;
             for (let n = 0 ; n < strokes.length ; n++) {
                let stroke = strokes[n];
@@ -302,11 +303,11 @@ export const init = async model => {
                }
                else if (stroke.text !== undefined) {
                   if (stroke.size)
-                     draw.textHeight(cg.norm(m.slice(0,3)) * stroke.size);
+                     draw.textHeight(scale * stroke.size);
                   draw.text(stroke.text, cg.mTransform(m, stroke.p), stroke.align ?? 'center', stroke.x ?? 0, stroke.y ?? 0);
                }
                else if (stroke.image !== undefined)
-                  draw.image(images[stroke.image], cg.mTransform(m, stroke.p), 0,0, 0,stroke.size);
+                  draw.image(images[stroke.image], cg.mTransform(m, stroke.p), 0,0, 0, scale * stroke.size);
             }
             
             // IF A THING IS HIGHLIGHTED, SHOW ITS BOUNDING BOX.
@@ -508,21 +509,40 @@ export const init = async model => {
                      things.push(thingBeingDrawn[id]);
                   }
 
-                  // CLICK ON BACKGROUND FOLLOWED BY PINCH ON A THING:
+		  // CLICK AFTER A CLICK ON BG:
 
-                  if (clickOnBG[id] && thingAtCursor[id]) {
-                     let center = computeThingCenter(thingAtCursor[id]);
-                     let x = cg.dot(cg.subtract(clickOnBG[id].p, center), [fm[0],fm[1],fm[2]]);
-                     let y = clickOnBG[id].p[1] - center[1];
-                     let dir = ((4 * (Math.atan2(y, x) + Math.PI/8) / Math.PI >> 0) + 8) % 8;
-                     clickOnBG[id].dir = (8 + 4 * (Math.atan2(y, x) + Math.PI/8) / Math.PI >> 0) % 8;
-                  }
+                  if (clickOnBG[id]) {
+		     if (cg.distance(clickOnBG[id].p, P) < .02)
+		        clickOnBG[id].dir = -1;
+                     else {
+                        let d = cg.subtract(clickOnBG[id].p, P);
+                        let x = cg.dot(d, fm.slice(0,3));
+                        clickOnBG[id].dir = (8 + 4 * Math.atan2(d[1], x) / Math.PI + 1/8 >> 0) % 8;
+                     }
+		     //info = clickOnBG[id].dir;
+		  }
 
                   // START A PINCH ON A NON-SKETCH THING AFTER CLICK TO ITS LEFT ON THE BACKGROUND: START DRAWING A LINK.
 
                   linkSrc[id] = null;
                   if (clickOnBG[id] && clickOnBG[id].dir == 4 && thingAtCursor[id].type != 'sketch')
                      linkSrc[id] = thingAtCursor[id];
+
+		  // TWO SUCCESSIVE CLICKS ON BACKGROUND: THESE GESTURES ARE NOT YET ASSIGNED.
+
+		  if (clickOnBG[id] && ! thingAtCursor[id])
+		     switch (clickOnBG[id].dir) {
+		     case -1: break; // DOUBLE CLICK ON BACKGROUND
+		     case  0: break; // E  => W
+		     case  1: break; // NE => SW
+		     case  2: break; // N  => S
+		     case  3: break; // NW => SE
+		     case  4: break; // W  => E
+		     case  5: break; // SW => NE
+		     case  6: break; // S  => N
+		     case  7: break; // SE => NW
+		     }
+
                   break;
 
                // WHILE PINCHING:
@@ -784,6 +804,11 @@ export const init = async model => {
 
          for (let n = 0 ; n < things.length ; n++) {
             let thing = things[n];
+	    if (! thing.strokes) {
+               thing.lo = [-.01,-.01,-.01 ];
+               thing.hi = [ .01, .01, .01 ];
+	       continue;
+	    }
 	    let m = thing.m;
 	    let scale = cg.norm(m.slice(0,3));
             thing.lo = [ 1000, 1000, 1000 ];
@@ -839,7 +864,7 @@ export const init = async model => {
                   things[n].strokes = [];
          }
 
-	 info = JSON.stringify(things).length;
+	 //info = JSON.stringify(things).length;
 
          return things;
       });
