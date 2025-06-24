@@ -15,6 +15,8 @@ export function G2(do_not_animate_flag=false, canvasWidth=512, canvasHeight) {
    txtrCanvas._animate = ! do_not_animate_flag;
 
    let context = txtrCanvas.getContext('2d');
+   context.imageSmoothingEnabled = true;
+   context.imageSmoothingQuality = "high";
    let width   = txtrCanvas.width;
    let height  = txtrCanvas.height;
    txtrCanvas.context = context;
