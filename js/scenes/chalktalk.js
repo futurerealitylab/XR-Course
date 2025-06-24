@@ -21,7 +21,8 @@ export const init = async model => {
    let np = 10;                // NUMBER OF POINTS NEEDED FOR A STROKE TO NOT BE A CLICK
    let speech = '';            // THE MOST RECENT THING THAT ANYBODY SAID
 
-   let prevP = {},             // PREVIOUS CURSOR POSITION FOR EACH HAND OF EVERY CLIENT
+   let ST = {},                // STROKE DATA NEEDED FOR MORPHING A SKETCH TO A THING
+       prevP = {},             // PREVIOUS CURSOR POSITION FOR EACH HAND OF EVERY CLIENT
        things = [],            // THINGS SHARED BETWEEN CLIENTS
        linkSrc = {},           // THE SOURCE OF THE LINK BEING DRAWN
        thingCode = {},         // CODE FOR THING INSTANCES
@@ -352,7 +353,7 @@ export const init = async model => {
             }
          }
       }
-      draw.text(info, [0,.8,0]);
+      draw.text(info, [0,1.3,0]);
    });
 
    // DETERMINE WHETHER A THING CONTAINS A 3D POINT.
@@ -373,7 +374,7 @@ export const init = async model => {
    // TRANSFORM A POINT INTO OR OUT OF THE INTERNAL COORDS OF A THING.
 
    let transformOutof = (thing, p) => {
-      let T = thing.ST[3];
+      let T = ST[thing.id][3];
       let q = [];
       for (let j = 0 ; j < 3 ; j++)
          q[j] = T[3] * p[j] + T[j];
@@ -382,7 +383,7 @@ export const init = async model => {
 
    let transformInto = (thing, p) => {
       let q = cg.mTransform(cg.mInverse(thing.m), p);
-      let T = thing.ST[3];
+      let T = ST[thing.id][3];
       for (let j = 0 ; j < 3 ; j++)
          q[j] = (q[j] - T[j]) / T[3];
       return q;
@@ -420,9 +421,9 @@ export const init = async model => {
 
             fm = clientState.head(clients[I]);
             if (fm) {
-              let X = cg.normalize(cg.cross([0,1,0], [fm[8],fm[9],fm[10]]));
-              let Z = cg.normalize(cg.cross(X, [0,1,0]));
-              fm = [ X[0],X[1],X[2],0, 0,1,0,0, Z[0],Z[1],Z[2],0, fm[12],fm[13],fm[14],1 ];
+               let X = cg.normalize(cg.cross([0,1,0], [fm[8],fm[9],fm[10]]));
+               let Z = cg.normalize(cg.cross(X, [0,1,0]));
+               fm = [ X[0],X[1],X[2],0, 0,1,0,0, Z[0],Z[1],Z[2],0, fm[12],fm[13],fm[14],1 ];
             }
 
             // LOOP THROUGH BOTH HANDS OF THE CLIENT:
@@ -688,10 +689,12 @@ export const init = async model => {
 
                            // RECOGNIZE THE STROKES, DELETE THE SKETCH, CREATE THE NEW THING, ADD IT TO THE SCENE.
 
-                           let ST = matchCurves.recognize(ss);
+                           let st = matchCurves.recognize(ss);
                            deleteThing(sketch);
-                           let glyph = matchCurves.glyph(ST[2]);
-                           things.push( { type: glyph.name, ST: ST, timer: 0, m: fm, id: cg.uniqueID() } );
+                           let glyph = matchCurves.glyph(st[2]);
+                           let thing = { type: glyph.name, timer: 0, m: fm, id: cg.uniqueID(), st: st };
+                           things.push(thing);
+			   ST[thing.id] = st;
                         }
 
                         // ELSE APPEND THIS NEW STROKE TO THE EXISTING SKETCH.
@@ -736,16 +739,18 @@ export const init = async model => {
 
          for (let n = 0 ; n < things.length ; n++) {
             let thing = things[n];
+	    let id = thing.id;
             if (thing.type != 'sketch') {
 
                // MAKE SURE THE THING HAS ASSOCIATED CODE.
 
-               if (! thingCode[thing.id]) {
-                  let glyph = matchCurves.glyph(thing.ST[2]);
+               if (! thingCode[id]) {
+                  let glyph = matchCurves.glyph(ST[id][2]);
                   try {
-                     thingCode[thing.id] = new glyph.code();
+                     thingCode[id] = new glyph.code();
+		     thing.isAnimated = true;
                   } catch (err) {
-                     thingCode[thing.id] = glyph.code;
+                     thingCode[id] = glyph.code;
                   }
                }
 
@@ -753,29 +758,25 @@ export const init = async model => {
 
                if (thing.timer < 1) {
                   thing.timer += 1.8 * model.deltaTime;
-                  thing.strokes = matchCurves.mix(thing.ST[0], thing.ST[1], cg.ease(thing.timer));
-		  thing.updatedStrokes = true;
-                  if (thing.timer >= 1) {
-                     thing.ST[0] = null; // AFTER THIS POINT, THESE ARE NO LONGER NEEDED.
-                     thing.ST[1] = null; // DELETING THEM SAVES BANDWIDTH BETWEEN CLIENTS.
-                  }
+                  thing.strokes = matchCurves.mix(ST[id][0], ST[id][1], cg.ease(thing.timer));
                }
 
                // UPDATE THE APPEARANCE OF A NON-SKETCH THING.
 
                else {
-                  if (thingCode[thing.id]) {
+                  if (thingCode[id]) {
                      thing.timer += model.deltaTime;
-                     thing.strokes = matchCurves.animate(() => thingCode[thing.id].update(thing.timer-1),
-                                                         cg.mIdentity(), thing.timer-1, thing.ST[3]);
-		     thing.updatedStrokes = true;
-
-                     // IF HUD, PREPARE TO TURN THE THING TOWARD EACH CLIENT WHEN DISPLAYING IT.
-
-                     if (thing.hud)
-                        thing.fp = fm.slice(12,15);
+                     thing.strokes = matchCurves.animate(() => thingCode[id].update(thing.timer-1),
+                                                         cg.mIdentity(), thing.timer-1, ST[id][3]);
+                     thing.state = thingCode[id].state;
                   }
                }
+	       strokesCache[id] = thing.strokes;
+
+               // IF HUD, PREPARE TO TURN THE THING TOWARD EACH CLIENT WHEN DISPLAYING IT.
+
+               if (thing.hud)
+                  thing.fp = fm ? fm.slice(12,15) : [0,0,0];
             }
          }
 
@@ -838,6 +839,8 @@ export const init = async model => {
                   things[n].strokes = [];
          }
 
+	 info = JSON.stringify(things).length;
+
          return things;
       });
 
@@ -847,6 +850,36 @@ export const init = async model => {
          for (let n = 0 ; n < things.length ; n++) {
 	    let thing = things[n];
 	    let id = thing.id;
+
+	    if (thing.st)
+	       ST[id] = thing.st;
+
+            if (thing.type != 'sketch' && clientID != clients[0]) {
+	       if (! thingCode[id]) {
+                  let glyph = matchCurves.glyph(ST[id][2]);
+                  try {
+                     thingCode[id] = new glyph.code();
+                  } catch (err) {
+                     thingCode[id] = glyph.code;
+                  }
+               }
+	       if (thing.isAnimated) {
+		  thing.updatedStrokes = true;
+                  if (thing.timer < 1)
+                     thing.strokes = matchCurves.mix(ST[id][0], ST[id][1], cg.ease(thing.timer));
+                  else {
+		     thingCode[id].state = thing.state;
+                     thing.strokes = matchCurves.animate(() => thingCode[id].update(thing.timer-1),
+                                                         cg.mIdentity(), thing.timer-1, ST[id][3]);
+                  }
+               }
+            }
+
+	    if (thing.type != 'sketch' && clientID == clients[0] && thing.timer >= 1) {
+	       thing.st[0] = null;
+	       thing.st[1] = null;
+            }
+
             if (thing.updatedStrokes)
 	       strokesCache[id] = thing.strokes;
             else

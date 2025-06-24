@@ -4,6 +4,7 @@ import * as cg from "./cg.js";
 import { addGlyphs } from "./addGlyphs.js";
 
 function MatchCurves() {
+   let NS = 100;
    let glyphs = [];
    let distance = (a,b) => Math.sqrt((a[0]-b[0])*(a[0]-b[0]) + (a[1]-b[1])*(a[1]-b[1]));
    let swap = (a,b,k) => { let tmp = a[k]; a[k] = b[k]; b[k] = tmp; }
@@ -115,7 +116,7 @@ function MatchCurves() {
    this.addGlyphFromCurves = (name, curves, code) => {
       let C = [];
       for (let n = 0 ; n < curves.length ; n++)
-         C.push(this.resample(curves[n], 100));
+         C.push(this.resample(curves[n], NS));
       glyphs.push({
          name   : name,
          curves : normalize(C),
@@ -155,7 +156,7 @@ function MatchCurves() {
    this.recognize = src => {
       let strokes = [];
       for (let n = 0 ; n < src.length; n++)
-         strokes.push(this.resample(src[n], 100));
+         strokes.push(this.resample(src[n], NS));
       let candidate = normalize(strokes);
    
       let K = 0, lowScore = 1000000;
@@ -166,7 +167,7 @@ function MatchCurves() {
             for (let n = 0 ; n < curves.length ; n++) {
 	       let curve = curves[n];
                let curveLen = this.curveLength(curve);
-               for (let i = 0 ; i < 100 ; i++) {
+               for (let i = 0 ; i < NS ; i++) {
                   let dx = candidate[n][i][0] - curve[i][0];
                   let dy = candidate[n][i][1] - curve[i][1];
                   score += (dx * dx + dy * dy) * curveLen;
@@ -194,7 +195,7 @@ function MatchCurves() {
       for (let n = 0 ; n < curves.length ; n++) {
          let curve = curves[n];
          let targetStroke = [];
-         for (let i = 0 ; i < 100 ; i++)
+         for (let i = 0 ; i < NS ; i++)
             targetStroke.push([ x + s * curve[i][0],
                                 y + s * curve[i][1],
                                 z + s * curve[i][2] ]);
