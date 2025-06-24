@@ -37,7 +37,6 @@ export default () => {
 
             { name: "wordcloud7"         , path: "./wordcloud7.js"         , public: true  },
             { name: "stock"              , path: "./stock.js"              , public: true  },
-            { name: "cities"             , path: "./cities.js"             , public: true  },
             { name: "tale"               , path: "./tale.js"               , public: true  },
             { name: "art"                , path: "./art.js"                , public: true  },
 

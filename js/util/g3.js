@@ -106,14 +106,14 @@ export let G3 = function(model, callback) {
       if (projectPath(path)) {
          let c = [0,0,0], np = path.length;
          for (let n = 0 ; n < np ; n++)
-            for (let i = 0 ; i < 3 ; i++)
-               c += path[n][i];
-         let scale = projected.getScale([c[0]/np, c[1]/np, c[2]/np]);
+            c = cg.add(c, path[n]);
+         c = cg.scale(c, 1 / np);
+         let scale = projected.getScale(c);
          if (! displayList[nd]) displayList[nd] = []; let dl = displayList[nd++];
          dl[0] = p_z;
          dl[1] = DRAW;
          dl[2] = color;
-         dl[3] = lineWidth * p_scale;
+         dl[3] = lineWidth * scale;
          dl[4] = p_path;
       }
       return this;
@@ -271,9 +271,10 @@ export let G3 = function(model, callback) {
 		        draw.lineWidth(fingerWidth(f));
 			let P = handPose.p[f];
 		        if (f == 0)
-			   draw.color(co[C[0]]).line(P[0],P[0]); // Handle thumb differently.
+			   draw.color(co[C[0]]+'c0').line(P[0],P[0]); // Handle thumb differently.
 			else
-			   draw.color(co[0]).line(P[0],P[1]).line(P[1],P[2]).color(co[C[f]]).line(P[2],P[3]);
+			   //draw.color(co[0]).line(P[0],P[1]).line(P[1],P[2]).color(co[C[f]]).line(P[2],P[3]);
+			   draw.color(co[0]+'c0').draw([P[0],P[1],P[2],P[3]]);
 		     }
 
                      // DRAW PALM OF HAND
