@@ -229,6 +229,8 @@ export let G3 = function(model, callback) {
    const fw = [.021,.019,.018,.017,.015];
    const faceX = [-.04, .04, .09,.1 ,.05,-.05,-.1 ,-.09];
    const faceY = [-.11,-.11,-.05,.08,.13, .13, .08,-.05];
+   const eyeX = [-.035, .035];
+   const eyeY = [ .025, .025];
 
    let co = [];
 
@@ -258,6 +260,13 @@ export let G3 = function(model, callback) {
                this.lineWidth(.01).color(co[0]);
                for (let i = 0 ; i < face.length ; i++)
                   this.line(face[i], face[(i+1) % face.length]);
+               if (m[10] < 0) {
+                  this.lineWidth(.03);
+                  for (let i = 0 ; i < eyeX.length ; i++) {
+	             let eye = cg.mTransform(m, [eyeX[i],eyeY[i],-.04]);
+		     this.line(eye, eye);
+                  }
+               }
             }
             for (let hand in {left:0,right:0})
                if (m = clientState.hand(id,hand))
