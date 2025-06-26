@@ -519,7 +519,7 @@ export const init = async model => {
                               let thing2 = findThingFromID(thing1.links[i].id);
                               let p = cg.mix(transformOutof(thing1, [0,0,0]),
                                              transformOutof(thing2, [0,0,0]), .5);
-                              thing1.links[i].at[id] = cg.distance(p, P) < .02;
+                              thing1.links[i].at[id] = cg.distance(p, P) < .01;
                            }
                      }
                   }
@@ -547,7 +547,7 @@ export const init = async model => {
 		  // CLICK AFTER A CLICK ON BG:
 
                   if (clickOnBG[id]) {
-		     if (cg.distance(clickOnBG[id].p, P) < .02)
+		     if (cg.distance(clickOnBG[id].p, P) < .01)
 		        clickOnBG[id].dir = -1;
                      else {
                         let d = cg.subtract(clickOnBG[id].p, P);

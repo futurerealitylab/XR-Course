@@ -280,37 +280,10 @@ export let G3 = function(model, callback) {
 		        draw.lineWidth(fingerWidth(f));
 			let P = handPose.p[f];
 		        if (f == 0)
-			   draw.color(co[C[0]]+'c0').line(P[0],P[0]); // Handle thumb differently.
+			   draw.color(co[C[0]]+'c0').draw([P[1],P[2],P[3]]); // Handle thumb differently.
 			else
 			   draw.color(co[0]+'c0').draw([P[0],P[1],P[2],P[3]]);
 		     }
-
-                     // DRAW PALM OF HAND
-
-                     let m = clientState.hand(id,hand);
-                     let s = hand == 'left' ? -1 : 1;
-                     let xf = p => cg.mTransform(m, p);
-                     let P = [ [-.010*s, .015,-.020],
-                               [-.023*s, .015,-.020],
-                               [-.029*s, .005,-.058],
-                               [-.025*s,-.007,-.094],
-                               [-.003*s,-.004,-.093],
-                               [ .017*s,-.008,-.086],
-                               [ .032*s,-.015,-.075],
-                               [ .029*s,-.005,-.048],
-                               [ .022*s, .005,-.020],
-                               [ .010*s, .011,-.020] ];
-                     for (let n = 0 ; n < P.length ; n++)
-                        P[n] = xf(P[n]);
-                     let a = xf([-.009*s, .010,-.058]);
-                     let b = xf([ .013*s, .006,-.055]);
-                     this.lineWidth(.02).color(co[0]);
-                     for (let n = 0 ; n < P.length ; n++)
-                        this.line(P[n], P[(n+1)%P.length]);
-                     this.line(P[0],a).line(a,P[4]);
-                     this.line(P[9],b).line(b,P[5]);
-                     this.line(P[2],a).line(b,P[7]).line(a,b);
-                     this.fill(P);
                   }
                   else {
 

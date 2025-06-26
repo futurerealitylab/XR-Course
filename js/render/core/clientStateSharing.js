@@ -14,11 +14,16 @@ window.clientState = {                                                          
                               ? clientData[id][hand][b] : null,                  // of every other client.          //
    color : i           => color[i],                                              //                                 //
    coords: id          => clientData[id] ? clientData[id].coords : null,         // button() returns true or false  //
+   thumb: (id,hand)    => clientState.isHand(id) &&
+                           clientData[id] &&
+                            clientData[id][hand] &&
+                             clientData[id][hand].fingers
+			      ? clientData[id][hand].fingers.slice(0,3) : null,
    finger: (id,hand,i) => ! clientData[id] || ! clientData[id][hand]             // depending on whether button     //
                           ? null                                                 // b = 0,1,2,3,4,5 is pressed.     //
                           : clientState.isHand(id)                               //                                 //
                             ? clientData[id][hand].fingers                       // color(): standard button colors //
-                              ? clientData[id][hand].fingers[i]                  //                                 //
+                              ? clientData[id][hand].fingers[2+i]                  //                                 //
                               : null                                             // coords(): world xform of client //
                             : clientData[id][hand].mat                           //                                 //
                               ? clientData[id][hand].mat.slice(12,15)            // finger(): xyz of fingertip      //
@@ -158,9 +163,12 @@ export function ClientStateSharing() {                                          
             if (window.handtracking) {                                           // If handtracking, share fingers. //
                msg.mat = cg.packMatrix(clientState.teleport(hand,0));            //                                 //
                msg.fingers = [];                                                 // If the hands are teleporting,   //
+	       let joint = f => msg.fingers.push(cg.roundVec(3,
+                                   clientState.teleport(hand,f).slice(12,15)));
+               joint(2);
+               joint(3);
                for (let f = 4 ; f < 25 ; f += 5)                                 // offset the hand and fingers.    //
-                  msg.fingers.push(cg.roundVec(3,                                //                                 //
-                     clientState.teleport(hand,f).slice(12,15)));                //                                 //
+	          joint(f);
             }                                                                    //                                 //
             else {                                                               //                                 //
                msg.fingers = null;                                               //                                 //
