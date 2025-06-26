@@ -282,7 +282,6 @@ export let G3 = function(model, callback) {
 		        if (f == 0)
 			   draw.color(co[C[0]]+'c0').line(P[0],P[0]); // Handle thumb differently.
 			else
-			   //draw.color(co[0]).line(P[0],P[1]).line(P[1],P[2]).color(co[C[f]]).line(P[2],P[3]);
 			   draw.color(co[0]+'c0').draw([P[0],P[1],P[2],P[3]]);
 		     }
 

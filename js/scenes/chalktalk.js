@@ -318,19 +318,30 @@ export const init = async model => {
                else if (stroke.image !== undefined)
                   draw.image(images[stroke.image], cg.mTransform(m, stroke.p), 0,0, 0, scale * stroke.size);
             }
-            
-            // IF A THING IS HIGHLIGHTED, SHOW ITS BOUNDING BOX.
 
-            if (thing.hilit) {
-               let x0 = thing.lo[0], y0 = thing.lo[1], z0 = thing.lo[2];
-               let x1 = thing.hi[0], y1 = thing.hi[1], z1 = thing.hi[2];
-               draw.color('#ffffff').lineWidth(.0007)
-                   .line([x0,y0,z0],[x1,y0,z0]).line([x0,y1,z0],[x1,y1,z0])
+	    let cube = (x0,y0,z0, x1,y1,z1) => 
+               draw.line([x0,y0,z0],[x1,y0,z0]).line([x0,y1,z0],[x1,y1,z0])
                    .line([x0,y0,z1],[x1,y0,z1]).line([x0,y1,z1],[x1,y1,z1])
                    .line([x0,y0,z0],[x0,y1,z0]).line([x1,y0,z0],[x1,y1,z0])
                    .line([x0,y0,z1],[x0,y1,z1]).line([x1,y0,z1],[x1,y1,z1])
                    .line([x0,y0,z0],[x0,y0,z1]).line([x1,y0,z0],[x1,y0,z1])
                    .line([x0,y1,z0],[x0,y1,z1]).line([x1,y1,z0],[x1,y1,z1]);
+            
+            // IF A THING IS BEING MODIFIED, SHOW ITS MODIFY POINT.
+
+	    if (thing.modifying) {
+	       let p = thing.modifying.p, r = .015;
+               draw.color('#ffffff').lineWidth(.001);
+	       cube(p[0]-r, p[1]-r, p[2]-r,  p[0]+r, p[1]+r, p[2]+r);
+	       draw.textHeight(.02).text(thing.modifying.type, cg.add(p,[0,2*r,0]));
+	    }
+
+            // IF A THING IS HIGHLIGHTED, SHOW ITS BOUNDING BOX.
+
+            if (thing.hilit) {
+               draw.color('#ffffff').lineWidth(.0007);
+	       cube(thing.lo[0], thing.lo[1], thing.lo[2],
+                    thing.hi[0], thing.hi[1], thing.hi[2]);
             }
 
             // SHOW LINKS BETWEEN THINGS.
@@ -474,12 +485,18 @@ export const init = async model => {
 
                   if (modifyThing[id]) {
                      let thing = modifyThing[id].thing;
+		     thing.modifying.p = P;
                      thing.hilit = true;
                      let d = cg.subtract(P, prevP[id]);
                      switch (modifyThing[id].state) {
                      case 'move' : moveThing (thing, d); break;
                      case 'scale': scaleThing(thing, d); break;
                      case 'spin' : spinThing (thing, d); break;
+                     case 'link' :
+		        let target = findThingAtPoint(P);
+			if (target)
+			   target.hilit = true;
+		        break;
                      }
                   }
                   
@@ -537,7 +554,6 @@ export const init = async model => {
                         let x = cg.dot(d, fm.slice(0,3));
                         clickOnBG[id].dir = (8 + 4 * Math.atan2(d[1], x) / Math.PI + 1/8 >> 0) % 8;
                      }
-		     //info = clickOnBG[id].dir;
 		  }
 
                   // START A PINCH ON A NON-SKETCH THING AFTER CLICK TO ITS LEFT ON THE BACKGROUND: START DRAWING A LINK.
@@ -600,6 +616,8 @@ export const init = async model => {
 
                case 'release':
 
+	          info = '';
+
                   // IF CLICKED ON THE MIDDLE OF A LINK, REMOVE THE LINK.
 
                   let isLinkRemoved = false;
@@ -626,18 +644,23 @@ export const init = async model => {
 
                   // IF THIS WAS A DRAG GESTURE: SET THE CLICK COUNT TO ZERO.
 
-                  if (thingAtCursor[id] && thingAtCursor[id].dragCount >= np)
+                  if (thingAtCursor[id] && thingAtCursor[id].dragCount >= np) {
+		     info = 'drag';
                      clickCount[id] = 0;
+                  }
 
                   // IF THIS IS JUST AFTER BEING IN MODIFY MODE: END MODIFY MODE.
 
                   if (modifyThing[id]) {
+
+		     info = 'end modify';
 
 		     // FINISH CREATING A THREE-CLICKS LINK CREATION GESTURE.
 
 		     if (modifyThing[id].state == 'link')
 		        createLink(modifyThing[id].thing, findThingAtPoint(P));
 
+                     delete modifyThing[id].thing.modifying;
                      modifyThing[id] = null;
                      break;
                   }
@@ -659,21 +682,28 @@ export const init = async model => {
 
                   if (clickOnBG[id] && thingAtCursor[id] && thingAtCursor[id].dragCount < np) {
                      let thing = thingAtCursor[id];
-                     switch (clickOnBG[id].dir) {
-                     case 0:
-                        deleteThing(thing);
-                        thingAtCursor[id] = null;
-                        break;
-                     case 2: modifyThing[id] = { thing: thing, state: 'scale' } ; break;
-                     case 4: modifyThing[id] = { thing: thing, state: 'move'  } ; break;
-                     case 5: modifyThing[id] = { thing: thing, state: 'link'  } ; break;
-                     case 6: modifyThing[id] = { thing: thing, state: 'spin'  } ; break;
+                     let dir = clickOnBG[id].dir;
+		     if (! (thing.type == 'sketch' && dir == 5)) {
+                        switch (dir) {
+                        case 0:
+                           deleteThing(thing);
+                           thingAtCursor[id] = null;
+                           break;
+                        case 2: modifyThing[id] = { thing: thing, state: 'scale' } ; break;
+                        case 4: modifyThing[id] = { thing: thing, state: 'move'  } ; break;
+                        case 5: modifyThing[id] = { thing: thing, state: 'link'  } ; break;
+                        case 6: modifyThing[id] = { thing: thing, state: 'spin'  } ; break;
+                        }
+			if (modifyThing[id])
+		           thing.modifying = { p: P, type: modifyThing[id].state };
                      }
                   }
 
                   if (clickOnBG[id] && thingAtCursor[id] && thingAtCursor[id].dragCount >= np)
-                     if (clickOnBG[id].dir == 6)
+                     if (clickOnBG[id].dir == 6) {
                         thingAtCursor[id].hud = ! thingAtCursor[id].hud;
+			info = 'toggle hud';
+                     }
 
                   // IF JUST FINISHED DRAWING A STROKE:
 
@@ -697,6 +727,8 @@ export const init = async model => {
                               break;
                            }
                      }  
+		     if (clickOnBG[id])
+		        info = 'click on bg';
 
                      // IF THE STROKE INTERSECTS AN EXISTING SKETCH:
 
@@ -894,7 +926,9 @@ export const init = async model => {
                   things[n].strokes = [];
          }
 
-	 if (model.time + model.deltaTime >> 0 > model.time >> 0) {
+	 // EVERY THREE SECONDS, SAVE THE CURRENT STATE TO THE SERVER.
+
+	 if ((model.time + model.deltaTime)/3 >> 0 > model.time/3 >> 0) {
             for (let n = 0 ; n < things.length ; n++) {
 	       let thing = things[n];
 	       if (thing.type == 'sketch') {
