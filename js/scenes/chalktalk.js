@@ -616,8 +616,6 @@ export const init = async model => {
 
                case 'release':
 
-	          info = '';
-
                   // IF CLICKED ON THE MIDDLE OF A LINK, REMOVE THE LINK.
 
                   let isLinkRemoved = false;
@@ -645,15 +643,12 @@ export const init = async model => {
                   // IF THIS WAS A DRAG GESTURE: SET THE CLICK COUNT TO ZERO.
 
                   if (thingAtCursor[id] && thingAtCursor[id].dragCount >= np) {
-		     info = 'drag';
                      clickCount[id] = 0;
                   }
 
                   // IF THIS IS JUST AFTER BEING IN MODIFY MODE: END MODIFY MODE.
 
                   if (modifyThing[id]) {
-
-		     info = 'end modify';
 
 		     // FINISH CREATING A THREE-CLICKS LINK CREATION GESTURE.
 
@@ -700,10 +695,8 @@ export const init = async model => {
                   }
 
                   if (clickOnBG[id] && thingAtCursor[id] && thingAtCursor[id].dragCount >= np)
-                     if (clickOnBG[id].dir == 6) {
+                     if (clickOnBG[id].dir == 6)
                         thingAtCursor[id].hud = ! thingAtCursor[id].hud;
-			info = 'toggle hud';
-                     }
 
                   // IF JUST FINISHED DRAWING A STROKE:
 
@@ -727,8 +720,6 @@ export const init = async model => {
                               break;
                            }
                      }  
-		     if (clickOnBG[id])
-		        info = 'click on bg';
 
                      // IF THE STROKE INTERSECTS AN EXISTING SKETCH:
 
@@ -760,6 +751,7 @@ export const init = async model => {
                            // RECOGNIZE THE STROKES, DELETE THE SKETCH, CREATE THE NEW THING, ADD IT TO THE SCENE.
 
                            let st = matchCurves.recognize(ss);
+			   let m = cg.mMultiply(sketch.m, fm);
                            deleteThing(sketch);
 
                            let glyph = matchCurves.glyph(st[2]);
@@ -769,7 +761,7 @@ export const init = async model => {
                            let thing = {
 			      type: glyph.name,
 			      timer: 0,
-			      m: fm,
+  			      m: m,
 			      id: cg.uniqueID(),
 			      A: st[0],
 			      B: st[1],
