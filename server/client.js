@@ -163,7 +163,14 @@ function Server(wsPort) {
    }
 
    this.connectSocket = wsPort => {
-      this.socket = new WebSocket("ws://" + window.location.hostname + ":" + wsPort);
+
+      const isSecure = window.location.protocol === "https:";
+      const socketURL = isSecure
+      ? "wss://" + window.location.host
+      : "ws://" + window.location.host;
+      this.socket = new WebSocket(socketURL);
+
+      // this.socket = new WebSocket("ws://" + window.location.hostname + ":" + wsPort);
       this.socket.binaryType = "arraybuffer";
 
       var that = this;
