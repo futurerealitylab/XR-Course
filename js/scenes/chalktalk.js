@@ -16,6 +16,7 @@ export const init = async model => {
 
    let drawColor = '#ff00ff';      // DEFAULT DRAWING COLOR
    let info = '';                  // IN CASE WE NEED TO SHOW DEBUG INFO IN THE SCENE
+   let isClearingScene = false;    // FLAG TO CLEAR THE SCENE
    let isNewClient = true;         // TRUE ONLY WHEN A CLIENT FIRST LOADS
    let fm;                         // FORWARD HEAD MATRIX FOR THE CLIENT BEING EVALUATED
    let np = 10;                    // NUMBER OF POINTS NEEDED FOR A STROKE TO NOT BE A CLICK
@@ -46,6 +47,23 @@ export const init = async model => {
    }
 
 /////////////////////////// PROCEDURAL THING TYPES THAT WE HAVE DEFINED SO FAR:
+
+   addThingType('clear', function() {
+      this.sketch = () => [ [[1,0,0],[-1,0,0]], [[-1,0,0],[1,0,0]] ];
+      this.update = () => turn this.sketch();
+      this.onClick = () => { isClearingScene = true; }
+   });
+
+   addThingType('scenes', function() {
+      this.sketch = () => [ [[-1,1,0],[1,1,0]], [[-1,1,0],[-1,-1,0]] ];
+      this.update = () => {
+         let graphics = [];
+         graphics.push([[-1,.9,0],[1,.9,0],[1,-.9,0],[-1,-.9,0],[-1,.9,0]]);
+         graphics.push({ text: 'A B C D E\nF G H I J\nK L M N O\nP Q R S T\nU V W X Y',
+	                 p:[0,0,0], size:.034, font: 'Courier' });
+         return graphics;
+      }
+   });
 
    addThingType('bird', function() {
       this.sketch = () => [ [ [-1,-.2,0],[-.5,.2,0],[0,-.2,0],[.5,.2,0],[1,-.2,0] ] ];
@@ -313,7 +331,10 @@ export const init = async model => {
                else if (stroke.text !== undefined) {
                   if (stroke.size)
                      draw.textHeight(scale * stroke.size);
+                  if (stroke.font)
+                     draw.font(stroke.font);
                   draw.text(stroke.text, cg.mTransform(m, stroke.p), stroke.align ?? 'center', stroke.x ?? 0, stroke.y ?? 0);
+                  draw.font('Helveetica');
                }
                else if (stroke.image !== undefined)
                   draw.image(images[stroke.image], cg.mTransform(m, stroke.p), 0,0, 0, scale * stroke.size);
@@ -424,6 +445,13 @@ export const init = async model => {
       // THE FIRST CLIENT COMPUTES THE SHARED STATE OF THE SCENE FOR THIS ANIMATION FRAME.
 
       things = shared(() => {
+
+         // IF CLEARING THE SCENE, JUST RETURN AN EMPTY SCENE.
+
+	 if (isClearingScene) {
+	    isClearingScene = false;
+	    return [];
+         }
 
          // START BY UN-HILIGHTING ALL THINGS.
 
@@ -755,9 +783,6 @@ export const init = async model => {
                            deleteThing(sketch);
 
                            let glyph = matchCurves.glyph(st[2]);
-			   if (glyph.name == 'new')
-			      return [];
-
                            let thing = {
 			      type: glyph.name,
 			      timer: 0,
