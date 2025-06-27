@@ -10,10 +10,10 @@ for (let i = 0 ; i < imageNames.length ; i++) {
    images[name].src = 'media/images/' + name + '.png';
 }
 
+server.init('things', []);
 server.init('chalktalkSync', { waitAfterJoinCounter: 30 });
 
 export const init = async model => {
-
    let drawColor = '#ff00ff';      // DEFAULT DRAWING COLOR
    let info = '';                  // IN CASE WE NEED TO SHOW DEBUG INFO IN THE SCENE
    let isClearingScene = false;    // FLAG TO CLEAR THE SCENE
@@ -53,7 +53,7 @@ export const init = async model => {
       this.update = () => this.sketch();
       this.onClick = () => { isClearingScene = true; }
    });
-/*
+
    addThingType('scenes', function() {
       this.sketch = () => [ [[-1,1,0],[1,1,0]], [[-1,1,0],[-1,-1,0]] ];
       this.update = () => {
@@ -64,7 +64,7 @@ export const init = async model => {
          return graphics;
       }
    });
-*/
+
    addThingType('bird', function() {
       this.sketch = () => [ [ [-1,-.2,0],[-.5,.2,0],[0,-.2,0],[.5,.2,0],[1,-.2,0] ] ];
       this.update = time => {
@@ -433,6 +433,7 @@ export const init = async model => {
 
       // WHEN A NEW CLIENT JOINS, MAKE SURE IT WILL RECEIVE ALL EXISTING STROKES.
 
+      things = server.synchronize('things');
       chalktalkSync = server.synchronize('chalktalkSync');
 
       if (isNewClient) {
@@ -444,13 +445,15 @@ export const init = async model => {
 
       // THE FIRST CLIENT COMPUTES THE SHARED STATE OF THE SCENE FOR THIS ANIMATION FRAME.
 
-      things = shared(() => {
+
+      let update = () => {
 
          // IF CLEARING THE SCENE, JUST RETURN AN EMPTY SCENE.
 
 	 if (isClearingScene) {
 	    isClearingScene = false;
-	    return [];
+	    things = [];
+	    return;
          }
 
          // START BY UN-HILIGHTING ALL THINGS.
@@ -469,7 +472,7 @@ export const init = async model => {
 	    waitForLoadCounter = 30;
          }
 	 if (--waitForLoadCounter > 0)
-	    return things;
+	    return;
 
          // LOOP THROUGH EVERY CLIENT:
 
@@ -818,7 +821,7 @@ export const init = async model => {
          }
 
 	 if (! things)
-	    return things;
+	    return;
 
          // PROPAGATE VALUES ACROSS LINKS.
 
@@ -956,9 +959,12 @@ export const init = async model => {
             }
 	    server.set('chalktalk', things);
          }
+      }
 
-	 return things;
-      });
+      if (clientID == clients[0]) {
+         update();
+	 server.broadcastGlobal('things');
+      }
 
       // FOR ANY THING WHOSE STROKES WERE NOT SENT, USED CACHED STROKES.
 

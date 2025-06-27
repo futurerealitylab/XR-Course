@@ -14,6 +14,7 @@ export default () => {
             { name: "cubes"              , path: "./cubes.js"              , public: true  },
 
             { name: "draw"               , path: "./draw.js"               , public: true  },
+            { name: "ch"                 , path: "./ch.js"                 , public: true  },
             { name: "chalktalk"          , path: "./chalktalk.js"          , public: true  },
             { name: "shared1"            , path: "./shared1.js"            , public: true  },
             { name: "shared2"            , path: "./shared2.js"            , public: true  },
