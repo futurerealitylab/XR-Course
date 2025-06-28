@@ -1,3 +1,6 @@
+/*
+   Note that the current version of chalktalk uses the server relay, rather than WebRTC.
+*/
 import * as cg from "../render/core/cg.js";
 import { G3 } from "../util/g3.js";
 import { matchCurves } from "../render/core/matchCurves3D.js";
@@ -10,10 +13,10 @@ for (let i = 0 ; i < imageNames.length ; i++) {
    images[name].src = 'media/images/' + name + '.png';
 }
 
+server.init('things', []);
 server.init('chalktalkSync', { waitAfterJoinCounter: 30 });
 
 export const init = async model => {
-
    let drawColor = '#ff00ff';      // DEFAULT DRAWING COLOR
    let info = '';                  // IN CASE WE NEED TO SHOW DEBUG INFO IN THE SCENE
    let isClearingScene = false;    // FLAG TO CLEAR THE SCENE
@@ -53,7 +56,7 @@ export const init = async model => {
       this.update = () => this.sketch();
       this.onClick = () => { isClearingScene = true; }
    });
-/*
+
    addThingType('scenes', function() {
       this.sketch = () => [ [[-1,1,0],[1,1,0]], [[-1,1,0],[-1,-1,0]] ];
       this.update = () => {
@@ -64,7 +67,7 @@ export const init = async model => {
          return graphics;
       }
    });
-*/
+
    addThingType('bird', function() {
       this.sketch = () => [ [ [-1,-.2,0],[-.5,.2,0],[0,-.2,0],[.5,.2,0],[1,-.2,0] ] ];
       this.update = time => {
@@ -177,6 +180,7 @@ export const init = async model => {
                this.state.image = name;
          }
 	 this.state.text = this.state.image ? '' : speech;
+	 console.log('onClick:', name, this.state.image, this.state.text);
       }
       this.sketch = () => [ squircle(Math.PI) ];
       this.update = () => {
@@ -433,6 +437,7 @@ export const init = async model => {
 
       // WHEN A NEW CLIENT JOINS, MAKE SURE IT WILL RECEIVE ALL EXISTING STROKES.
 
+      things = server.synchronize('things');
       chalktalkSync = server.synchronize('chalktalkSync');
 
       if (isNewClient) {
@@ -444,13 +449,15 @@ export const init = async model => {
 
       // THE FIRST CLIENT COMPUTES THE SHARED STATE OF THE SCENE FOR THIS ANIMATION FRAME.
 
-      things = shared(() => {
+
+      let update = () => {
 
          // IF CLEARING THE SCENE, JUST RETURN AN EMPTY SCENE.
 
 	 if (isClearingScene) {
 	    isClearingScene = false;
-	    return [];
+	    things = [];
+	    return;
          }
 
          // START BY UN-HILIGHTING ALL THINGS.
@@ -469,7 +476,7 @@ export const init = async model => {
 	    waitForLoadCounter = 30;
          }
 	 if (--waitForLoadCounter > 0)
-	    return things;
+	    return;
 
          // LOOP THROUGH EVERY CLIENT:
 
@@ -568,11 +575,13 @@ export const init = async model => {
 					     strokes: [ [P] ],
 					     hilit: 0,
 					     updatedStrokes: true,
+                                             lo: [0,0,0],
+                                             hi: [0,0,0],
 					     dragCount: 0 };
                      things.push(thingBeingDrawn[id]);
                   }
 
-		  // CLICK AFTER A CLICK ON BG:
+		  // START A PINCH AFTER A CLICK ON BG: COMPUTE COMPASS DIRECTION TO THE CLICK ON BG.
 
                   if (clickOnBG[id]) {
 		     if (cg.distance(clickOnBG[id].p, P) < .01)
@@ -791,7 +800,7 @@ export const init = async model => {
 			      A: st[0],
 			      B: st[1],
 			      K: st[2],
-			      T: st[3],
+			      T: cg.roundVec(4, st[3]),
 			   };
                            things.push(thing);
                         }
@@ -815,10 +824,12 @@ export const init = async model => {
                }
                prevP[id] = P;
             }
+            for (let n = 0 ; n < things.length ; n++)
+	       things[n].m = cg.roundVec(4, things[n].m);
          }
 
 	 if (! things)
-	    return things;
+	    return;
 
          // PROPAGATE VALUES ACROSS LINKS.
 
@@ -956,9 +967,12 @@ export const init = async model => {
             }
 	    server.set('chalktalk', things);
          }
+      }
 
-	 return things;
-      });
+      if (clientID == clients[0]) {
+         update();
+	 server.broadcastGlobal('things');
+      }
 
       // FOR ANY THING WHOSE STROKES WERE NOT SENT, USED CACHED STROKES.
 
@@ -981,7 +995,8 @@ export const init = async model => {
                   if (thing.timer < 1 && thing.A)
                      thing.strokes = matchCurves.mix(thing.A, thing.B, cg.ease(thing.timer));
                   else {
-		     thingCode[id].state = thing.state;
+		     if (thing.state)
+		        thingCode[id].state = thing.state;
                      thing.strokes = matchCurves.animate(() => thingCode[id].update(thing.timer-1),
                                                          cg.mIdentity(), thing.timer-1, thing.T);
                   }

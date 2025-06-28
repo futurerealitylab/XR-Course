@@ -252,52 +252,59 @@ export let G3 = function(model, callback) {
          let isTouching = (a,b) => { let d = cg.distance(a,b); return d > 0 && d < .025; }
 
          for (let n = 0 ; n < clients.length ; n++) {
-            let id = clients[n], m, p;
-            if (id != clientID && (m = clientState.head(id))) {
+            let id = clients[n], p, hm = clientState.head(id), m;
+
+	    // IF THIS IS AN IMMERSIVE CLIENT, AND IS NOT ME, THEN DRAW HEAD OF AVATAR.
+
+            if (id != clientID && hm) {
                let face = [];
                for (let i = 0 ; i < faceX.length ; i++)
-                  face.push(cg.mTransform(m, [faceX[i],faceY[i],0]));
+                  face.push(cg.mTransform(hm, [faceX[i],faceY[i],0]));
                this.lineWidth(.01).color(co[0]);
                for (let i = 0 ; i < face.length ; i++)
                   this.line(face[i], face[(i+1) % face.length]);
-               if (m[10] < 0) {
+               if (hm[10] < 0) {
                   this.lineWidth(.03);
                   for (let i = 0 ; i < eyeX.length ; i++) {
-	             let eye = cg.mTransform(m, [eyeX[i],eyeY[i],-.04]);
+	             let eye = cg.mTransform(hm, [eyeX[i],eyeY[i],-.04]);
 		     this.line(eye, eye);
                   }
                }
             }
-            for (let hand in {left:0,right:0})
-               if (m = clientState.hand(id,hand))
-                  if (clientState.isHand(id)) {
 
-		     // DRAW FINGERS OF HAND
+	    // IF THIS IS AN IMMERSIVE CLIENT, THEN FOR EACH HAND:
 
-		     let handPose = computeHandPose(id, hand);
-		     let C = handPose.c;
-		     for (let f = 0 ; f < 5 ; f++) {
-		        draw.lineWidth(fingerWidth(f));
-			let P = handPose.p[f];
-		        if (f == 0)
-			   draw.color(co[C[0]]+'c0').draw([P[1],P[2],P[3]]); // Handle thumb differently.
-			else
-			   draw.color(co[0]+'c0').draw([P[0],P[1],P[2],P[3]]);
-		     }
-                  }
-                  else {
+	    if (hm)
+               for (let hand in {left:0,right:0})
+                  if (m = clientState.hand(id,hand))
 
-                     // DRAW VIRTUAL PING PONG BALL OF CONTROLLER
+                     // DRAW TRANSPARENT FINGERS OF HAND AVATAR
 
-                     let p = m.slice(12,15);
-                     this.lineWidth(.031).color('black').line(p,p);
-                     this.lineWidth(.029).color(co[ clientState.button(id,hand,0) ? 1 :
-                                                    clientState.button(id,hand,1) ? 2 :
-                                                    clientState.button(id,hand,2) ? 3 :
-                                                    clientState.button(id,hand,3) ? 4 :
-                                                    clientState.button(id,hand,4) ? 5 :
-                                                    clientState.button(id,hand,5) ? 6 : 0 ]).line(p,p);
-                  }
+                     if (clientState.isHand(id)) {
+		        let handPose = computeHandPose(id, hand);
+		        let C = handPose.c;
+		        for (let f = 0 ; f < 5 ; f++) {
+		           draw.lineWidth(fingerWidth(f));
+			   let P = handPose.p[f];
+		           if (f == 0)
+			      draw.color(co[C[0]]+'c0').draw([P[1],P[2],P[3]]); // THUMB
+			   else
+			      draw.color(co[0]+'c0').draw([P[0],P[1],P[2],P[3]]); // OTHER FINGERS
+		        }
+                     }
+
+                     // OR DRAW DISK OF VIRTUAL PING PONG BALL OF CONTROLLER AVATAR
+
+                     else {
+                        let p = m.slice(12,15);
+                        this.lineWidth(.031).color('black').line(p,p);
+                        this.lineWidth(.029).color(co[ clientState.button(id,hand,0) ? 1 :
+                                                       clientState.button(id,hand,1) ? 2 :
+                                                       clientState.button(id,hand,2) ? 3 :
+                                                       clientState.button(id,hand,3) ? 4 :
+                                                       clientState.button(id,hand,4) ? 5 :
+                                                       clientState.button(id,hand,5) ? 6 : 0 ]).line(p,p);
+                     }
          }
 
          let sortedDisplayList = [];
