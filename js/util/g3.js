@@ -229,8 +229,8 @@ export let G3 = function(model, callback) {
    const fw = [.021,.019,.018,.017,.015];
    const faceX = [-.04, .04, .09,.1 ,.05,-.05,-.1 ,-.09];
    const faceY = [-.11,-.11,-.05,.08,.13, .13, .08,-.05];
-   const eyeX = [-.035, .035];
-   const eyeY = [ .025, .025];
+   const eyeX = [.07,.043,.016,.043];
+   const eyeY = [.025,.04,.025,.01];
 
    let co = [];
 
@@ -252,31 +252,36 @@ export let G3 = function(model, callback) {
          let isTouching = (a,b) => { let d = cg.distance(a,b); return d > 0 && d < .025; }
 
          for (let n = 0 ; n < clients.length ; n++) {
-            let id = clients[n], p, hm = clientState.head(id), m;
+            let id = clients[n], p, hm = clientState.head(id);
 
-	    // IF THIS IS AN IMMERSIVE CLIENT, AND IS NOT ME, THEN DRAW HEAD OF AVATAR.
+	    // IF THIS IS AN IMMERSIVE CLIENT:
 
-            if (id != clientID && hm) {
-               let face = [];
-               for (let i = 0 ; i < faceX.length ; i++)
-                  face.push(cg.mTransform(hm, [faceX[i],faceY[i],0]));
-               this.lineWidth(.01).color(co[0]);
-               for (let i = 0 ; i < face.length ; i++)
-                  this.line(face[i], face[(i+1) % face.length]);
-               if (hm[10] < 0) {
-                  this.lineWidth(.03);
-                  for (let i = 0 ; i < eyeX.length ; i++) {
-	             let eye = cg.mTransform(hm, [eyeX[i],eyeY[i],-.04]);
-		     this.line(eye, eye);
+	    if (hm) {
+
+	       // IF THIS IS NOT ME, THEN DRAW HEAD OF AVATAR.
+
+               if (id != clientID) {
+                  let face = [];
+                  for (let i = 0 ; i < faceX.length ; i++)
+                     face.push(cg.mTransform(hm, [faceX[i],faceY[i],0]));
+                  this.color(co[0]).fill([face[5],face[6],face[7],face[0]]);
+                  this.color(co[0]).fill([face[4],face[3],face[2],face[1]]);
+                  this.color(co[0]).fill([face[4],face[5],face[0],face[1]]);
+
+                  this.color('#401008');
+	          for (let s = -1 ; s <= 1 ; s += 2) {
+	             let eye = [];
+                     for (let i = 0 ; i < eyeX.length ; i++)
+		        eye.push(cg.mTransform(hm, [s*eyeX[i],eyeY[i],-.03]));
+                     this.fill(eye);
                   }
                }
-            }
 
-	    // IF THIS IS AN IMMERSIVE CLIENT, THEN FOR EACH HAND:
+	       // DRAW THE HANDS OR CONTROLLERS OF EVERY AVATAR.
 
-	    if (hm)
-               for (let hand in {left:0,right:0})
-                  if (m = clientState.hand(id,hand))
+               for (let hand in {left:0,right:0}) {
+                  let m = clientState.hand(id,hand);
+                  if (m) {
 
                      // DRAW TRANSPARENT FINGERS OF HAND AVATAR
 
@@ -305,6 +310,9 @@ export let G3 = function(model, callback) {
                                                        clientState.button(id,hand,4) ? 5 :
                                                        clientState.button(id,hand,5) ? 6 : 0 ]).line(p,p);
                      }
+                  }
+               }
+            }
          }
 
          let sortedDisplayList = [];
