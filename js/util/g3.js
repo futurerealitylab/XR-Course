@@ -44,6 +44,7 @@ export let G3 = function(model, callback) {
    const DRAW = 0, FILL = 1, IMAGE = 2, LINE = 3, TEXT = 4;
 
    let color = '#000000',
+       blinkTime = {},
        displayList = [],
        distance = z => 0.4 / z,
        draw = this,
@@ -260,6 +261,8 @@ export let G3 = function(model, callback) {
 
 	       // IF THIS IS NOT ME, THEN DRAW HEAD OF AVATAR.
 
+	       let time = Date.now() / 1000;
+
                if (id != clientID) {
                   let face = [];
                   for (let i = 0 ; i < faceX.length ; i++)
@@ -268,13 +271,21 @@ export let G3 = function(model, callback) {
                   this.color(co[0]).fill([face[4],face[3],face[2],face[1]]);
                   this.color(co[0]).fill([face[4],face[5],face[0],face[1]]);
 
-                  this.color('#401008');
-	          for (let s = -1 ; s <= 1 ; s += 2) {
-	             let eye = [];
-                     for (let i = 0 ; i < eyeX.length ; i++)
-		        eye.push(cg.mTransform(hm, [s*eyeX[i],eyeY[i],-.03]));
-                     this.fill(eye);
+		  if (! blinkTime[id])
+		     blinkTime[id] = time;
+
+                  if (time < blinkTime[id] - .1) {
+                     this.color('#000000');
+	             for (let s = -1 ; s <= 1 ; s += 2) {
+	                let eye = [];
+                        for (let i = 0 ; i < eyeX.length ; i++)
+		           eye.push(cg.mTransform(hm, [s*eyeX[i],eyeY[i], .03]));
+                        this.fill(eye);
+                     }
                   }
+
+                  if (time > blinkTime[id])
+		     blinkTime[id] = time + 1 + 5 * Math.random();
                }
 
 	       // DRAW THE HANDS OR CONTROLLERS OF EVERY AVATAR.
