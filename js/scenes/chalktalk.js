@@ -861,6 +861,7 @@ export const init = async model => {
 		     thing.isAnimated = true;
                   } catch (err) {
                      thingCode[id] = glyph.code;
+		     thing.isStatic = true;
                   }
                }
 
@@ -990,16 +991,18 @@ export const init = async model => {
                      thingCode[id] = glyph.code;
                   }
                }
-	       if (thing.isAnimated) {
+	       if (thing.isAnimated || thing.isStatic) {
 		  thing.updatedStrokes = true;
                   if (thing.timer < 1 && thing.A)
                      thing.strokes = matchCurves.mix(thing.A, thing.B, cg.ease(thing.timer));
-                  else {
+                  else if (thing.isAnimated) {
 		     if (thing.state)
 		        thingCode[id].state = thing.state;
                      thing.strokes = matchCurves.animate(() => thingCode[id].update(thing.timer-1),
                                                          cg.mIdentity(), thing.timer-1, thing.T);
                   }
+		  else
+	             thing.strokes = strokesCache[id] ?? [];
                }
             }
 
