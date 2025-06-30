@@ -151,6 +151,7 @@ export default () => {
             { name: "buddha"             , path: "./demoBuddha.js"           , public: true },
             { name: "aiobject"           , path: "./demoGenerativeAIModel.js", public: true },
             { name: "chatgpt"            , path: "./demoChatGPT.js"        , public: true },
+            { name: "skeleton"            , path: "./demoSkeleton.js"        , public: true },
 //          { name: "attic"              , path: "./attic.js"              , public: false },
 //          { name: "sync"               , path: "./demoSync.js"           , public: false},
 //          { name: "table"              , path: "./demoTable.js"          , public: false},
