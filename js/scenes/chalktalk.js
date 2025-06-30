@@ -197,6 +197,8 @@ export const init = async model => {
 
 ///////////////////////////////////////////////////////////////////////////////
 
+   // CREATE A LINK BETWEEN TWO THINGS.
+
    let createLink = (thing1, thing2) => {
       if (thing2 && thing2.type != 'sketch' && thing2 != thing1) {
          if (! thing1.links)
@@ -303,7 +305,7 @@ export const init = async model => {
    let g3 = new G3(model, draw => {
       if (things) {
 
-         // TURN ANY HUD THING TOWARD EACH CLIENT WHEN DISPLAYING.
+         // ROTATE ANY HUD THING TO FACE EACH CLIENT WHEN DISPLAYING.
 
          if (draw.view() == 0)
             for (let n = 0 ; n < things.length ; n++) {
@@ -314,6 +316,8 @@ export const init = async model => {
                   spinThingByTheta(thing, Math.atan2(ray[0], ray[2]) - Math.atan2(m[8], m[10]));
                }
             }
+
+         // DISPLAY THE SCENE
 
          let hm = clientState.head(clientID);
          let eye = hm && Array.isArray(hm) ? hm.slice(12,15) : null;
@@ -399,7 +403,7 @@ export const init = async model => {
             }
          }
       }
-      draw.text(info, [0,1.3,0]);
+      draw.textHeight(.02).text(info, [0,1.3,0]);
    });
 
    // DETERMINE WHETHER A THING CONTAINS A 3D POINT.
@@ -449,8 +453,7 @@ export const init = async model => {
 
       // THE FIRST CLIENT COMPUTES THE SHARED STATE OF THE SCENE FOR THIS ANIMATION FRAME.
 
-
-      let update = () => {
+      let updateThings = () => {
 
          // IF CLEARING THE SCENE, JUST RETURN AN EMPTY SCENE.
 
@@ -516,7 +519,7 @@ export const init = async model => {
 
                case 'up':
 
-                  // IF IN MODIFY MODE: MOVE, SCALE OR SPIN A THING.
+                  // IF IN MODIFY MODE: DO MOVE, SCALE, SPIN OR LINK.
 
                   if (modifyThing[id]) {
                      let thing = modifyThing[id].thing;
@@ -534,6 +537,8 @@ export const init = async model => {
 		        break;
                      }
                   }
+
+		  // OTHERWISE:
                   
                   else {
 
@@ -599,21 +604,6 @@ export const init = async model => {
                   if (clickOnBG[id] && clickOnBG[id].dir == 4 && thingAtCursor[id].type != 'sketch')
                      linkSrc[id] = thingAtCursor[id];
 
-		  // TWO SUCCESSIVE CLICKS ON BACKGROUND: THESE GESTURES ARE NOT YET ASSIGNED.
-
-		  if (clickOnBG[id] && ! thingAtCursor[id])
-		     switch (clickOnBG[id].dir) {
-		     case -1: break; // DOUBLE CLICK ON BACKGROUND
-		     case  0: break; // E  => W
-		     case  1: break; // NE => SW
-		     case  2: break; // N  => S
-		     case  3: break; // NW => SE
-		     case  4: break; // W  => E
-		     case  5: break; // SW => NE
-		     case  6: break; // S  => N
-		     case  7: break; // SE => NW
-		     }
-
                   break;
 
                // WHILE PINCHING:
@@ -641,7 +631,7 @@ export const init = async model => {
                      }
                   } 
 
-                  // WHEN DRAGGING OVER A THING: HILIGHT THE THING.
+                  // WHILE DRAGGING OVER A THING: HILIGHT THE THING.
 
                   let thing = findThingAtPoint(P);
                   if (thing)
@@ -730,6 +720,8 @@ export const init = async model => {
 		           thing.modifying = { p: P, type: modifyThing[id].state };
                      }
                   }
+
+		  // CLICK BELOW A THING THEN DRAG DOWNWARD FROM THE THING: TOGGLE HEADS-UP-DISPLAY MODE.
 
                   if (clickOnBG[id] && thingAtCursor[id] && thingAtCursor[id].dragCount >= np)
                      if (clickOnBG[id].dir == 6)
@@ -824,6 +816,9 @@ export const init = async model => {
                }
                prevP[id] = P;
             }
+
+	    // REMOVE TRAILING DIGITS TO MAKE THE DATA MORE COMPACT FOR JSON ENCODING.
+
             for (let n = 0 ; n < things.length ; n++)
 	       things[n].m = cg.roundVec(4, things[n].m);
          }
@@ -970,8 +965,11 @@ export const init = async model => {
          }
       }
 
+      // ONLY THE FIRST CLIENT UPDATES THINGS, AND THEN SENDS THE RESULT TO ALL OTHER CLIENTS.
+
       if (clientID == clients[0]) {
-         update();
+         updateThings();
+	 info = JSON.stringify(things).length;
 	 server.broadcastGlobal('things');
       }
 
@@ -981,6 +979,8 @@ export const init = async model => {
          for (let n = 0 ; n < things.length ; n++) {
 	    let thing = things[n];
 	    let id = thing.id;
+
+	    // FOR NON-SKETCH THINGS, IF NOT THE FIRST CLIENT THEN REGENERATE THE STROKES.
 
             if (thing.type != 'sketch' && clientID != clients[0]) {
 	       if (! thingCode[id]) {
@@ -993,23 +993,36 @@ export const init = async model => {
                }
 	       if (thing.isAnimated || thing.isStatic) {
 		  thing.updatedStrokes = true;
+
+                  // MORPHING FROM A SKETCH TO THE THING
+
                   if (thing.timer < 1 && thing.A)
                      thing.strokes = matchCurves.mix(thing.A, thing.B, cg.ease(thing.timer));
+
+                  // FULLY FORMED ANIMATED THING
+
                   else if (thing.isAnimated) {
 		     if (thing.state)
 		        thingCode[id].state = thing.state;
                      thing.strokes = matchCurves.animate(() => thingCode[id].update(thing.timer-1),
                                                          cg.mIdentity(), thing.timer-1, thing.T);
                   }
+
+		  // FULLY FORMED STATIC THING
+
 		  else
 	             thing.strokes = strokesCache[id] ?? [];
                }
             }
 
+	    // AFTER MORPH IS DONE, SAVE BANDWIDTH BY REMOVING MORPH DATA.
+
 	    if (thing.type != 'sketch' && clientID == clients[0] && thing.timer >= 1) {
 	       delete thing.A;
 	       delete thing.B;
             }
+
+	    // IF STROKES HAVE CHANGED, CACHE THEM. OTHERWISE USE PREVIOUSLY CACHED STROKES.
 
             if (thing.updatedStrokes)
 	       strokesCache[id] = thing.strokes;
