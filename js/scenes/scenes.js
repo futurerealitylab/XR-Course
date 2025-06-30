@@ -1,7 +1,7 @@
 import * as global from "../global.js";
 import { Gltf2Node } from "../render/nodes/gltf2.js";
 
-export let buddha;
+// export let buddha;
 
 export default () => {
    global.scene().addNode(new Gltf2Node({
@@ -13,6 +13,8 @@ export default () => {
       scenes: [ 
             { name: "draw"               , path: "./draw.js"               , public: true  },
             { name: "chalktalk"          , path: "./chalktalk.js"          , public: true  },
+
+            { name: "cubes"              , path: "./cubes.js"              , public: true  },
             { name: "shared1"            , path: "./shared1.js"            , public: true  },
             { name: "shared2"            , path: "./shared2.js"            , public: true  },
             { name: "shared3"            , path: "./shared3.js"            , public: true  },
@@ -35,7 +37,6 @@ export default () => {
 
             { name: "wordcloud7"         , path: "./wordcloud7.js"         , public: true  },
             { name: "stock"              , path: "./stock.js"              , public: true  },
-            { name: "cities"             , path: "./cities.js"             , public: true  },
             { name: "tale"               , path: "./tale.js"               , public: true  },
             { name: "art"                , path: "./art.js"                , public: true  },
 
@@ -146,6 +147,7 @@ export default () => {
 //          { name: "snow"               , path: "./demoSnowDots.js"       , public: false },
 //          { name: "snow2"              , path: "./demoSnow2.js"          , public: false},
             { name: "statue"             , path: "./demoGLTF.js"           , public: true },
+            { name: "buddha"             , path: "./demoBuddha.js"           , public: true },
             { name: "aiobject"           , path: "./demoGenerativeAIModel.js", public: true },
             { name: "chatgpt"            , path: "./demoChatGPT.js"        , public: true },
 //          { name: "attic"              , path: "./attic.js"              , public: false },

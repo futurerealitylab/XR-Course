@@ -15,6 +15,8 @@ export function G2(do_not_animate_flag=false, canvasWidth=512, canvasHeight) {
    txtrCanvas._animate = ! do_not_animate_flag;
 
    let context = txtrCanvas.getContext('2d');
+   context.imageSmoothingEnabled = true;
+   context.imageSmoothingQuality = "high";
    let width   = txtrCanvas.width;
    let height  = txtrCanvas.height;
    txtrCanvas.context = context;
@@ -396,10 +398,9 @@ export function G2(do_not_animate_flag=false, canvasWidth=512, canvasHeight) {
    }
    this.drawPath = path => {
       context.beginPath();
-      for (let n = 0 ; n < path.length-1 ; n++) {
-         moveTo(x2c(path[n][0]), y2c(path[n][1]));
-         lineTo(x2c(path[n+1][0]), y2c(path[n+1][1]));
-      }
+      moveTo(x2c(path[0][0]), y2c(path[0][1]));
+      for (let n = 1 ; n < path.length ; n++)
+         lineTo(x2c(path[n][0]), y2c(path[n][1]));
       context.stroke();
       return this;
    }
