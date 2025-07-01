@@ -475,7 +475,11 @@ export const init = async model => {
 
          if (wasNewClient) {
 	    wasNewClient = false;
-	    server.get('chalktalk', arg => things = arg, err => console.log('error', err));
+	    server.get('chalktalk', arg => {
+	       things = arg;
+               for (let n = 0 ; n < things.length ; n++)
+	          strokesCache[things[n].id] = things[n].strokes;
+	    }, err => console.log('error', err));
 	    waitForLoadCounter = 30;
          }
 	 if (--waitForLoadCounter > 0)
@@ -931,6 +935,8 @@ export const init = async model => {
                thing.lo[j] -= .01;
                thing.hi[j] += .01;
             }
+	    thing.lo = cg.roundVec(4, thing.lo);
+	    thing.hi = cg.roundVec(4, thing.hi);
          }
 
          // UNLESS A NEW CLIENT HAS RECENTLY JOINED,
@@ -956,8 +962,13 @@ export const init = async model => {
             for (let n = 0 ; n < things.length ; n++) {
 	       let thing = things[n];
 	       if (thing.type == 'sketch') {
-	          if (strokesCache[thing.id])
+	          if (strokesCache[thing.id]) {
 	             thing.strokes = strokesCache[thing.id];
+		     for (let i = 0 ; i < thing.strokes.length ; i++)
+		     for (let j = 0 ; j < thing.strokes[i].length ; j++)
+		     for (let k = 0 ; k < thing.strokes[i][j].length ; k++)
+		        thing.strokes[i][j][k] = (10000 * thing.strokes[i][j][k] + .5 >> 0) / 10000;
+                  }
 	          thing.updatedStrokes = true;
                }
             }
