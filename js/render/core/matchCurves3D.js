@@ -180,6 +180,8 @@ function MatchCurves() {
          }
       }
 
+      // COMPUTE THE AVERAGE Z VALUE OF THE INPUT STROKES.
+
       let zSum = 0, count = 0;
       for (let n = 0 ; n < strokes.length ; n++)
       for (let i = 0 ; i < strokes[n].length ; i++) {
@@ -187,21 +189,35 @@ function MatchCurves() {
          count++;
       }
       let z = zSum / count;
-   
+
+      // COMPUTE THE BEST TRANSFORMATION TO FIT THE GLYPH TO THE STROKES.
+
+      let xys = bestXYS(glyphs[K].curves, strokes);
+      let xyzs = [ xys[0],xys[1],z,xys[2] ];
+
+      // GENERATE THE TRANSFORMED GLYPH.
+
+      let glyphStrokes = this.generateStrokes(K, xyzs);
+
+      // RETURN DATA NEEDED FOR MORPHING THE STROKES TO THE GLYPH.
+
+      return [strokes, glyphStrokes, K, xyzs];
+   }
+
+   this.generateStrokes = (K, xyzs) => {
       let curves = glyphs[K].curves;
-      let xys = bestXYS(curves, strokes);
-      let x = xys[0], y = xys[1], s = xys[2];
-      let targetStrokes = [];
+      let x = xyzs[0], y = xyzs[1], z = xyzs[2], s = xyzs[3];
+      let strokes = [];
       for (let n = 0 ; n < curves.length ; n++) {
          let curve = curves[n];
-         let targetStroke = [];
+         let stroke = [];
          for (let i = 0 ; i < NS ; i++)
-            targetStroke.push([ x + s * curve[i][0],
-                                y + s * curve[i][1],
-                                z + s * curve[i][2] ]);
-         targetStrokes.push(targetStroke);
+            stroke.push([ x + s * curve[i][0],
+                          y + s * curve[i][1],
+                          z + s * curve[i][2] ]);
+         strokes.push(stroke);
       }
-      return [strokes, targetStrokes, K, [x,y,z,s]];
+      return strokes;
    }
    
    this.mix = (A,B,t) => {

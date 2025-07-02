@@ -21,11 +21,11 @@ export const init = async model => {
    let info = '';                  // IN CASE WE NEED TO SHOW DEBUG INFO IN THE SCENE
    let isClearingScene = false;    // FLAG TO CLEAR THE SCENE
    let isNewClient = true;         // TRUE ONLY WHEN A CLIENT FIRST LOADS
+   let isOKToProceed = false;      // TRUE ONLY WHEN A CLIENT FIRST LOADS
    let fm;                         // FORWARD HEAD MATRIX FOR THE CLIENT BEING EVALUATED
    let np = 10;                    // NUMBER OF POINTS NEEDED FOR A STROKE TO NOT BE A CLICK
    let speech = '';                // THE MOST RECENT THING THAT ANYBODY SAID
    let waitForLoadCounter = false; // COUNTER FOR WAITING AFTER FIRST LOADING THE SCENE
-   let wasNewClient = false;       // THIS TRIGGERS THE FIRST CLIENT TO LOAD THE SCENE
 
    let prevP = {},                 // PREVIOUS CURSOR POSITION FOR EACH HAND OF EVERY CLIENT
        things = [],                // THINGS SHARED BETWEEN CLIENTS
@@ -58,13 +58,25 @@ export const init = async model => {
    });
 
    addThingType('scenes', function() {
+      let s = [['A','B','C','D','E'],
+               ['F','G','H','I','J'],
+	       ['K','L','M','N','O'],
+	       ['P','Q','R','S','T'],
+	       ['U','V','W','X','Y']];
       this.sketch = () => [ [[-1,1,0],[1,1,0]], [[-1,1,0],[-1,-1,0]] ];
       this.update = () => {
          let graphics = [];
          graphics.push([[-1,.9,0],[1,.9,0],[1,-.9,0],[-1,-.9,0],[-1,.9,0]]);
-         graphics.push({ text: 'A B C D E\nF G H I J\nK L M N O\nP Q R S T\nU V W X Y',
-	                 p:[0,0,0], size:.034, font: 'Courier' });
+	 for (let row = 0 ; row < 5 ; row++)
+	 for (let col = 0 ; col < 5 ; col++)
+            graphics.push({ text: s[row][col], p:[.35*col-.7,.7-.35*row,0], size:.027 });
          return graphics;
+      }
+      this.onClick = p => {
+         let col = Math.max(0, Math.min(4, 5 * (.5 + .5 * p[0]) >> 0));
+         let row = Math.max(0, Math.min(4, 5 * (.5 - .5 * p[1]) >> 0));
+	 let sceneID = 1 + col + 5 * row;
+	 info = sceneID;
       }
    });
 
@@ -403,7 +415,7 @@ export const init = async model => {
             }
          }
       }
-      draw.textHeight(.02).text(info, [0,1.3,0]);
+      draw.textHeight(.03).text(info, [0,1.3,0]);
    });
 
    // DETERMINE WHETHER A THING CONTAINS A 3D POINT.
@@ -439,19 +451,29 @@ export const init = async model => {
 
    model.animate(() => {
 
-      // WHEN A NEW CLIENT JOINS, MAKE SURE IT WILL RECEIVE ALL EXISTING STROKES.
+      // WHEN A NEW CLIENT JOINS, FORCE THE MASTER CLIENT TO SEND IT ALL EXISTING STROKES.
 
       things = server.synchronize('things');
       chalktalkSync = server.synchronize('chalktalkSync');
 
       if (isNewClient) {
+
+         // WHEN A NEW CLIENT JOINS, REGENERATE THE STROKES OF ITS STATIC THINGS.
+
+         for (let n = 0 ; n < things.length ; n++) {
+	    let thing = things[n];
+	    if (thing.isStatic && thing.strokes.length == 0) {
+	       thing.strokes = matchCurves.generateStrokes(thing.K, thing.T);
+	       strokesCache[thing.id] = thing.strokes;
+	    }
+	 }
+
 	 isNewClient = false;
          chalktalkSync.waitAfterJoinCounter = 30;
 	 server.broadcastGlobal('chalktalkSync');
-	 wasNewClient = true;
       }
 
-      // THE FIRST CLIENT COMPUTES THE SHARED STATE OF THE SCENE FOR THIS ANIMATION FRAME.
+      // THE MASTER CLIENT COMPUTES THE SHARED STATE OF THE SCENE FOR THIS ANIMATION FRAME.
 
       let updateThings = () => {
 
@@ -470,20 +492,6 @@ export const init = async model => {
                things[n].hilit = 0;
 	       things[n].updatedStrokes = false;
             }
-
-         // WHEN THE FIRST CLIENT JOINS, IT STARTS BY LOADING THE SCENE FROM THE SERVER.
-
-         if (wasNewClient) {
-	    wasNewClient = false;
-	    server.get('chalktalk', arg => {
-	       things = arg;
-               for (let n = 0 ; n < things.length ; n++)
-	          strokesCache[things[n].id] = things[n].strokes;
-	    }, err => console.log('error', err));
-	    waitForLoadCounter = 30;
-         }
-	 if (--waitForLoadCounter > 0)
-	    return;
 
          // LOOP THROUGH EVERY CLIENT:
 
@@ -942,8 +950,10 @@ export const init = async model => {
          // UNLESS A NEW CLIENT HAS RECENTLY JOINED,
 
          if (chalktalkSync.waitAfterJoinCounter > 0) {
-            for (let n = 0 ; n < things.length ; n++)
-               things[n].updatedStrokes = true;
+            for (let n = 0 ; n < things.length ; n++) {
+	       let thing = things[n];
+               thing.updatedStrokes = true;
+            }
             chalktalkSync.waitAfterJoinCounter--;
 	    server.broadcastGlobal('chalktalkSync');
          }
@@ -955,32 +965,12 @@ export const init = async model => {
                if (! things[n].updatedStrokes)
                   things[n].strokes = [];
          }
-
-	 // EVERY THREE SECONDS, SAVE THE CURRENT STATE TO THE SERVER.
-
-	 if ((model.time + model.deltaTime)/3 >> 0 > model.time/3 >> 0) {
-            for (let n = 0 ; n < things.length ; n++) {
-	       let thing = things[n];
-	       if (thing.type == 'sketch') {
-	          if (strokesCache[thing.id]) {
-	             thing.strokes = strokesCache[thing.id];
-		     for (let i = 0 ; i < thing.strokes.length ; i++)
-		     for (let j = 0 ; j < thing.strokes[i].length ; j++)
-		     for (let k = 0 ; k < thing.strokes[i][j].length ; k++)
-		        thing.strokes[i][j][k] = (10000 * thing.strokes[i][j][k] + .5 >> 0) / 10000;
-                  }
-	          thing.updatedStrokes = true;
-               }
-            }
-	    server.set('chalktalk', things);
-         }
       }
 
-      // ONLY THE FIRST CLIENT UPDATES THINGS, AND THEN SENDS THE RESULT TO ALL OTHER CLIENTS.
+      // ONLY THE MASTER CLIENT UPDATES THINGS, AND THEN SENDS THE RESULT TO ALL OTHER CLIENTS.
 
       if (clientID == clients[0]) {
          updateThings();
-	 info = JSON.stringify(things).length;
 	 server.broadcastGlobal('things');
       }
 
@@ -991,7 +981,7 @@ export const init = async model => {
 	    let thing = things[n];
 	    let id = thing.id;
 
-	    // FOR NON-SKETCH THINGS, IF NOT THE FIRST CLIENT THEN REGENERATE THE STROKES.
+	    // FOR NON-SKETCH THINGS, IF NOT THE MASTER CLIENT THEN REGENERATE THE STROKES.
 
             if (thing.type != 'sketch' && clientID != clients[0]) {
 	       if (! thingCode[id]) {
