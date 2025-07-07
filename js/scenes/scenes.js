@@ -146,7 +146,7 @@ export default () => {
 //          { name: "smoke"              , path: "./demoSmoke.js"          , public: false },
 //          { name: "snowOriginal"       , path: "./demoSnow.js"           , public: false},
 //          { name: "snow"               , path: "./demoSnowDots.js"       , public: false },
-//          { name: "snow2"              , path: "./demoSnow2.js"          , public: false},
+         { name: "snow2"              , path: "./demoSnow2.js"          , public: false},
             { name: "statue"             , path: "./demoGLTF.js"           , public: true },
             { name: "buddha"             , path: "./demoBuddha.js"           , public: true },
             { name: "aiobject"           , path: "./demoGenerativeAIModel.js", public: true },
