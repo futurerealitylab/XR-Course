@@ -478,7 +478,7 @@ function onRequestSession() {
     return navigator.xr
         .requestSession("immersive-ar", {
             requiredFeatures: ["local-floor"],
-            optionalFeatures: ["hand-tracking", "layers", "mesh-detection", "depth-sensing"],
+            optionalFeatures: ["hand-tracking", "layers", "mesh-detection", "depth-sensing", "shared"],
         })
         .then((session) => {
 	    isXRMode = true;
