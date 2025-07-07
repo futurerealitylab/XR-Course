@@ -512,15 +512,15 @@ export const init = async model => {
             for (let n = 0 ; n < things.length ; n++) {
                let thing = things[n];
                if (thing.type == 'sketch') {
-                  let strokes = strokesCache[thing.id] ?? thing.strokes;
-		  if (strokes.length > 0)
+                  let strokes = getStrokes(thing);
+		  if (strokes && strokes.length > 0)
                      S[thing.id] = strokes;
                }
             }
             server.set('chalktalkStrokes', S);
          }
 
-         // START BY UN-HILIGHTING ALL THINGS.
+         // START BY UNSELECTING ALL THINGS.
 
          if (things && waitForLoadCounter <= 0)
             for (let n = 0 ; n < things.length ; n++) {
@@ -766,6 +766,8 @@ export const init = async model => {
 			   saveStrokes();
                            break;
 
+			// GESTURES TO SCALE, MOVE, LINK OR SPIN A THING.
+
                         case 2: modifyThing[id] = { thing: thing, state: 'scale' } ; break;
                         case 4: modifyThing[id] = { thing: thing, state: 'move'  } ; break;
                         case 5: modifyThing[id] = { thing: thing, state: 'link'  } ; break;
@@ -776,7 +778,7 @@ export const init = async model => {
                      }
                   }
 
-		  // CLICK BELOW A THING THEN DRAG DOWNWARD FROM THE THING: TOGGLE HEADS-UP-DISPLAY MODE.
+		  // CLICK BELOW A THING THEN DRAG DOWNWARD FROM THE THING TO TOGGLE HEADS-UP-DISPLAY MODE.
 
                   if (clickOnBG[id] && thingAtCursor[id] && thingAtCursor[id].dragCount >= np)
                      if (clickOnBG[id].dir == 6)
