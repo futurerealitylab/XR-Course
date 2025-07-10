@@ -1,6 +1,3 @@
-/*
-   Note that the current version of chalktalk uses the server relay, rather than WebRTC.
-*/
 import * as cg from "../render/core/cg.js";
 import { G3 } from "../util/g3.js";
 import { matchCurves } from "../render/core/matchCurves3D.js";
@@ -13,9 +10,6 @@ for (let i = 0 ; i < imageNames.length ; i++) {
    images[name].src = 'media/images/' + name + '.png';
 }
 
-server.init('things', []);
-server.init('chalktalkSync', { waitAfterJoinCounter: 30 });
-
 export const init = async model => {
    let drawColor = '#ff00ff';      // DEFAULT DRAWING COLOR
    let info = '';                  // IN CASE WE NEED TO SHOW DEBUG INFO IN THE SCENE
@@ -23,12 +17,24 @@ export const init = async model => {
    let isNewClient = true;         // TRUE ONLY WHEN A CLIENT FIRST LOADS
    let isOKToProceed = false;      // TRUE ONLY WHEN A CLIENT FIRST LOADS
    let fm;                         // FORWARD HEAD MATRIX FOR THE CLIENT BEING EVALUATED
+   let nextSceneID = 'A';
    let np = 10;                    // NUMBER OF POINTS NEEDED FOR A STROKE TO NOT BE A CLICK
+   let sceneID = 'A';
    let speech = '';                // THE MOST RECENT THING THAT ANYBODY SAID
+   let things = [];
+   let who;
    let waitForLoadCounter = false; // COUNTER FOR WAITING AFTER FIRST LOADING THE SCENE
 
+   let timeStamp;
+   {
+      let date = new Date();
+      let Y = date.getFullYear() % 100, M = date.getMonth(), D = date.getDate(),
+          h = date.getHours(), m = date.getMinutes(), s = date.getSeconds();
+      let pad = n => (n < 10 ? '0' : '') + n;
+      timeStamp = pad(Y) + pad(M) + pad(D) + '_' + pad(h) + pad(m) + pad(s);
+   }
+
    let prevP = {},                 // PREVIOUS CURSOR POSITION FOR EACH HAND OF EVERY CLIENT
-       things = [],                // THINGS SHARED BETWEEN CLIENTS
        linkSrc = {},               // THE SOURCE OF THE LINK CURRENTLY BEING DRAWN
        thingCode = {},             // CODE FOR THING INSTANCES
        clickOnBG = {},             // AFTER A CLICK ON THE BACKGROUND, SET CLICK INFO
@@ -41,6 +47,33 @@ export const init = async model => {
    // KEEP TRACK OF THE MOST RECENT THING THAT ANYBODY SAID.
 
    window.onSpeech = (_speech, id) => speech = _speech;
+
+   let actions = [];
+
+   let action = (type, info) => {
+      info.type = type;
+      info.time = (1000 * model.time + .5) >> 0;
+      actions.push(info);
+      let s = '';
+      for (let n = 0 ; n < actions.length ; n++) {
+         let info = actions[n];
+	 let time = info.time / 1000;
+	 s += time < 10 ? '  ' : time < 100 ? ' ' : '';
+         s += time + '\t' + who + '\t' + info.type;
+	 if (info.id)
+	   s += '\t' + info.id;
+	 if (info.a)
+	   s += '\t' + info.a + '\t' + info.b;
+	 if (info.data)
+	   s += '\t' + info.data;
+	 if (info.p)
+	   s += '\t' + cg.roundFloat(4, info.p[0]) + ','
+	             + cg.roundFloat(4, info.p[1]) + ','
+		     + cg.roundFloat(4, info.p[2]);
+         s += '\n';
+      }
+      server.set('ca' + sceneID + '_' + timeStamp, s, true);
+   }
 
    // DEFINE A NEW PROCEDURAL THING TYPE.
 
@@ -60,23 +93,23 @@ export const init = async model => {
    addThingType('scenes', function() {
       let s = [['A','B','C','D','E'],
                ['F','G','H','I','J'],
-	       ['K','L','M','N','O'],
-	       ['P','Q','R','S','T'],
-	       ['U','V','W','X','Y']];
+               ['K','L','M','N','O'],
+               ['P','Q','R','S','T'],
+               ['U','V','W','X','Y']];
       this.sketch = () => [ [[-1,1,0],[1,1,0]], [[-1,1,0],[-1,-1,0]] ];
       this.update = () => {
          let graphics = [];
          graphics.push([[-1,.9,0],[1,.9,0],[1,-.9,0],[-1,-.9,0],[-1,.9,0]]);
-	 for (let row = 0 ; row < 5 ; row++)
-	 for (let col = 0 ; col < 5 ; col++)
+         for (let row = 0 ; row < 5 ; row++)
+         for (let col = 0 ; col < 5 ; col++)
             graphics.push({ text: s[row][col], p:[.35*col-.7,.7-.35*row,0], size:.027 });
          return graphics;
       }
       this.onClick = p => {
          let col = Math.max(0, Math.min(4, 5 * (.5 + .5 * p[0]) >> 0));
          let row = Math.max(0, Math.min(4, 5 * (.5 - .5 * p[1]) >> 0));
-	 let sceneID = 1 + col + 5 * row;
-	 info = sceneID;
+         nextSceneID = s[row][col];
+	 isNewClient = true;
       }
    });
 
@@ -186,18 +219,17 @@ export const init = async model => {
       this.state = { text: 'thing' };
       this.onClick = () => {
          delete this.state.image;
-	 for (let i = 0 ; i < imageNames.length ; i++) {
-	    let name = imageNames[i];
-	    if (speech.toLowerCase().indexOf(name) >= 0)
+         for (let i = 0 ; i < imageNames.length ; i++) {
+            let name = imageNames[i];
+            if (speech.toLowerCase().indexOf(name) >= 0)
                this.state.image = name;
          }
-	 this.state.text = this.state.image ? '' : speech;
-	 console.log('onClick:', name, this.state.image, this.state.text);
+         this.state.text = this.state.image ? '' : speech;
       }
       this.sketch = () => [ squircle(Math.PI) ];
       this.update = () => {
          let graphics = [];
-	 if (! this.state.image)
+         if (! this.state.image)
             graphics.push(squircle(Math.PI));
          if (this.state.image)
             graphics.push( { image: this.state.image, p:[0,0,0], size: .15 } );
@@ -216,6 +248,7 @@ export const init = async model => {
          if (! thing1.links)
             thing1.links = [];
          thing1.links.push( { id: thing2.id, at: {} } );
+         action('link', { a: thing1.id, b: thing2.id });
       }
    }
 
@@ -231,6 +264,8 @@ export const init = async model => {
    // DELETE A THING FROM THE SCENE.
 
    let deleteThing = thing => {
+      delete strokesCache[thing.id];
+
       for (let n = 0 ; n < things.length ; n++)
          if (thing == things[n]) {
             things.splice(n, 1);
@@ -255,19 +290,28 @@ export const init = async model => {
    // COMPUTE THE GEOMETRIC CENTER OF A THING.
 
    let computeThingCenter = thing => {
-      let strokes = thing.strokes, center = [0,0,0], count = 0;
+      let strokes = getStrokes(thing), center = [0,0,0], count = 0;
       for (let n = 0 ; n < strokes.length ; n++) {
          let stroke = strokes[n];
          if (stroke.image !== undefined) {
-	    center = stroke.p;
-	    count = 1;
-	    break;
+            center = stroke.p;
+            count = 1;
+            break;
          }
          else if (Array.isArray(stroke))
             for (let i = 0 ; i < stroke.length ; i++, count++)
                center = cg.add(center, stroke[i]);
       }
       return cg.mTransform(thing.m, cg.scale(center, 1 / count));
+   }
+
+   // GET THE STROKES OF A THING, USING ITS CACHED STROKES AS A BACKUP.
+
+   let getStrokes = thing => {
+      let strokes = thing.strokes;
+      if (! strokes || strokes.length == 0)
+         strokes = strokesCache[thing.id];
+      return strokes;
    }
 
    // MOVE THE POSITION OF A THING.
@@ -336,15 +380,15 @@ export const init = async model => {
          for (let n = 0 ; n < things.length ; n++) {
             let thing = things[n];
             draw.color(drawColor).lineWidth(thing.hilit ? .006 : .003);
-	    let m = thing.m;
-	    let scale = cg.norm(m.slice(0,3));
+            let m = thing.m;
+            let scale = cg.norm(m.slice(0,3));
             let strokes = thing.strokes;
             for (let n = 0 ; n < strokes.length ; n++) {
                let stroke = strokes[n];
                if (Array.isArray(stroke)) {
-	          let s = [];
+                  let s = [];
                   for (let i = 0 ; i < stroke.length ; i++)
-		     s.push(cg.mTransform(m, stroke[i]));
+                     s.push(cg.mTransform(m, stroke[i]));
                   for (let i = 0 ; i < s.length - 1 ; i++)
                      draw.line(s[i], s[i+1]);
                }
@@ -360,7 +404,9 @@ export const init = async model => {
                   draw.image(images[stroke.image], cg.mTransform(m, stroke.p), 0,0, 0, scale * stroke.size);
             }
 
-	    let cube = (x0,y0,z0, x1,y1,z1) => 
+            // DRAW THE 12 EDGES OF AN AXIS-ALIGNED BOX.
+
+            let box = (x0,y0,z0, x1,y1,z1) => 
                draw.line([x0,y0,z0],[x1,y0,z0]).line([x0,y1,z0],[x1,y1,z0])
                    .line([x0,y0,z1],[x1,y0,z1]).line([x0,y1,z1],[x1,y1,z1])
                    .line([x0,y0,z0],[x0,y1,z0]).line([x1,y0,z0],[x1,y1,z0])
@@ -368,21 +414,21 @@ export const init = async model => {
                    .line([x0,y0,z0],[x0,y0,z1]).line([x1,y0,z0],[x1,y0,z1])
                    .line([x0,y1,z0],[x0,y1,z1]).line([x1,y1,z0],[x1,y1,z1]);
             
-            // IF A THING IS BEING MODIFIED, SHOW ITS MODIFY POINT.
+            // IF A THING IS BEING MODIFIED, SHOW ITS MODIFY POINT AND ITS MODIFY TYPE.
 
-	    if (thing.modifying) {
-	       let p = thing.modifying.p, r = .015;
+            if (thing.modifying) {
+               let p = thing.modifying.p, r = .015;
                draw.color('#ffffff').lineWidth(.001);
-	       cube(p[0]-r, p[1]-r, p[2]-r,  p[0]+r, p[1]+r, p[2]+r);
-	       draw.textHeight(.02).text(thing.modifying.type, cg.add(p,[0,2*r,0]));
-	    }
+               box(p[0]-r, p[1]-r, p[2]-r,  p[0]+r, p[1]+r, p[2]+r);
+               draw.textHeight(.02).text(thing.modifying.type, cg.add(p,[0,2*r,0]));
+            }
 
             // IF A THING IS HIGHLIGHTED, SHOW ITS BOUNDING BOX.
 
             if (thing.hilit) {
                draw.color('#ffffff').lineWidth(.0007);
-	       cube(thing.lo[0], thing.lo[1], thing.lo[2],
-                    thing.hi[0], thing.hi[1], thing.hi[2]);
+               box(thing.lo[0], thing.lo[1], thing.lo[2],
+                   thing.hi[0], thing.hi[1], thing.hi[2]);
             }
 
             // SHOW LINKS BETWEEN THINGS.
@@ -396,8 +442,8 @@ export const init = async model => {
                   let p3 = eye ? cg.add(p2, cg.scale(cg.normalize(cg.subtract(eye,p2)), .01)) : p2;
 
                   let isHilit = false;
-                  for (let id in thing.links[i].at)
-                     if (thing.links[i].at[id])
+                  for (let who in thing.links[i].at)
+                     if (thing.links[i].at[who])
                         isHilit = true;
 
                   draw.color('#ffffff').lineWidth(.010).line(p2, p3)
@@ -415,6 +461,9 @@ export const init = async model => {
             }
          }
       }
+
+      // DRAW ANY DIAGNOSTIC INFO.
+
       draw.textHeight(.03).text(info, [0,1.3,0]);
    });
 
@@ -451,46 +500,84 @@ export const init = async model => {
 
    model.animate(() => {
 
-      // WHEN A NEW CLIENT JOINS, FORCE THE MASTER CLIENT TO SEND IT ALL EXISTING STROKES.
-
-      things = server.synchronize('things');
-      chalktalkSync = server.synchronize('chalktalkSync');
-
       if (isNewClient) {
+         isNewClient = false;
+	 sceneID = nextSceneID;
 
-         // WHEN A NEW CLIENT JOINS, REGENERATE THE STROKES OF ITS STATIC THINGS.
+         server.get('ct' + sceneID, arg => {
+            things = arg;
 
-         for (let n = 0 ; n < things.length ; n++) {
-	    let thing = things[n];
-	    if (thing.isStatic && thing.strokes.length == 0) {
-	       thing.strokes = matchCurves.generateStrokes(thing.K, thing.T);
-	       strokesCache[thing.id] = thing.strokes;
-	    }
-	 }
+            if (! things)
+               things = [];
 
-	 isNewClient = false;
-         chalktalkSync.waitAfterJoinCounter = 30;
-	 server.broadcastGlobal('chalktalkSync');
+            // WHEN A NEW CLIENT JOINS, REGENERATE THE STROKES OF ITS STATIC THINGS.
+
+            for (let n = 0 ; n < things.length ; n++) {
+               let thing = things[n];
+               if (thing.isStatic && (! thing.strokes || thing.strokes.length == 0)) {
+                  thing.strokes = matchCurves.generateStrokes(thing.K, thing.T);
+                  strokesCache[thing.id] = thing.strokes;
+               }
+            }
+
+            // WHEN A NEW CLIENT JOINS, FETCH THE STROKES OF SKETCH OBJECTS FROM THE SERVER CACHE.
+
+            server.get('cs' + sceneID, S => {
+               if (S)
+                  for (let id in S) {
+                     let thing = findThingFromID(id);
+                     if (thing && thing.type == 'sketch') {
+                        thing.strokes = S[id];
+                        strokesCache[id] = S[id];
+                     }
+                  }
+            });
+         });
       }
 
-      // THE MASTER CLIENT COMPUTES THE SHARED STATE OF THE SCENE FOR THIS ANIMATION FRAME.
+      // IN RESPONSE TO CLEAR COMMAND, CLEAR THE ENTIRE SCENE.
 
-      let updateThings = () => {
+      if (isClearingScene) {
+         isClearingScene = false;
+         things = [];
+         linkSrc = {};
+         thingCode = {};
+         clickOnBG = {};
+         clickCount = {};
+         modifyThing = {};
+         strokesCache = {};
+         thingAtCursor = {};
+         thingBeingDrawn = {};
+      }
 
-         // IF CLEARING THE SCENE, JUST RETURN AN EMPTY SCENE.
+      // THE MASTER CLIENT COMPUTES THE SHARED STATE OF THE SCENE FOR EACH ANIMATION FRAME.
 
-	 if (isClearingScene) {
-	    isClearingScene = false;
-	    things = [];
-	    return;
+      let updateMasterClient = () => {
+
+         // SOMETIMES THE MASTER CLIENT WILL NEED TO UPDATE STROKES ON THE SERVER.
+
+         let saveStrokes = () => {
+            let S = {};
+            for (let n = 0 ; n < things.length ; n++) {
+               let thing = things[n];
+               if (thing.type == 'sketch') {
+                  let strokes = getStrokes(thing);
+                  if (strokes && strokes.length > 0)
+                     S[thing.id] = strokes;
+               }
+            }
+            server.set('cs' + sceneID, S);
          }
 
-         // START BY UN-HILIGHTING ALL THINGS.
+         // START BY UNSELECTING ALL THINGS.
 
          if (things && waitForLoadCounter <= 0)
             for (let n = 0 ; n < things.length ; n++) {
-               things[n].hilit = 0;
-	       things[n].updatedStrokes = false;
+               let thing = things[n];
+               thing.hilit = 0;
+               thing.isUpdatingStrokes = false;
+               if (thing.type == 'sketch' && strokesCache[thing.id])
+                  thing.strokes = strokesCache[thing.id];
             }
 
          // LOOP THROUGH EVERY CLIENT:
@@ -512,9 +599,9 @@ export const init = async model => {
 
                // PROVIDE A UNIQUE ID FOR THIS HAND OF THIS CLIENT.
 
-               let id = clients[I] + hand;
-               if (clickCount[id] === undefined)
-                  clickCount[id] = 0;
+               who = clients[I] + hand;
+               if (clickCount[who] === undefined)
+                  clickCount[who] = 0;
 
                // FIND THE 3D CURSOR, IF ANY.
 
@@ -533,33 +620,33 @@ export const init = async model => {
 
                   // IF IN MODIFY MODE: DO MOVE, SCALE, SPIN OR LINK.
 
-                  if (modifyThing[id]) {
-                     let thing = modifyThing[id].thing;
-		     thing.modifying.p = P;
+                  if (modifyThing[who]) {
+                     let thing = modifyThing[who].thing;
+                     thing.modifying.p = P;
                      thing.hilit = true;
-                     let d = cg.subtract(P, prevP[id]);
-                     switch (modifyThing[id].state) {
+                     let d = cg.subtract(P, prevP[who]);
+                     switch (modifyThing[who].state) {
                      case 'move' : moveThing (thing, d); break;
                      case 'scale': scaleThing(thing, d); break;
                      case 'spin' : spinThing (thing, d); break;
                      case 'link' :
-		        let target = findThingAtPoint(P);
-			if (target)
-			   target.hilit = true;
-		        break;
+                        let target = findThingAtPoint(P);
+                        if (target)
+                           target.hilit = true;
+                        break;
                      }
                   }
 
-		  // OTHERWISE:
+                  // OTHERWISE:
                   
                   else {
 
                      // KEEP TRACK OF THE THING AT THE CURSOR, IF ANY.
 
-                     thingAtCursor[id] = findThingAtPoint(P);
-                     if (thingAtCursor[id]) {
-                        thingAtCursor[id].hilit = 1;
-                        thingAtCursor[id].dragCount = 0;
+                     thingAtCursor[who] = findThingAtPoint(P);
+                     if (thingAtCursor[who]) {
+                        thingAtCursor[who].hilit = 1;
+                        thingAtCursor[who].dragCount = 0;
                      }
 
                      // CHECK FOR A LINK AT THE CURSOR FOR THIS HAND OF THIS CLIENT.
@@ -571,7 +658,7 @@ export const init = async model => {
                               let thing2 = findThingFromID(thing1.links[i].id);
                               let p = cg.mix(transformOutof(thing1, [0,0,0]),
                                              transformOutof(thing2, [0,0,0]), .5);
-                              thing1.links[i].at[id] = cg.distance(p, P) < .01;
+                              thing1.links[i].at[who] = cg.distance(p, P) < .04;
                            }
                      }
                   }
@@ -584,37 +671,38 @@ export const init = async model => {
 
                   // IF NOT AT A NON-SKETCH THING AND NOT IN MODIFY MODE: START DRAWING A NEW STROKE.
 
-                  thingBeingDrawn[id] = null;
-                  if (! clickOnBG[id] && ! modifyThing[id] && (! thingAtCursor[id] || thingAtCursor[id].type=='sketch')) {
-                     thingBeingDrawn[id] = { id: cg.uniqueID(),
-		                             type: 'sketch',
-					     m: cg.mIdentity(),
-					     strokes: [ [P] ],
-					     hilit: 0,
-					     updatedStrokes: true,
-                                             lo: [0,0,0],
-                                             hi: [0,0,0],
-					     dragCount: 0 };
-                     things.push(thingBeingDrawn[id]);
+                  thingBeingDrawn[who] = null;
+                  if (! clickOnBG[who] && ! modifyThing[who] && (! thingAtCursor[who] || thingAtCursor[who].type=='sketch')) {
+                     thingBeingDrawn[who] = { id: cg.uniqueID(),
+                                              type: 'sketch',
+                                              m: cg.mIdentity(),
+                                              strokes: [ [P] ],
+                                              hilit: 0,
+                                              isUpdatingStrokes: true,
+                                              lo: [0,0,0],
+                                              hi: [0,0,0],
+                                              dragCount: 0 };
+                     things.push(thingBeingDrawn[who]);
+                     action('create', { id: thingBeingDrawn[who].id });
                   }
 
-		  // START A PINCH AFTER A CLICK ON BG: COMPUTE COMPASS DIRECTION TO THE CLICK ON BG.
+                  // START A PINCH AFTER A CLICK ON BG: COMPUTE COMPASS DIRECTION TO THE CLICK ON BG.
 
-                  if (clickOnBG[id]) {
-		     if (cg.distance(clickOnBG[id].p, P) < .01)
-		        clickOnBG[id].dir = -1;
+                  if (clickOnBG[who]) {
+                     if (cg.distance(clickOnBG[who].p, P) < .04)
+                        clickOnBG[who].dir = -1;
                      else {
-                        let d = cg.subtract(clickOnBG[id].p, P);
+                        let d = cg.subtract(clickOnBG[who].p, P);
                         let x = cg.dot(d, fm.slice(0,3));
-                        clickOnBG[id].dir = (8 + 4 * Math.atan2(d[1], x) / Math.PI + 1/8 >> 0) % 8;
+                        clickOnBG[who].dir = (8 + 4 * Math.atan2(d[1], x) / Math.PI + 1/8 >> 0) % 8;
                      }
-		  }
+                  }
 
                   // START A PINCH ON A NON-SKETCH THING AFTER CLICK TO ITS LEFT ON THE BACKGROUND: START DRAWING A LINK.
 
-                  linkSrc[id] = null;
-                  if (clickOnBG[id] && clickOnBG[id].dir == 4 && thingAtCursor[id].type != 'sketch')
-                     linkSrc[id] = thingAtCursor[id];
+                  linkSrc[who] = null;
+                  if (clickOnBG[who] && clickOnBG[who].dir == 4 && thingAtCursor[who].type != 'sketch')
+                     linkSrc[who] = thingAtCursor[who];
 
                   break;
 
@@ -624,22 +712,26 @@ export const init = async model => {
 
                   // DRAG WHILE DRAWING A STROKE: CONTINUE TO DRAW THE STROKE.
 
-                  if (thingBeingDrawn[id]) {
-		     thingBeingDrawn[id].updatedStrokes = true;
-                     thingBeingDrawn[id].strokes[0].push(P);
+                  if (thingBeingDrawn[who]) {
+                     thingBeingDrawn[who].isUpdatingStrokes = true;
+                     thingBeingDrawn[who].strokes[0].push(P);
+		     action('draw', { id: thingBeingDrawn[who].id, p: P });
                      for (let n = 0 ; n < things.length ; n++)
-                        if (isIntersect(thingBeingDrawn[id], things[n]))
+                        if (isIntersect(thingBeingDrawn[who], things[n]))
                            things[n].hilit = 1;
                   }
 
                   // DRAG ON A NON-SKETCH THING: SEND THE DRAG EVENT TO THE THING.
 
                   else {
-                     let thing = thingAtCursor[id];
+                     let thing = thingAtCursor[who];
                      if (thing) {
                         thing.dragCount++;
-                        if (! modifyThing[id] && ! clickOnBG[id] && thingCode[thing.id] && thingCode[thing.id].onDrag)
-                           thingCode[thing.id].onDrag(transformInto(thing, P));
+                        if (! modifyThing[who] && ! clickOnBG[who] && thingCode[thing.id] && thingCode[thing.id].onDrag) {
+                           let p = transformInto(thing, P);
+                           thingCode[thing.id].onDrag(p);
+                           action('drag', { id: thing.id, p: cg.roundVec(4, p) });
+                        }
                      }
                   } 
 
@@ -659,11 +751,13 @@ export const init = async model => {
 
                   let isLinkRemoved = false;
                   for (let n = 0 ; n < things.length ; n++) {
-                     let thing = things[n];
-                     if (thing.links) {
-                        for (let i = 0 ; i < thing.links.length ; i++) {
-                           if (thing.links[i].at[id]) {
-                              removeLink(thing.links, findThingFromID(thing.links[i].id));
+                     let thing1 = things[n];
+                     if (thing1.links) {
+                        for (let i = 0 ; i < thing1.links.length ; i++) {
+                           if (thing1.links[i].at[who]) {
+                              let thing2 = findThingFromID(thing1.links[i].id);
+                              removeLink(thing1.links, thing2);
+                              action('unlink', { a: thing1.id, b: thing2.id });
                               isLinkRemoved = true;
                               break;
                            }
@@ -674,77 +768,92 @@ export const init = async model => {
                   // IF A LINK WAS JUST REMOVED, DELETE THE DRAWN STROKE AND DO NOTHING ELSE.
 
                   if (isLinkRemoved) {
-                     deleteThing(thingBeingDrawn[id]);
-                     thingBeingDrawn[id] = null;
+                     deleteThing(thingBeingDrawn[who]);
+                     thingBeingDrawn[who] = null;
                      break;
                   }
 
                   // IF THIS WAS A DRAG GESTURE: SET THE CLICK COUNT TO ZERO.
 
-                  if (thingAtCursor[id] && thingAtCursor[id].dragCount >= np) {
-                     clickCount[id] = 0;
-                  }
+                  if (thingAtCursor[who] && thingAtCursor[who].dragCount >= np)
+                     clickCount[who] = 0;
 
                   // IF THIS IS JUST AFTER BEING IN MODIFY MODE: END MODIFY MODE.
 
-                  if (modifyThing[id]) {
+                  if (modifyThing[who]) {
 
-		     // FINISH CREATING A THREE-CLICKS LINK CREATION GESTURE.
+                     action(modifyThing[who].state + 'E', { id: modifyThing[who].thing.id, p: P });
 
-		     if (modifyThing[id].state == 'link')
-		        createLink(modifyThing[id].thing, findThingAtPoint(P));
+                     // FINISH CREATING A THREE-CLICKS LINK CREATION GESTURE.
 
-                     delete modifyThing[id].thing.modifying;
-                     modifyThing[id] = null;
+                     if (modifyThing[who].state == 'link')
+                        createLink(modifyThing[who].thing, findThingAtPoint(P));
+
+                     delete modifyThing[who].thing.modifying;
+                     modifyThing[who] = null;
                      break;
                   }
 
                   // FINISH CREATING A CLICK-THEN-DRAG LINK CREATION GESTURE.
 
-                  if (linkSrc[id])
-		     createLink(linkSrc[id], findThingAtPoint(P));
+                  if (linkSrc[who])
+                     createLink(linkSrc[who], findThingAtPoint(P));
 
                   // IF WAS CLICKING ON A NON-SKETCH THING: SEND THE CLICK EVENT TO THE THING.
 
-                  if (! clickOnBG[id] && thingAtCursor[id] && thingAtCursor[id].type != 'sketch' && thingAtCursor[id].dragCount < np) {
-                     let thing = thingAtCursor[id];
-                     if (thingCode[thing.id] && thingCode[thing.id].onClick)
-                        thingCode[thing.id].onClick(transformInto(thing, P));
+                  if (! clickOnBG[who] && thingAtCursor[who] && thingAtCursor[who].type != 'sketch' && thingAtCursor[who].dragCount < np) {
+                     let thing = thingAtCursor[who];
+                     if (thingCode[thing.id] && thingCode[thing.id].onClick) {
+                        let p = transformInto(thing, P);
+                        thingCode[thing.id].onClick(p);
+                        action('click', { id: thing.id, p: cg.roundVec(4, p) });
+                     }
                   }
 
                   // IF WAS CLICKING ON A THING AFTER CLICKING ON THE BACKGROUND: ENTER MODIFY MODE.
 
-                  if (clickOnBG[id] && thingAtCursor[id] && thingAtCursor[id].dragCount < np) {
-                     let thing = thingAtCursor[id];
-                     let dir = clickOnBG[id].dir;
-		     if (! (thing.type == 'sketch' && dir == 5)) {
+                  if (clickOnBG[who] && thingAtCursor[who] && thingAtCursor[who].dragCount < np) {
+                     let thing = thingAtCursor[who];
+                     let dir = clickOnBG[who].dir;
+                     if (! (thing.type == 'sketch' && dir == 5)) {
                         switch (dir) {
+
+                        // GESTURE TO DELETE A THING.
+
                         case 0:
                            deleteThing(thing);
-                           thingAtCursor[id] = null;
+                           action('delete', { id: thing.id });
+                           thingAtCursor[who] = null;
+                           saveStrokes();
                            break;
-                        case 2: modifyThing[id] = { thing: thing, state: 'scale' } ; break;
-                        case 4: modifyThing[id] = { thing: thing, state: 'move'  } ; break;
-                        case 5: modifyThing[id] = { thing: thing, state: 'link'  } ; break;
-                        case 6: modifyThing[id] = { thing: thing, state: 'spin'  } ; break;
+
+                        // GESTURES TO SCALE, MOVE, LINK OR SPIN A THING.
+
+                        case 2: modifyThing[who] = { thing: thing, state: 'scale' } ; break;
+                        case 4: modifyThing[who] = { thing: thing, state: 'move'  } ; break;
+                        case 5: modifyThing[who] = { thing: thing, state: 'link'  } ; break;
+                        case 6: modifyThing[who] = { thing: thing, state: 'spin'  } ; break;
                         }
-			if (modifyThing[id])
-		           thing.modifying = { p: P, type: modifyThing[id].state };
+                        if (modifyThing[who]) {
+			   let type = modifyThing[who].state;
+			   action(type + 'B', { id: thing.id, p: P });
+                           thing.modifying = { type: type, p: P };
+                        }
                      }
                   }
 
-		  // CLICK BELOW A THING THEN DRAG DOWNWARD FROM THE THING: TOGGLE HEADS-UP-DISPLAY MODE.
+                  // CLICK BELOW A THING THEN DRAG DOWNWARD FROM THE THING TO TOGGLE HEADS-UP-DISPLAY MODE.
 
-                  if (clickOnBG[id] && thingAtCursor[id] && thingAtCursor[id].dragCount >= np)
-                     if (clickOnBG[id].dir == 6)
-                        thingAtCursor[id].hud = ! thingAtCursor[id].hud;
+                  if (clickOnBG[who] && thingAtCursor[who] && thingAtCursor[who].dragCount >= np)
+                     if (clickOnBG[who].dir == 6)
+                        thingAtCursor[who].hud = ! thingAtCursor[who].hud;
 
                   // IF JUST FINISHED DRAWING A STROKE:
 
-                  clickOnBG[id] = null;
-                  if (thingBeingDrawn[id]) {
-                     let td = thingBeingDrawn[id];
-		     td.updatedStrokes = true;
+                  clickOnBG[who] = null;
+                  if (thingBeingDrawn[who]) {
+                     let td = thingBeingDrawn[who];
+                     td.isUpdatingStrokes = true;
 
                      // IF THE STROKE IS VERY SMALL OR QUICK, CLASSIFY IT AS A CLICK STROKE.
 
@@ -754,10 +863,10 @@ export const init = async model => {
                      // DETECT A CLICK STROKE ON THE BACKGROUND.
 
                      if (isClickStroke) {
-                        clickOnBG[id] = { p: P };
+                        clickOnBG[who] = { p: P };
                         for (let n = 0 ; n < things.length ; n++)
                            if (things[n] != td && isThingAtPoint(things[n], P)) {
-                              clickOnBG[id] = null;
+                              clickOnBG[who] = null;
                               break;
                            }
                      }  
@@ -792,20 +901,21 @@ export const init = async model => {
                            // RECOGNIZE THE STROKES, DELETE THE SKETCH, CREATE THE NEW THING, ADD IT TO THE SCENE.
 
                            let st = matchCurves.recognize(ss);
-			   let m = cg.mMultiply(sketch.m, fm);
+                           let m = cg.mMultiply(sketch.m, fm);
                            deleteThing(sketch);
 
                            let glyph = matchCurves.glyph(st[2]);
                            let thing = {
-			      type: glyph.name,
-			      timer: 0,
-  			      m: m,
-			      id: cg.uniqueID(),
-			      A: st[0],
-			      B: st[1],
-			      K: st[2],
-			      T: cg.roundVec(4, st[3]),
-			   };
+                              type: glyph.name,
+                              timer: 0,
+                              m: m,
+                              id: cg.uniqueID(),
+                              A: st[0],
+                              B: st[1],
+                              K: st[2],
+                              T: st[3],
+                           };
+                           action('convert', { a:sketch.id, b:thing.id, data:thing.K });
                            things.push(thing);
                         }
 
@@ -813,30 +923,31 @@ export const init = async model => {
 
                         else {
                            sketch.strokes.push(td.strokes[0]);
-			   sketch.updatedStrokes = true;
+                           sketch.isUpdatingStrokes = true;
+                           action('merge', { a:sketch.id, b:td.id });
                            deleteThing(td);
                         }
+
+                        saveStrokes();
                      }
 
                      // IF THIS WAS A CLICK STROKE: DELETE IT.
 
                      if (td && isClickStroke)
                         deleteThing(td);
-                     thingBeingDrawn[id] = null;
+
+                     // OTHERWISE UPDATE STROKES ON THE SERVER
+
+                     else
+                        saveStrokes();
+
+                     thingBeingDrawn[who] = null;
                   }
                   break;
                }
-               prevP[id] = P;
+               prevP[who] = P;
             }
-
-	    // REMOVE TRAILING DIGITS TO MAKE THE DATA MORE COMPACT FOR JSON ENCODING.
-
-            for (let n = 0 ; n < things.length ; n++)
-	       things[n].m = cg.roundVec(4, things[n].m);
          }
-
-	 if (! things)
-	    return;
 
          // PROPAGATE VALUES ACROSS LINKS.
 
@@ -856,7 +967,7 @@ export const init = async model => {
 
          for (let n = 0 ; n < things.length ; n++) {
             let thing = things[n];
-	    let id = thing.id;
+            let id = thing.id;
             if (thing.type != 'sketch') {
 
                // MAKE SURE THE THING HAS ASSOCIATED CODE.
@@ -865,10 +976,10 @@ export const init = async model => {
                   let glyph = matchCurves.glyph(thing.K);
                   try {
                      thingCode[id] = new glyph.code();
-		     thing.isAnimated = true;
+                     thing.isAnimated = true;
                   } catch (err) {
                      thingCode[id] = glyph.code;
-		     thing.isStatic = true;
+                     thing.isStatic = true;
                   }
                }
 
@@ -889,7 +1000,9 @@ export const init = async model => {
                      thing.state = thingCode[id].state;
                   }
                }
-	       strokesCache[id] = thing.strokes;
+
+               if (thing.strokes.length > 0)
+                  strokesCache[id] = thing.strokes;
 
                // IF HUD, PREPARE TO TURN THE THING TOWARD EACH CLIENT WHEN DISPLAYING IT.
 
@@ -902,23 +1015,25 @@ export const init = async model => {
 
          for (let n = 0 ; n < things.length ; n++) {
             let thing = things[n];
-	    if (! thing.strokes) {
+            let strokes = getStrokes(thing);
+            if (! strokes) {
                thing.lo = [-.01,-.01,-.01 ];
                thing.hi = [ .01, .01, .01 ];
-	       continue;
-	    }
-	    let m = thing.m;
-	    let scale = cg.norm(m.slice(0,3));
+               continue;
+            }
+
+            let m = thing.m;
+            let scale = cg.norm(m.slice(0,3));
             thing.lo = [ 1000, 1000, 1000 ];
             thing.hi = [-1000,-1000,-1000 ];
-            for (let n = 0 ; n < thing.strokes.length ; n++) {
-	       let stroke = thing.strokes[n];
+            for (let n = 0 ; n < strokes.length ; n++) {
+               let stroke = strokes[n];
 
-	       // IF THIS THING HAS STROKES, BUILD A BOUNDING BOX BASED ON ITS STROKES.
+               // IF THIS THING HAS STROKES, BUILD A BOUNDING BOX BASED ON ITS STROKES.
 
                if (Array.isArray(stroke))
                   for (let i = 0 ; i < stroke.length ; i++) {
-		     let p = cg.mTransform(m, stroke[i]);
+                     let p = cg.mTransform(m, stroke[i]);
                      for (let j = 0 ; j < 3 ; j++) {
                         thing.lo[j] = Math.min(thing.lo[j], p[j]);
                         thing.hi[j] = Math.max(thing.hi[j], p[j]);
@@ -928,63 +1043,40 @@ export const init = async model => {
                // IF THIS IS AN IMAGE, MAKE ITS BOUNDING BOX A CUBE.
 
                else if (stroke.image !== undefined) {
-		  let p = cg.mTransform(m, stroke.p);
-		  let size = scale * stroke.size;
-		  for (let j = 0 ; j < 3 ; j++) {
-	             thing.lo[j] = Math.min(thing.lo[j], p[j] - size / 2);
-	             thing.hi[j] = Math.max(thing.hi[j], p[j] + size / 2);
+                  let p = cg.mTransform(m, stroke.p);
+                  let size = scale * stroke.size;
+                  for (let j = 0 ; j < 3 ; j++) {
+                     thing.lo[j] = Math.min(thing.lo[j], p[j] - size / 2);
+                     thing.hi[j] = Math.max(thing.hi[j], p[j] + size / 2);
                   }
-	       }
-	    }
+               }
+            }
 
-	    // MAKE THE BOUNDING BOX SLIGHTLY LARGER THAN THE THING ITSELF.
+            // MAKE THE BOUNDING BOX SLIGHTLY LARGER THAN THE THING ITSELF.
 
             for (let j = 0 ; j < 3 ; j++) {
                thing.lo[j] -= .01;
                thing.hi[j] += .01;
             }
-	    thing.lo = cg.roundVec(4, thing.lo);
-	    thing.hi = cg.roundVec(4, thing.hi);
-         }
-
-         // UNLESS A NEW CLIENT HAS RECENTLY JOINED,
-
-         if (chalktalkSync.waitAfterJoinCounter > 0) {
-            for (let n = 0 ; n < things.length ; n++) {
-	       let thing = things[n];
-               thing.updatedStrokes = true;
-            }
-            chalktalkSync.waitAfterJoinCounter--;
-	    server.broadcastGlobal('chalktalkSync');
-         }
-
-         // RELY ON CACHED STROKES FOR THINGS WHOSE STROKES HAVE NOT CHANGED.
-
-	 else {
-            for (let n = 0 ; n < things.length ; n++)
-               if (! things[n].updatedStrokes)
-                  things[n].strokes = [];
          }
       }
 
-      // ONLY THE MASTER CLIENT UPDATES THINGS, AND THEN SENDS THE RESULT TO ALL OTHER CLIENTS.
+      // ONLY THE MASTER CLIENT UPDATES THINGS. IT WILL SEND THE RESULT TO ALL OTHER CLIENTS.
 
-      if (clientID == clients[0]) {
-         updateThings();
-	 server.broadcastGlobal('things');
-      }
+      if (clientID == clients[0])
+         updateMasterClient();
 
-      // FOR ANY THING WHOSE STROKES WERE NOT SENT, USED CACHED STROKES.
+      // EACH CLIENT THEN FILLS IN MISSING STROKES USING LOCAL PROCEDURES AND CACHE.
 
       if (things)
          for (let n = 0 ; n < things.length ; n++) {
-	    let thing = things[n];
-	    let id = thing.id;
+            let thing = things[n];
+            let id = thing.id;
 
-	    // FOR NON-SKETCH THINGS, IF NOT THE MASTER CLIENT THEN REGENERATE THE STROKES.
+            // FOR NON-SKETCH THINGS, IF NOT THE MASTER CLIENT THEN REGENERATE THE STROKES.
 
             if (thing.type != 'sketch' && clientID != clients[0]) {
-	       if (! thingCode[id]) {
+               if (! thingCode[id]) {
                   let glyph = matchCurves.glyph(thing.K);
                   try {
                      thingCode[id] = new glyph.code();
@@ -992,46 +1084,86 @@ export const init = async model => {
                      thingCode[id] = glyph.code;
                   }
                }
-	       if (thing.isAnimated || thing.isStatic) {
-		  thing.updatedStrokes = true;
+               if (thing.isAnimated || thing.isStatic) {
+                  thing.isUpdatingStrokes = thing.timer < 1 || thing.isAnimated;
 
                   // MORPHING FROM A SKETCH TO THE THING
 
-                  if (thing.timer < 1 && thing.A)
+                  if (thing.B)
                      thing.strokes = matchCurves.mix(thing.A, thing.B, cg.ease(thing.timer));
 
                   // FULLY FORMED ANIMATED THING
 
                   else if (thing.isAnimated) {
-		     if (thing.state)
-		        thingCode[id].state = thing.state;
+                     if (thing.state)
+                        thingCode[id].state = thing.state;
                      thing.strokes = matchCurves.animate(() => thingCode[id].update(thing.timer-1),
                                                          cg.mIdentity(), thing.timer-1, thing.T);
                   }
 
-		  // FULLY FORMED STATIC THING
+                  // FULLY FORMED STATIC THING
 
-		  else
-	             thing.strokes = strokesCache[id] ?? [];
+                  else
+                     thing.strokes = strokesCache[id] ?? [];
                }
             }
 
-	    // AFTER MORPH IS DONE, SAVE BANDWIDTH BY REMOVING MORPH DATA.
+            // IF STROKES HAVE CHANGED, CACHE THEM. OTHERWISE USE PREVIOUSLY CACHED STROKES.
 
-	    if (thing.type != 'sketch' && clientID == clients[0] && thing.timer >= 1) {
-	       delete thing.A;
-	       delete thing.B;
-            }
-
-	    // IF STROKES HAVE CHANGED, CACHE THEM. OTHERWISE USE PREVIOUSLY CACHED STROKES.
-
-            if (thing.updatedStrokes)
-	       strokesCache[id] = thing.strokes;
+            if (thing.isUpdatingStrokes)
+               strokesCache[id] = thing.strokes;
             else
-	       thing.strokes = strokesCache[id] ?? [];
-	 }
+               thing.strokes = strokesCache[id] ?? [];
+         }
+
+      // ALL CLIENTS DRAW THE SCENE.
 
       g3.update();
+
+      // EVERY ANIMATION FRAME, THE MASTER CLIENT SENDS THE SCENE STATE TO ALL OTHER CLIENTS.
+
+      // BEFORE WRITING THE SCENE STATE, THE MASTER CLIENT FIRST REMOVES NON-NEW STROKES.
+      // THE RECIPIENT CLIENTS WILL RESTORE THOSE STROKES FROM CACHE.
+
+      if (clientID == clients[0]) {
+         for (let n = 0 ; n < things.length ; n++) {
+            let thing = things[n];
+
+            // DON'T KEEP SENDING STROKES. UNLESS THEY CHANGE, OTHER CLIENTS WILL CACHE THEM.
+
+            if (! thing.isUpdatingStrokes)
+               thing.strokes = [];
+
+            // AFTER MORPHING IS FINISHED, CLEAN UP.
+
+            if (thing.B && thing.timer >= 1) {
+               if (thing.isStatic) {
+                  strokesCache[things.id] = thing.B;
+                  thing.strokes = [];
+               }
+               delete thing.A;
+               delete thing.B;
+            }
+
+            // BEFORE WRITING, ROUND FLOATING POINT NUMBERS TO REDUCE THEIR JSON CHARACTER COUNT.
+
+            thing.m  = cg.roundVec(4, thing.m);
+            thing.lo = cg.roundVec(4, thing.lo);
+            thing.hi = cg.roundVec(4, thing.hi);
+            if (thing.T)
+               thing.T = cg.roundVec(4, thing.T);
+            if (thing.timer)
+               thing.timer = cg.roundFloat(3, thing.timer);
+         }
+
+         for (let i = 1 ; i < clients.length ; i++)
+            channel[clients[i]].send(things);
+
+         server.set('ct' + sceneID, things);
+      }
+      else
+         channel[clients[0]].on = data => things = data;
    });
 }
+
 

@@ -102,7 +102,7 @@ app.route("/set").post(function(req, res, next) {
       res.write('received upload:\n\n');
 
       var key = fields.key.toString();
-      if (! key.endsWith('.json'))
+      if (! key.endsWith('.json') && ! key.endsWith('.txt'))
          key += '.json';
 /*
       if (fields.value[0].toString().startsWith('[')) {

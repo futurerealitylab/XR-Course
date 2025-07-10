@@ -21,9 +21,16 @@
                                             da * (     t*t*t - 2 * t*t + t) +
                                             db * (     t*t*t -     t*t    ) ;
 
-   // Provide a unique random integer ID.
+   // Provide a unique random ID string.
 
-   export let uniqueID = () => 1000 * Math.floor(Math.random() * 1000000) + (Date.now() % 1000);
+   const aaC = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz', anC = aaC + '0123456789';
+
+   export let uniqueID = () => {
+      let aa = n => aaC.substring(n, n+1);
+      let an = n => anC.substring(n, n+1);
+      return aa(52 * Math.random()) + an(62 * Math.random()) + an(62 * Math.random()) +
+             an(62 * Math.random()) + an(62 * Math.random()) + an(62 * Math.random()) ;
+   }
 
    // Two link inverse kinematics
 
@@ -145,6 +152,8 @@
          v[i] = roundFloat(n, v[i]);
       return v;
    }
+
+// CONVERSIONS BETWEEN RGB AND HEX COLOR FORMATS.
 
    let c2i = c => c < 65 ? c - 48 : c < 65 ? c - 55 : c - 87;
    let h2f = h => Math.pow(c2i(h.charCodeAt(0)) / 16 + c2i(h.charCodeAt(1)) / 256,2.2);

@@ -32,13 +32,19 @@ function Server(wsPort) {
       request.send(form);
    }
 
-   this.set = (key, val) => {
+   this.set = (key, val, isTxt) => {
       var request = new XMLHttpRequest();
       request.open('POST', 'set');
 
       var form = new FormData();
-      form.append('key', key + '.json');
-      form.append('value', JSON.stringify(val));
+      if (isTxt) {
+         form.append('key', key + '.txt');
+         form.append('value', val);
+      }
+      else {
+         form.append('key', key + '.json');
+         form.append('value', JSON.stringify(val));
+      }
       request.send(form);
    }
 
@@ -47,8 +53,15 @@ function Server(wsPort) {
       request.open('GET', key + '.json');
       request.onloadend = () => {
          if (request.responseText.indexOf('Cannot ') != 0)
-            callback(JSON.parse(request.responseText));
-         else if (onErr !== undefined)
+	    try {
+               callback(JSON.parse(request.responseText));
+            } catch (error) {
+	       if (onErr)
+	          onErr(request.responseText);
+               else
+	          console.log('JSON parse error:', request.responseText);
+	    }
+         else if (onErr)
             onErr(request.responseText);
       }
       request.send();
