@@ -11,8 +11,6 @@ export default () => {
    return {
       enableSceneReloading: true,
       scenes: [ 
-            { name: "house"              , path: "./house.js"              , public: true  },
-
             { name: "draw"               , path: "./draw.js"               , public: true  },
             { name: "chalktalk"          , path: "./chalktalk.js"          , public: true  },
 
