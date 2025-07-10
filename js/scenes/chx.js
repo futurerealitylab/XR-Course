@@ -1,6 +1,3 @@
-/*
-   Note that the current version of chalktalk uses the server relay, rather than WebRTC.
-*/
 import * as cg from "../render/core/cg.js";
 import { G3 } from "../util/g3.js";
 import { matchCurves } from "../render/core/matchCurves3D.js";
@@ -13,9 +10,6 @@ for (let i = 0 ; i < imageNames.length ; i++) {
    images[name].src = 'media/images/' + name + '.png';
 }
 
-server.init('things', []);
-server.init('chalktalkSync', { waitAfterJoinCounter: 30 });
-
 export const init = async model => {
    let drawColor = '#ff00ff';      // DEFAULT DRAWING COLOR
    let info = '';                  // IN CASE WE NEED TO SHOW DEBUG INFO IN THE SCENE
@@ -25,10 +19,10 @@ export const init = async model => {
    let fm;                         // FORWARD HEAD MATRIX FOR THE CLIENT BEING EVALUATED
    let np = 10;                    // NUMBER OF POINTS NEEDED FOR A STROKE TO NOT BE A CLICK
    let speech = '';                // THE MOST RECENT THING THAT ANYBODY SAID
+   let things = [];
    let waitForLoadCounter = false; // COUNTER FOR WAITING AFTER FIRST LOADING THE SCENE
 
    let prevP = {},                 // PREVIOUS CURSOR POSITION FOR EACH HAND OF EVERY CLIENT
-       things = [],                // THINGS SHARED BETWEEN CLIENTS
        linkSrc = {},               // THE SOURCE OF THE LINK CURRENTLY BEING DRAWN
        thingCode = {},             // CODE FOR THING INSTANCES
        clickOnBG = {},             // AFTER A CLICK ON THE BACKGROUND, SET CLICK INFO
@@ -192,7 +186,6 @@ export const init = async model => {
                this.state.image = name;
          }
 	 this.state.text = this.state.image ? '' : speech;
-	 console.log('onClick:', name, this.state.image, this.state.text);
       }
       this.sketch = () => [ squircle(Math.PI) ];
       this.update = () => {
@@ -231,6 +224,8 @@ export const init = async model => {
    // DELETE A THING FROM THE SCENE.
 
    let deleteThing = thing => {
+      delete strokesCache[thing.id];
+
       for (let n = 0 ; n < things.length ; n++)
          if (thing == things[n]) {
             things.splice(n, 1);
@@ -255,7 +250,7 @@ export const init = async model => {
    // COMPUTE THE GEOMETRIC CENTER OF A THING.
 
    let computeThingCenter = thing => {
-      let strokes = thing.strokes, center = [0,0,0], count = 0;
+      let strokes = getStrokes(thing), center = [0,0,0], count = 0;
       for (let n = 0 ; n < strokes.length ; n++) {
          let stroke = strokes[n];
          if (stroke.image !== undefined) {
@@ -268,6 +263,15 @@ export const init = async model => {
                center = cg.add(center, stroke[i]);
       }
       return cg.mTransform(thing.m, cg.scale(center, 1 / count));
+   }
+
+   // GET THE STROKES OF A THING, USING ITS CACHED STROKES AS A BACKUP.
+
+   let getStrokes = thing => {
+      let strokes = thing.strokes;
+      if (! strokes || strokes.length == 0)
+         strokes = strokesCache[thing.id];
+      return strokes;
    }
 
    // MOVE THE POSITION OF A THING.
@@ -451,46 +455,80 @@ export const init = async model => {
 
    model.animate(() => {
 
-      // WHEN A NEW CLIENT JOINS, FORCE THE MASTER CLIENT TO SEND IT ALL EXISTING STROKES.
-
-      things = server.synchronize('things');
-      chalktalkSync = server.synchronize('chalktalkSync');
-
       if (isNewClient) {
+         server.get('chalktalkThings', arg => {
+	    things = arg;
+	    if (! things)
+	       things = [];
 
-         // WHEN A NEW CLIENT JOINS, REGENERATE THE STROKES OF ITS STATIC THINGS.
+            // WHEN A NEW CLIENT JOINS, REGENERATE THE STROKES OF ITS STATIC THINGS.
 
-         for (let n = 0 ; n < things.length ; n++) {
-	    let thing = things[n];
-	    if (thing.isStatic && thing.strokes.length == 0) {
-	       thing.strokes = matchCurves.generateStrokes(thing.K, thing.T);
-	       strokesCache[thing.id] = thing.strokes;
+            for (let n = 0 ; n < things.length ; n++) {
+	       let thing = things[n];
+	       if (thing.isStatic && (! thing.strokes || thing.strokes.length == 0)) {
+	          thing.strokes = matchCurves.generateStrokes(thing.K, thing.T);
+	          strokesCache[thing.id] = thing.strokes;
+	       }
 	    }
-	 }
 
-	 isNewClient = false;
-         chalktalkSync.waitAfterJoinCounter = 30;
-	 server.broadcastGlobal('chalktalkSync');
+	    // WHEN A NEW CLIENT JOINS, FETCH THE STROKES OF SKETCH OBJECTS FROM THE SERVER CACHE.
+
+	    server.get('chalktalkStrokes', S => {
+	       if (S)
+	          for (let id in S) {
+	             let thing = findThingFromID(id);
+	             if (thing && thing.type == 'sketch') {
+	                thing.strokes = S[id];
+		        strokesCache[id] = S[id];
+                     }
+	          }
+	    });
+	 });
       }
 
-      // THE MASTER CLIENT COMPUTES THE SHARED STATE OF THE SCENE FOR THIS ANIMATION FRAME.
+      // IN RESPONSE TO CLEAR COMMAND, CLEAR THE ENTIRE SCENE.
 
-      let updateThings = () => {
+      if (isClearingScene) {
+         isClearingScene = false;
+	 things = [];
+         linkSrc = {};
+         thingCode = {};
+         clickOnBG = {};
+         clickCount = {};
+         modifyThing = {};
+         strokesCache = {};
+         thingAtCursor = {};
+         thingBeingDrawn = {};
+      }
 
-         // IF CLEARING THE SCENE, JUST RETURN AN EMPTY SCENE.
+      // THE MASTER CLIENT COMPUTES THE SHARED STATE OF THE SCENE FOR EACH ANIMATION FRAME.
 
-	 if (isClearingScene) {
-	    isClearingScene = false;
-	    things = [];
-	    return;
+      let updateMasterClient = () => {
+
+         // SOMETIMES THE MASTER CLIENT WILL NEED TO UPDATE STROKES ON THE SERVER.
+
+         let saveStrokes = () => {
+            let S = {};
+            for (let n = 0 ; n < things.length ; n++) {
+               let thing = things[n];
+               if (thing.type == 'sketch') {
+                  let strokes = getStrokes(thing);
+		  if (strokes && strokes.length > 0)
+                     S[thing.id] = strokes;
+               }
+            }
+            server.set('chalktalkStrokes', S);
          }
 
-         // START BY UN-HILIGHTING ALL THINGS.
+         // START BY UNSELECTING ALL THINGS.
 
          if (things && waitForLoadCounter <= 0)
             for (let n = 0 ; n < things.length ; n++) {
-               things[n].hilit = 0;
-	       things[n].updatedStrokes = false;
+	       let thing = things[n];
+               thing.hilit = 0;
+	       thing.isUpdatingStrokes = false;
+	       if (thing.type == 'sketch' && strokesCache[thing.id])
+	          thing.strokes = strokesCache[thing.id];
             }
 
          // LOOP THROUGH EVERY CLIENT:
@@ -571,7 +609,7 @@ export const init = async model => {
                               let thing2 = findThingFromID(thing1.links[i].id);
                               let p = cg.mix(transformOutof(thing1, [0,0,0]),
                                              transformOutof(thing2, [0,0,0]), .5);
-                              thing1.links[i].at[id] = cg.distance(p, P) < .01;
+                              thing1.links[i].at[id] = cg.distance(p, P) < .04;
                            }
                      }
                   }
@@ -591,7 +629,7 @@ export const init = async model => {
 					     m: cg.mIdentity(),
 					     strokes: [ [P] ],
 					     hilit: 0,
-					     updatedStrokes: true,
+					     isUpdatingStrokes: true,
                                              lo: [0,0,0],
                                              hi: [0,0,0],
 					     dragCount: 0 };
@@ -601,7 +639,7 @@ export const init = async model => {
 		  // START A PINCH AFTER A CLICK ON BG: COMPUTE COMPASS DIRECTION TO THE CLICK ON BG.
 
                   if (clickOnBG[id]) {
-		     if (cg.distance(clickOnBG[id].p, P) < .01)
+		     if (cg.distance(clickOnBG[id].p, P) < .04)
 		        clickOnBG[id].dir = -1;
                      else {
                         let d = cg.subtract(clickOnBG[id].p, P);
@@ -625,7 +663,7 @@ export const init = async model => {
                   // DRAG WHILE DRAWING A STROKE: CONTINUE TO DRAW THE STROKE.
 
                   if (thingBeingDrawn[id]) {
-		     thingBeingDrawn[id].updatedStrokes = true;
+		     thingBeingDrawn[id].isUpdatingStrokes = true;
                      thingBeingDrawn[id].strokes[0].push(P);
                      for (let n = 0 ; n < things.length ; n++)
                         if (isIntersect(thingBeingDrawn[id], things[n]))
@@ -719,10 +757,17 @@ export const init = async model => {
                      let dir = clickOnBG[id].dir;
 		     if (! (thing.type == 'sketch' && dir == 5)) {
                         switch (dir) {
+
+			// GESTURE TO DELETE A THING.
+
                         case 0:
                            deleteThing(thing);
                            thingAtCursor[id] = null;
+			   saveStrokes();
                            break;
+
+			// GESTURES TO SCALE, MOVE, LINK OR SPIN A THING.
+
                         case 2: modifyThing[id] = { thing: thing, state: 'scale' } ; break;
                         case 4: modifyThing[id] = { thing: thing, state: 'move'  } ; break;
                         case 5: modifyThing[id] = { thing: thing, state: 'link'  } ; break;
@@ -733,7 +778,7 @@ export const init = async model => {
                      }
                   }
 
-		  // CLICK BELOW A THING THEN DRAG DOWNWARD FROM THE THING: TOGGLE HEADS-UP-DISPLAY MODE.
+		  // CLICK BELOW A THING THEN DRAG DOWNWARD FROM THE THING TO TOGGLE HEADS-UP-DISPLAY MODE.
 
                   if (clickOnBG[id] && thingAtCursor[id] && thingAtCursor[id].dragCount >= np)
                      if (clickOnBG[id].dir == 6)
@@ -744,7 +789,7 @@ export const init = async model => {
                   clickOnBG[id] = null;
                   if (thingBeingDrawn[id]) {
                      let td = thingBeingDrawn[id];
-		     td.updatedStrokes = true;
+		     td.isUpdatingStrokes = true;
 
                      // IF THE STROKE IS VERY SMALL OR QUICK, CLASSIFY IT AS A CLICK STROKE.
 
@@ -804,7 +849,7 @@ export const init = async model => {
 			      A: st[0],
 			      B: st[1],
 			      K: st[2],
-			      T: cg.roundVec(4, st[3]),
+			      T: st[3],
 			   };
                            things.push(thing);
                         }
@@ -813,30 +858,36 @@ export const init = async model => {
 
                         else {
                            sketch.strokes.push(td.strokes[0]);
-			   sketch.updatedStrokes = true;
+			   sketch.isUpdatingStrokes = true;
                            deleteThing(td);
                         }
+
+			saveStrokes();
                      }
 
                      // IF THIS WAS A CLICK STROKE: DELETE IT.
 
                      if (td && isClickStroke)
                         deleteThing(td);
+
+                     // OTHERWISE UPDATE STROKES ON THE SERVER
+
+		     else
+		        saveStrokes();
+
+
                      thingBeingDrawn[id] = null;
                   }
                   break;
                }
                prevP[id] = P;
             }
-
-	    // REMOVE TRAILING DIGITS TO MAKE THE DATA MORE COMPACT FOR JSON ENCODING.
-
-            for (let n = 0 ; n < things.length ; n++)
-	       things[n].m = cg.roundVec(4, things[n].m);
          }
 
-	 if (! things)
+	 if (! things) {
+	    console.log('====================== THINGS IS EMPTY! ======================');
 	    return;
+         }
 
          // PROPAGATE VALUES ACROSS LINKS.
 
@@ -889,7 +940,9 @@ export const init = async model => {
                      thing.state = thingCode[id].state;
                   }
                }
-	       strokesCache[id] = thing.strokes;
+
+	       if (thing.strokes.length > 0)
+	          strokesCache[id] = thing.strokes;
 
                // IF HUD, PREPARE TO TURN THE THING TOWARD EACH CLIENT WHEN DISPLAYING IT.
 
@@ -902,17 +955,19 @@ export const init = async model => {
 
          for (let n = 0 ; n < things.length ; n++) {
             let thing = things[n];
-	    if (! thing.strokes) {
+	    let strokes = getStrokes(thing);
+	    if (! strokes) {
                thing.lo = [-.01,-.01,-.01 ];
                thing.hi = [ .01, .01, .01 ];
 	       continue;
 	    }
+
 	    let m = thing.m;
 	    let scale = cg.norm(m.slice(0,3));
             thing.lo = [ 1000, 1000, 1000 ];
             thing.hi = [-1000,-1000,-1000 ];
-            for (let n = 0 ; n < thing.strokes.length ; n++) {
-	       let stroke = thing.strokes[n];
+            for (let n = 0 ; n < strokes.length ; n++) {
+	       let stroke = strokes[n];
 
 	       // IF THIS THING HAS STROKES, BUILD A BOUNDING BOX BASED ON ITS STROKES.
 
@@ -943,38 +998,15 @@ export const init = async model => {
                thing.lo[j] -= .01;
                thing.hi[j] += .01;
             }
-	    thing.lo = cg.roundVec(4, thing.lo);
-	    thing.hi = cg.roundVec(4, thing.hi);
-         }
-
-         // UNLESS A NEW CLIENT HAS RECENTLY JOINED,
-
-         if (chalktalkSync.waitAfterJoinCounter > 0) {
-            for (let n = 0 ; n < things.length ; n++) {
-	       let thing = things[n];
-               thing.updatedStrokes = true;
-            }
-            chalktalkSync.waitAfterJoinCounter--;
-	    server.broadcastGlobal('chalktalkSync');
-         }
-
-         // RELY ON CACHED STROKES FOR THINGS WHOSE STROKES HAVE NOT CHANGED.
-
-	 else {
-            for (let n = 0 ; n < things.length ; n++)
-               if (! things[n].updatedStrokes)
-                  things[n].strokes = [];
          }
       }
 
-      // ONLY THE MASTER CLIENT UPDATES THINGS, AND THEN SENDS THE RESULT TO ALL OTHER CLIENTS.
+      // ONLY THE MASTER CLIENT UPDATES THINGS. IT WILL SEND THE RESULT TO ALL OTHER CLIENTS.
 
-      if (clientID == clients[0]) {
-         updateThings();
-	 server.broadcastGlobal('things');
-      }
+      if (clientID == clients[0])
+         updateMasterClient();
 
-      // FOR ANY THING WHOSE STROKES WERE NOT SENT, USED CACHED STROKES.
+      // EACH CLIENT THEN FILLS IN MISSING STROKES USING LOCAL PROCEDURES AND CACHE.
 
       if (things)
          for (let n = 0 ; n < things.length ; n++) {
@@ -993,11 +1025,11 @@ export const init = async model => {
                   }
                }
 	       if (thing.isAnimated || thing.isStatic) {
-		  thing.updatedStrokes = true;
+		  thing.isUpdatingStrokes = thing.timer < 1 || thing.isAnimated;
 
                   // MORPHING FROM A SKETCH TO THE THING
 
-                  if (thing.timer < 1 && thing.A)
+                  if (thing.B)
                      thing.strokes = matchCurves.mix(thing.A, thing.B, cg.ease(thing.timer));
 
                   // FULLY FORMED ANIMATED THING
@@ -1016,22 +1048,65 @@ export const init = async model => {
                }
             }
 
-	    // AFTER MORPH IS DONE, SAVE BANDWIDTH BY REMOVING MORPH DATA.
-
-	    if (thing.type != 'sketch' && clientID == clients[0] && thing.timer >= 1) {
-	       delete thing.A;
-	       delete thing.B;
-            }
-
 	    // IF STROKES HAVE CHANGED, CACHE THEM. OTHERWISE USE PREVIOUSLY CACHED STROKES.
 
-            if (thing.updatedStrokes)
+            if (thing.isUpdatingStrokes)
 	       strokesCache[id] = thing.strokes;
             else
 	       thing.strokes = strokesCache[id] ?? [];
 	 }
 
+      // ALL CLIENTS DRAW THE SCENE.
+
       g3.update();
+
+      // EVERY ANIMATION FRAME, THE MASTER CLIENT SENDS THE SCENE STATE TO ALL OTHER CLIENTS.
+
+      if (! isNewClient) {
+
+         // BEFORE WRITING THE SCENE STATE, THE MASTER CLIENT FIRST REMOVES NON-NEW STROKES.
+         // THE RECIPIENT CLIENTS WILL RESTORE THOSE STROKES FROM CACHE.
+
+         if (clientID == clients[0]) {
+            for (let n = 0 ; n < things.length ; n++) {
+	       let thing = things[n];
+
+	       // DON'T KEEP SENDING STROKES. UNLESS THEY CHANGE, OTHER CLIENTS WILL CACHE THEM.
+
+	       if (! thing.isUpdatingStrokes)
+                  thing.strokes = [];
+
+               // AFTER MORPHING IS FINISHED, CLEAN UP.
+
+	       if (thing.B && thing.timer >= 1) {
+	          if (thing.isStatic) {
+	             strokesCache[things.id] = thing.B;
+	             thing.strokes = [];
+		  }
+		  delete thing.A;
+		  delete thing.B;
+	       }
+
+	       // BEFORE WRITING, ROUND FLOATING POINT NUMBERS TO REDUCE THEIR JSON CHARACTER COUNT.
+
+	       thing.m  = cg.roundVec(4, thing.m);
+	       thing.lo = cg.roundVec(4, thing.lo);
+	       thing.hi = cg.roundVec(4, thing.hi);
+	       if (thing.T)
+	          thing.T = cg.roundVec(4, thing.T);
+	    }
+
+            for (let i = 1 ; i < clients.length ; i++)
+               channel[clients[i]].send(things);
+
+	    server.set('chalktalkThings', things);
+         }
+         else
+	    channel[clients[0]].on = data => things = data;
+      }
+
+      isNewClient = false;
    });
 }
+
 

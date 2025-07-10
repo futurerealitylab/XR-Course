@@ -13,6 +13,7 @@ export default () => {
       scenes: [ 
             { name: "draw"               , path: "./draw.js"               , public: true  },
             { name: "chalktalk"          , path: "./chalktalk.js"          , public: true  },
+            { name: "chx"                , path: "./chx.js"                , public: true  },
 
             { name: "cubes"              , path: "./cubes.js"              , public: true  },
             { name: "shared1"            , path: "./shared1.js"            , public: true  },
