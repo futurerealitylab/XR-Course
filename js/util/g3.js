@@ -41,7 +41,7 @@ let projected = new Projected();
 
 export let G3 = function(model, callback) {
    projected.setUpright(true);
-   const DRAW = 0, FILL = 1, IMAGE = 2, LINE = 3, TEXT = 4;
+   const DRAW = 0, FILL = 1, IMAGE = 2, LINE = 3, POLY = 4, TEXT = 5;
 
    let color = '#000000',
        blinkTime = {},
@@ -119,7 +119,47 @@ export let G3 = function(model, callback) {
       }
       return this;
    }
-   this.draw2D = (path,center,) => {
+   this.drawPoly = (points, edges) => {
+
+      let P = [];
+      for (let n = 0 ; n < points.length ; n++)
+         P.push(projected.projectPoint(points[n]));
+
+      let nP = 0;
+      for (let n = 0 ; n < P.length ; n++)
+         if (P[n])
+	    nP++;
+      if (nP == 0)
+         return this;
+
+      let z = 0;
+      for (let n = 0 ; n < P.length ; n++)
+         if (P[n])
+	    z += P[n];
+      z /= nP;
+
+      let E = [];
+      for (let i = 0 ; i < edges.length ; i++)
+         if (P[edges[i][0]] && P[edges[i][1]])
+	    E.push(edges[i]);
+
+      let c = [0,0,0], np = points.length;
+      for (let n = 0 ; n < np ; n++)
+         c = cg.add(c, points[n]);
+      let scale = projected.getScale(cg.scale(c, 1 / np));
+      if (scale <= 0 || scale == Infinity)
+         return this;
+
+      if (! displayList[nd]) displayList[nd] = []; let dl = displayList[nd++];
+      dl[0] = z;
+      dl[1] = POLY;
+      dl[2] = color;
+      dl[3] = Math.min(.01, lineWidth * scale);
+      dl[4] = P;
+      dl[5] = E;
+      return this;
+   }
+   this.draw2D = (path,center) => {
       if (projectPath2D(path, center)) {
          if (! displayList[nd]) displayList[nd] = []; let dl = displayList[nd++];
          dl[0] = p_z;
@@ -236,6 +276,7 @@ export let G3 = function(model, callback) {
    let co = [];
 
    this.update = () => {
+
       if (! co.length)
          for (let i = 0 ; i < 7 ; i++)
             co.push(cg.rgbToHex(clientState.color(i)));
@@ -294,22 +335,17 @@ export let G3 = function(model, callback) {
                   let m = clientState.hand(id,hand);
                   if (m) {
 
-                     // DRAW TRANSPARENT FINGERS OF HAND AVATAR
+                     // IF HAND TRACKING: THE AVATAR CONSISTS OF TRANSPARENT FINGERS.
 
                      if (clientState.isHand(id)) {
 		        let handPose = computeHandPose(id, hand);
-		        let C = handPose.c;
-		        for (let f = 0 ; f < 5 ; f++) {
-		           draw.lineWidth(fingerWidth(f));
-			   let P = handPose.p[f];
-		           if (f == 0)
-			      draw.color(co[C[0]]+'c0').draw([P[1],P[2],P[3]]); // THUMB
-			   else
-			      draw.color(co[0]+'c0').draw([P[0],P[1],P[2],P[3]]); // OTHER FINGERS
-		        }
+		        for (let f = 0 ; f < 5 ; f++)
+		           draw.lineWidth(fingerWidth(f))
+			       .color(co[handPose.c[0]]+'c0')
+			       .draw(handPose.p[f].slice(f==0?1:0),4);
                      }
 
-                     // OR DRAW DISK OF VIRTUAL PING PONG BALL OF CONTROLLER AVATAR
+                     // IF CONTROLLERS: THE AVATAR IS A DISK AT THE CONTROLLER'S VRTUAL PING PONG BALL.
 
                      else {
                         let p = m.slice(12,15);
@@ -352,6 +388,18 @@ export let G3 = function(model, callback) {
                g2[view].lineWidth(item[3]);
                g2[view].line     (item[4],item[5]);
                break;
+            case POLY:
+               g2[view].setColor (item[2]);
+               g2[view].lineWidth(item[3]);
+	       let points = item[4];
+	       let edges  = item[5];
+	       for (let n = 0 ; n < edges.length ; n++) {
+	          let a = points[edges[n][0]];
+	          let b = points[edges[n][1]];
+		  if (a && b)
+                     g2[view].line(a, b);
+               }
+	       break;
             case TEXT:
                g2[view].setColor  (item[2]);
                g2[view].setFont   (item[3]);

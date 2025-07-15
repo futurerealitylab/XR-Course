@@ -494,12 +494,17 @@ export function G2(do_not_animate_flag=false, canvasWidth=512, canvasHeight) {
          if (rotation)
             context.rotate(-Math.PI/2 * rotation);
 
-         if (lines.length == 1)
+         context.lineWidth = 1.5;
+         if (lines.length == 1) {
             context.fillText(text,w2c(-dx/2),0);
+            context.strokeText(text,w2c(-dx/2),0);
+         }
 	 else {
             context.translate(w2c(-dx/2), h2c(-dy*((lines.length-1)/2)));
-            for (let n = 0 ; n < lines.length ; n++, y -= dy)
+            for (let n = 0 ; n < lines.length ; n++, y -= dy) {
                context.fillText(lines[n],w2c(-dx/2),h2c(n*dy));
+               context.strokeText(lines[n],w2c(-dx/2),h2c(n*dy));
+            }
          }
       context.restore();
       return this;

@@ -322,6 +322,7 @@ function Server(wsPort) {
          let ch = channelSendQueue[i].ch;               // CHANNEL, UNTIL THE SENDER OBJECT
          let id = channelSendQueue[i].id;               // HAS A VALID WEB-RTC PEER ID.
 	 if (ch.id()) {
+	    console.log("CLIENT", clientID, "IS REACHING OUT TO CLIENT", id);
 	    this.broadcastObject({senderID:clientID, receiverID:id, peerID:ch.id()});
             channelSendQueue.splice(i, 1);
          }
@@ -335,6 +336,7 @@ function Server(wsPort) {
       for (let i=0 ; i<channelOpenQueue.length ; i++) { // WAIT BETWEEN WHEN A CLIENT MAKES
          let item = channelOpenQueue[i];                // A RECEIVER OBJECT IN RESPONSE TO
 	 if (item.ch.id()) {                            // A PEER CHANNEL INVITE, AND WHEN
+	    console.log('CLIENT', clientID, 'SENDS A CHANNEL INVITATION');
             item.ch.open(item.peerID);                  // THE CONNECTION IS ACTUALLY OPENED,
             channelOpenQueue.splice(i, 1);              // UNTIL THE RECEIVER OBJECT HAS A
          }                                              // VALID WEB-RTC PEER ID.
@@ -404,9 +406,21 @@ function Channel() {
     let peer = new Peer(), conn, id, data;
     let initConn = c => (conn=c).on('data', d => (this.on && this.on(d)));
     peer.on('open', i => id = i);
-    peer.on('connection', c => initConn(c));
 
-    this.open = peerId => initConn(peer.connect(peerId));
+    // https://peerjs.com/docs/#peeron-error
+    // https://stackoverflow.com/questions/28365139/webrtc-using-peerjs-with-native-android-ios-clients
+
+    peer.on('error', err => console.log('Error', err, err.type));
+
+    peer.on('connection', c => {
+       console.log('ACCEPT CONNECTION');
+       initConn(c);
+    });
+
+    this.open = peerId => {
+       console.log('INVITE CONNECTION');
+       initConn(peer.connect(peerId));
+    }
     this.send = data => { if (conn && conn.open) conn.send(data); }
     this.id   = () => id;
 }

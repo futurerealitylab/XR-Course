@@ -53,6 +53,11 @@ export const init = async model => {
    let action = (type, info) => {
       info.type = type;
       info.time = (1000 * model.time + .5) >> 0;
+      if (actions.length > 0) {
+         let prev = actions[actions.length-1];
+	 if (info.type == prev.type && info.p && cg.distance(info.p, prev.p) == 0)
+	    return;
+      }
       actions.push(info);
       let s = '';
       for (let n = 0 ; n < actions.length ; n++) {
@@ -1156,13 +1161,19 @@ export const init = async model => {
                thing.timer = cg.roundFloat(3, thing.timer);
          }
 
-         for (let i = 1 ; i < clients.length ; i++)
+         for (let i = 1 ; i < clients.length ; i++) {
             channel[clients[i]].send(things);
+	    console.log('sending to', i, JSON.stringify(things).length);
+         }
 
          server.set('ct' + sceneID, things);
       }
-      else
-         channel[clients[0]].on = data => things = data;
+      else {
+         channel[clients[0]].on = data => {
+	    things = data;
+	    console.log('receiving', JSON.stringify(things).length);
+         }
+      }
    });
 }
 
