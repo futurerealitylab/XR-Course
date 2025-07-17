@@ -456,7 +456,17 @@ export function G2(do_not_animate_flag=false, canvasWidth=512, canvasHeight) {
       context.stroke();
       return this;
    }
-   this.lineWidth = w => { context.lineWidth = width * w; return this; }
+   this.lineWidth = w => {
+      w *= width;
+      if (w < 2) {
+         let color = context.fillStyle;
+	 let opacity = color.length > 7 ? h2f(color.substring(7,9)) : 1;
+         context.fillStyle = context.strokeStyle = color.substring(0,7) + f2h(opacity * w/2);
+	 w = 2;
+      }
+      context.lineWidth = w;
+      return this;
+   }
    this.mouseState = () => mouseState;
    this.setColor = (color,dim) => {
       if (dim !== undefined && (isHex(color) || isRgba(color))) {

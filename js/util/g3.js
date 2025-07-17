@@ -18,7 +18,7 @@ let Projected = function() {
    this.update = view => {
       cm = clay.root().inverseViewMatrix(view);
       if (view == 0)
-         yShift = isUpright ? (-1.1 - 7 * cm[9]) : 0;
+         yShift = isUpright ? (-.1 - 7 * cm[9]) : 0;
       em = cg.mMultiply(clay.inverseRootMatrix, cm);
       if (isUpright) {
          let X = cg.normalize(cg.cross([0,1,0], [em[8],em[9],em[10]]));
