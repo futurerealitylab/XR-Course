@@ -10,6 +10,7 @@ let Projected = function() {
    let em, mf, ex, ey, ez, a,b,c, d,e,f, g,h,i, j,k,l, B, C, isUpright = true, cm;
    this.getMatrix = () => mf;
    this.getScale = p => .5 * pz / (pz - (c*p[0] + f*p[1] + i*p[2] + l));
+   this.projectZ = p => -c * (p[0] - ex) - i * (p[2] - ez);
    this.projectPoint = p => {
       let X = p[0] - ex, Y = p[1] - ey, Z = p[2] - ez;
       let z = -C / (c*X + i*Z);
@@ -66,14 +67,35 @@ export let G3 = function(model, callback) {
       g2[view].render = function() { callback(draw); }
    }
 
+   let clipLine = (a,b) => {
+      if (! a || ! b)
+         return [-1, a, b];
+
+      let az = projected.projectZ(a);
+      let bz = projected.projectZ(b);
+      if (az < 0 && bz < 0)
+         return [-1, a, b];
+
+      if (az < 0)
+         return [ 0, cg.mix(a, b, .0001-az / (bz - az)), b ];
+      if (bz < 0)
+         return [ 1, a, cg.mix(b, a, .0001-bz / (az - bz)) ];
+      return [2, a, b];
+   }
+
    let p_path, p_z, p_scale;
 
-   let projectPath = path => {
-      let P = [], p;
-      for (let n = 0 ; n < path.length ; n++)
-         if (p = projected.projectPoint(path[n]))
-            P.push(p);
-      if (P.length == 0)
+   let projectPath = (path, isFill) => {
+      let P = [], np = path.length - (isFill ? 0 : 1);
+      for (let n = 0 ; n < np ; n++) {
+	 let ab = clipLine(path[n], path[(n+1) % path.length]);
+	 if (ab[0] != -1) {
+	    P.push(projected.projectPoint(ab[1]));
+	    if (ab[1] == 1 || n == np-1)
+	       P.push(projected.projectPoint(ab[2]));
+	 }
+      }
+      if (P.length == 0 || P[0] == null)
          return false;
 
       p_path = P;
@@ -98,6 +120,9 @@ export let G3 = function(model, callback) {
       return true;
    }
 
+   let isSorting = true;
+   this.disableSort = () => isSorting = false;
+
    this.color = c => { color = c; return this; }
    this.distance = p => {
       p = projected.projectPoint(p);
@@ -121,42 +146,34 @@ export let G3 = function(model, callback) {
    }
    this.drawPoly = (points, edges) => {
 
-      let P = [];
-      for (let n = 0 ; n < points.length ; n++)
-         P.push(projected.projectPoint(points[n]));
+      let E = [], z = 0, center = [0,0,0];
+      for (let n = 0 ; n < edges.length ; n++) {
+         let ab = clipLine(points[edges[n][0]],
+	                   points[edges[n][1]]);
+	 if (ab[0] != -1) {
+	    let a = projected.projectPoint(ab[1]);
+	    let b = projected.projectPoint(ab[2]);
+	    if (a && b) {
+	       E.push([ a, b ]);
+	       z += a[2] + b[2];
+               center = cg.add(center, ab[1]);
+               center = cg.add(center, ab[2]);
+            }
+         }
+      }
 
-      let nP = 0;
-      for (let n = 0 ; n < P.length ; n++)
-         if (P[n])
-	    nP++;
-      if (nP == 0)
+      if (E.length == 0)
          return this;
 
-      let z = 0;
-      for (let n = 0 ; n < P.length ; n++)
-         if (P[n])
-	    z += P[n];
-      z /= nP;
-
-      let E = [];
-      for (let i = 0 ; i < edges.length ; i++)
-         if (P[edges[i][0]] && P[edges[i][1]])
-	    E.push(edges[i]);
-
-      let c = [0,0,0], np = points.length;
-      for (let n = 0 ; n < np ; n++)
-         c = cg.add(c, points[n]);
-      let scale = projected.getScale(cg.scale(c, 1 / np));
-      if (scale <= 0 || scale == Infinity)
-         return this;
+      z /= 2 * E.length;
+      let scale = projected.getScale(cg.scale(center, 1 / (2 * E.length)));
 
       if (! displayList[nd]) displayList[nd] = []; let dl = displayList[nd++];
       dl[0] = z;
       dl[1] = POLY;
       dl[2] = color;
       dl[3] = Math.min(.01, lineWidth * scale);
-      dl[4] = P;
-      dl[5] = E;
+      dl[4] = E;
       return this;
    }
    this.draw2D = (path,center) => {
@@ -171,7 +188,7 @@ export let G3 = function(model, callback) {
       return this;
    }
    this.fill = path => {
-      if (projectPath(path)) {
+      if (projectPath(path, true)) {
          if (! displayList[nd]) displayList[nd] = []; let dl = displayList[nd++];
          dl[0] = p_z;
          dl[1] = FILL;
@@ -217,9 +234,14 @@ export let G3 = function(model, callback) {
       }
       return this;
    }
+
    this.line = (a,b) => {
-      if (! a || ! b)
-         return this;
+      let ab = clipLine(a,b);
+      if (ab[0] == -1)
+        return null;
+      a = ab[1];
+      b = ab[2];
+
       let scale = projected.getScale([ (a[0]+b[0])/2, (a[1]+b[1])/2, (a[2]+b[2])/2 ]);
       a = projected.projectPoint(a);
       b = projected.projectPoint(b);
@@ -363,9 +385,13 @@ export let G3 = function(model, callback) {
          }
 
          let sortedDisplayList = [];
-         for (let n = 0 ; n < nd ; n++)
-            sortedDisplayList.push(displayList[n]);
-         sortedDisplayList.sort((a,b) => a[0] - b[0]);
+	 if (isSorting) {
+            for (let n = 0 ; n < nd ; n++)
+               sortedDisplayList.push(displayList[n]);
+            sortedDisplayList.sort((a,b) => a[0] - b[0]);
+         }
+	 else
+            sortedDisplayList = displayList;
 
          for (let n = 0 ; n < nd ; n++) {
             let item = sortedDisplayList[n];
@@ -391,14 +417,9 @@ export let G3 = function(model, callback) {
             case POLY:
                g2[view].setColor (item[2]);
                g2[view].lineWidth(item[3]);
-	       let points = item[4];
-	       let edges  = item[5];
-	       for (let n = 0 ; n < edges.length ; n++) {
-	          let a = points[edges[n][0]];
-	          let b = points[edges[n][1]];
-		  if (a && b)
-                     g2[view].line(a, b);
-               }
+	       let lines = item[4];
+	       for (let n = 0 ; n < lines.length ; n++)
+                  g2[view].line(lines[n][0], lines[n][1]);
 	       break;
             case TEXT:
                g2[view].setColor  (item[2]);
