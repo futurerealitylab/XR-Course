@@ -198,9 +198,57 @@ function initHands() {
     indexFingerBoxes.right = addBox(0, 0, 0, rightBoxColor.r, rightBoxColor.g, rightBoxColor.b);
 }
 
+async function processAudioData(data) {
+    console.log("sending audio data to Wit.ai");
+    console.log(data.length, data);
+    const sendData = new Float32Array(data);
+    const res = await fetch('https://api.wit.ai/speech', {
+        method: 'POST',
+        headers: {
+            'content-type': 'audio/raw;encoding=floating-point;bits=32;rate=44100;endian=little',
+            'authorization': 'Bearer BKUFYG5QS2WTT6V7ZKUUSMPUSMCVC3MH',
+            // 'Transfer-Encoding': 'chunked',
+        },
+        body: sendData.buffer,
+    }).then(response => response.body).then((rb) => {
+        const reader = rb.getReader();
+        return reader.read().then(({ done, value }) => {
+            if (done) {
+                console.log("No more data in response.");
+                return;
+            }
+            const textDecoder = new TextDecoder();
+            const text = textDecoder.decode(value);
+            console.log("Wit.ai response:", text);
+        });
+    });
+}
+
+function playbackAudio(data) {
+    if (!window.audioContext) {
+        console.log("Audio context not initialized.");
+        return;
+    }
+    const audioCtx = window.audioContext;
+    const buffer = audioCtx.createBuffer(1, data.length, audioCtx.sampleRate);
+    buffer.copyToChannel(new Float32Array(data), 0);
+
+    const src = audioCtx.createBufferSource();
+    src.buffer = buffer;
+
+    const gain = audioCtx.createGain();
+    gain.gain.value = 1.0;
+    src.connect(gain).connect(audioCtx.destination);
+
+    src.start();
+}
+
+let buffer = [];
+
 function initAudioVolume() {
    window.audioVolume = 0;
    if (! window.audioContext) {
+    console.log("init audio context");
       let onSuccess = stream => {
          window.audioContext = new AudioContext();
          let mediaStreamSource = audioContext.createMediaStreamSource(stream);
@@ -208,11 +256,22 @@ function initAudioVolume() {
          mediaStreamSource.connect(scriptProcessor);
          scriptProcessor.connect(audioContext.destination);
          scriptProcessor.onaudioprocess = e => {
-            let amp = 0, data = e.inputBuffer.getChannelData(0);
-            for (let i = 0 ; i < 2048 ; i++)
-               amp += data[i] * data[i];
-            audioVolume = Math.max(0, Math.min(1, Math.log(amp) / 3));
-         }
+            const data = e.inputBuffer.getChannelData(0);
+            buffer.push(...data);
+            if (buffer.length > 5*44100) { // 44100 samples = 1 second
+                console.log("process audio data");
+                processAudioData(buffer);
+                // playbackAudio(buffer);
+                buffer = [];
+            }
+            // let amp = 0;
+            // for (let i = 0 ; i < 2048 ; i++)
+            //    amp += data[i] * data[i];
+            // audioVolume = Math.max(0, Math.min(1, Math.log(amp) / 3));
+            // console.log("audio volume:", audioVolume);
+            // if (!test) processAudioData(e);
+            // test = true;
+        }
       }
       navigator.mediaDevices.getUserMedia({video: false, audio: true})
                             .then(onSuccess)
