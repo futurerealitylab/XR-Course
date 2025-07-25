@@ -439,6 +439,8 @@ function initGL() {
 
     document.body.appendChild(gl.canvas);
     window.canvas = gl.canvas;
+    window.gl = gl;
+    
     function onResize() {
         gl.canvas.width = gl.canvas.clientWidth * window.devicePixelRatio;
         gl.canvas.height = gl.canvas.clientHeight * window.devicePixelRatio;
