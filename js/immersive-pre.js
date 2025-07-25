@@ -198,10 +198,10 @@ function initHands() {
     indexFingerBoxes.right = addBox(0, 0, 0, rightBoxColor.r, rightBoxColor.g, rightBoxColor.b);
 }
 
-async function processAudioData(data) {
+async function processAudioData(buffer, callback) {
     console.log("sending audio data to Wit.ai");
-    console.log(data.length, data);
-    const sendData = new Float32Array(data);
+    console.log(buffer.length, buffer);
+    const sendData = new Float32Array(buffer);
     const res = await fetch('https://api.wit.ai/speech', {
         method: 'POST',
         headers: {
@@ -210,40 +210,48 @@ async function processAudioData(data) {
             // 'Transfer-Encoding': 'chunked',
         },
         body: sendData.buffer,
-    }).then(response => response.body).then((rb) => {
-        const reader = rb.getReader();
-        return reader.read().then(({ done, value }) => {
-            if (done) {
-                console.log("No more data in response.");
-                return;
+    }).then(response => {
+        response.text().then((text) => {
+            if (callback) {
+                callback(text);
             }
-            const textDecoder = new TextDecoder();
-            const text = textDecoder.decode(value);
-            console.log("Wit.ai response:", text);
         });
+        return response;
+    // }).then(response => response.body).then((rb) => {
+    //     const reader = rb.getReader();
+    //     return reader.read().then(({ done, value }) => {
+    //         if (done) {
+    //             const textDecoder = new TextDecoder();
+    //             const text = textDecoder.decode(value);
+    //             console.log("Wit.ai response:", text);
+    //             return;
+    //         }
+    //         const textDecoder = new TextDecoder();
+    //         const text = textDecoder.decode(value);
+    //         console.log("Wit.ai response:", text);
+
+    //         if (callback) {
+    //             callback(text);
+    //         }
+    //     });
     });
 }
 
-function playbackAudio(data) {
-    if (!window.audioContext) {
-        console.log("Audio context not initialized.");
-        return;
-    }
-    const audioCtx = window.audioContext;
-    const buffer = audioCtx.createBuffer(1, data.length, audioCtx.sampleRate);
-    buffer.copyToChannel(new Float32Array(data), 0);
+let audioBuffer = [];
+let speechRecognitionActive = false;
 
-    const src = audioCtx.createBufferSource();
-    src.buffer = buffer;
-
-    const gain = audioCtx.createGain();
-    gain.gain.value = 1.0;
-    src.connect(gain).connect(audioCtx.destination);
-
-    src.start();
+export function beginSpeechRecognition() {
+    if (speechRecognitionActive) return;
+    speechRecognitionActive = true;
+    audioBuffer = [];
 }
 
-let buffer = [];
+export function stopSpeechRecognition(callback) {
+    if (!speechRecognitionActive) return;
+    speechRecognitionActive = false;
+    processAudioData(audioBuffer, callback);
+    audioBuffer = [];
+}
 
 function initAudioVolume() {
    window.audioVolume = 0;
@@ -257,20 +265,14 @@ function initAudioVolume() {
          scriptProcessor.connect(audioContext.destination);
          scriptProcessor.onaudioprocess = e => {
             const data = e.inputBuffer.getChannelData(0);
-            buffer.push(...data);
-            if (buffer.length > 5*44100) { // 44100 samples = 1 second
-                console.log("process audio data");
-                processAudioData(buffer);
-                // playbackAudio(buffer);
-                buffer = [];
+            if (audioBuffer.length < 20 * 44100) { // 44100 samples = 1 second, max 20 seconds
+                audioBuffer.push(...data);
             }
             // let amp = 0;
             // for (let i = 0 ; i < 2048 ; i++)
             //    amp += data[i] * data[i];
             // audioVolume = Math.max(0, Math.min(1, Math.log(amp) / 3));
             // console.log("audio volume:", audioVolume);
-            // if (!test) processAudioData(e);
-            // test = true;
         }
       }
       navigator.mediaDevices.getUserMedia({video: false, audio: true})

@@ -177,6 +177,8 @@ export default () => {
 //          { name: "spatial audio wrapper",path:"./demoSoundWrapper.js"   , public: false },
 //          { name: "opti-track"         , path: "./demoTrack.js"          , public: false },
 //          { name: "opti-track-offset"  , path: "./demoTrackOffset.js"    , public: false },
+
+            { name: "demoSpeechToText"   , path: "./demoSpeechToText.js"   , public: true  },
       ]
    };
 }
