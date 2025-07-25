@@ -209,6 +209,10 @@ async function processAudioData(buffer, callback) {
     //     return;
     // }
     const apiKey = '';
+    if (!apiKey) {
+        console.error("Wit API key is not set");
+        return;
+    }
     const res = await fetch('https://api.wit.ai/speech', {
         method: 'POST',
         headers: {
