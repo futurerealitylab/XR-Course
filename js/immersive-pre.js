@@ -202,11 +202,16 @@ async function processAudioData(buffer, callback) {
     console.log("sending audio data to Wit.ai");
     console.log(buffer.length, buffer);
     const sendData = new Float32Array(buffer);
+    const apiKey = process.env.WIT_API_KEY;
+    if (!apiKey) {
+        console.error("WIT_API_KEY is not set");
+        return;
+    }
     const res = await fetch('https://api.wit.ai/speech', {
         method: 'POST',
         headers: {
             'content-type': 'audio/raw;encoding=floating-point;bits=32;rate=44100;endian=little',
-            'authorization': 'Bearer BKUFYG5QS2WTT6V7ZKUUSMPUSMCVC3MH',
+            'authorization': `Bearer ${apiKey}`,
             // 'Transfer-Encoding': 'chunked',
         },
         body: sendData.buffer,
