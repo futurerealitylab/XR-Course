@@ -3,9 +3,10 @@ import * as THREE from 'https://unpkg.com/three@0.161.0/build/three.module.js';
 export const init = async model => {
    var framecount = 0;
    const threeRenderer = new THREE.WebGLRenderer({
-   canvas:  window.canvas,      // reuse your canvas
-   context: window.gl,  // reuse your GL context
-   alpha: true,
+   canvas:  window.canvas,
+   context: window.gl,
+   alpha: false, // use opaque background
+   depth: true,  // make sure depth buffer is enabled
    preserveDrawingBuffer: true,
    });
    console.log("canvas",window.canvas)
@@ -34,11 +35,11 @@ export const init = async model => {
 );
 
    testBox.position.set(0, 1.5, 0);
-   testBox.renderOrder = 999;
-testBox.material.depthTest = true;
-testBox.material.depthWrite = true;
-testBox.material.transparent = false;
-testBox.material.blending = THREE.NoBlending;
+   // testBox.renderOrder = 999;
+   // testBox.material.depthTest = false;
+   // testBox.material.depthWrite = false;
+   // testBox.material.transparent = false;
+   // testBox.material.blending = THREE.NoBlending;
 
    scene.add(testBox);
    model.add('cube').move(0, 1, 0).scale(0.5)
@@ -108,8 +109,23 @@ threeRenderer.clearDepth();
 threeRenderer.clear(); // clears color + depth (if autoClear is false)
 
 // Draw Three.js
-console.log("three scene", scene)
-threeRenderer.render(scene, model.threeCamera);
+try {
+//   console.log("rendering three.js...");
+  threeRenderer.render(scene, model.threeCamera);
+   // if (!model.renderTarget) {
+   // model.renderTarget = new THREE.WebGLRenderTarget(window.canvas.width, window.canvas.height);
+   // }
+
+   // threeRenderer.setRenderTarget(model.renderTarget);
+   // threeRenderer.clear(); // optional, but safe
+   // threeRenderer.render(scene, model.threeCamera);
+   // threeRenderer.setRenderTarget(null); // reset to screen
+
+//   console.log("✅ render successful");
+} catch (err) {
+  console.error("❌ render failed", err);
+}
+
 
 // Restore all state
 gl.useProgram(oldProgram);
