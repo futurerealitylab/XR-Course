@@ -1,25 +1,41 @@
 from openai import OpenAI
 import sys
+import base64
+import re
 
-input_text = sys.argv[1].split("+")
-
-prompt = ""
-for i in range(len(input_text)):
-    prompt += input_text[i]
-    prompt += " "
-
-print(prompt)
+arg = sys.argv[1]
 
 client = OpenAI(
-  api_key="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"
+  api_key="APIKEY-Hoz_TnAlJQCFtM4hToJx-w22z-oB7T8WuFb5bpvyWfxrvRAzJ8h4XVLWTP-ERrf5mwOVS63gWFT3BlbkFJimBq_H6yJVvx7IRGyfiJbPk-vNBJyOjZsCMqo3HzrWr7ZroNmYgCzZ4tJ07-Bj1BHNcnsLZ5cA"
 )
 
-completion = client.chat.completions.create(
-  model="gpt-4o-mini",
-  store=True,
-  messages=[
-    {"role": "user", "content": "give me a JSON-formatted response regarding a specific topic. The JSON format is: {content: the description of the content cited from its wikipedia page; relevant_topics: an array of topics that are related to the content preferably from the hyperlink of its wikipedia page}. The topic is: " + prompt}
-  ]
-)
+with open(arg, "rb") as f:
+    data = f.read()
 
-print("chatgpt+" + completion.choices[0].message.content);
+base64_string = base64.b64encode(data).decode("utf-8")
+
+response = client.responses.create(
+    model="gpt-4.1",
+    input=[
+        {
+            "role": "user",
+            "content": [
+                {
+                    "type": "input_file",
+                    "filename": arg,
+                    "file_data": f"data:application/pdf;base64,{base64_string}",
+                },
+                {
+                    "type": "input_text",
+                    "text": "Summarize the paper by each subdivision, then output these subdivisions using a single JSON file with the format of {name-of-the-subdivision}: {spatial-coordinate}, with the spatial-coordinate being a 3D vector indicating the preferrable spatial layout of this subdivision in a 3D UI space.",
+                },
+            ],
+        },
+    ]
+)
+start = response.output_text.index("{") + 1
+end = response.output_text.index("}")
+
+text = response.output_text[start:end]
+
+print("chatgpt+" + "{" + text + "}")
