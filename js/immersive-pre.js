@@ -201,30 +201,25 @@ function initHands() {
 async function processAudioData(buffer, callback) {
     console.log("sending audio data to Wit.ai");
     console.log(buffer.length, buffer);
-    const sendData = new Float32Array(buffer);
-    // WIP, copy your bearer token below for now...
-    // const apiKey = process.env.WIT_API_KEY;
-    // if (!apiKey) {
-    //     console.error("WIT_API_KEY is not set");
-    //     return;
-    // }
-    const apiKey = '';
-    if (!apiKey) {
-        console.error("Wit API key is not set");
-        return;
-    }
-    const res = await fetch('https://api.wit.ai/speech', {
+    
+    // Convert the JavaScript array to a Float32Array buffer
+    const float32Array = new Float32Array(buffer);
+    const arrayBuffer = float32Array.buffer;
+    
+    const res = await fetch('/api/wit/speech', {
         method: 'POST',
         headers: {
             'content-type': 'audio/raw;encoding=floating-point;bits=32;rate=44100;endian=little',
-            'authorization': `Bearer ${apiKey}`,
             // 'Transfer-Encoding': 'chunked',
         },
-        body: sendData.buffer,
+        body: arrayBuffer,
     }).then(response => {
-        response.text().then((text) => {
-            if (callback) {
-                callback(text);
+        response.json().then((json) => {
+            console.log("Received response from Wit.ai:", json);
+            if (json && json.response) {
+                if (callback) {
+                    callback(json.response);
+                }
             }
         });
         return response;
