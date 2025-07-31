@@ -477,7 +477,6 @@ app.route("/api/aiquery").post(function(req, res) {
 
 app.route("/api/wit/speech").post(function(req, res) {
    const buffer = req.body;
-   console.log("Received audio buffer:", buffer instanceof Buffer, buffer ? buffer.length : 'null');
    
    if (!buffer || buffer.length === 0) {
       return res.status(400).json({ error: "Audio buffer is required" });
