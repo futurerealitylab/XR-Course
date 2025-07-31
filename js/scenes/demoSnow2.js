@@ -1,140 +1,106 @@
 import * as THREE from 'https://unpkg.com/three@0.161.0/build/three.module.js';
 
 export const init = async model => {
-   var framecount = 0;
-   const threeRenderer = new THREE.WebGLRenderer({
-   canvas:  window.canvas,
-   context: window.gl,
-   alpha: false, // use opaque background
-   depth: true,  // make sure depth buffer is enabled
-   preserveDrawingBuffer: true,
-   });
-   console.log("canvas",window.canvas)
-   console.log("gl context", window.gl)
-   threeRenderer.autoClear = false; // so it doesn't erase your own drawing
-   // 👇 Add this line right here
-   threeRenderer.setClearColor(0xff00ff, 1);  // bright purple background
-   const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 100);
-   model.threeCamera = camera;
+  const threeRenderer = new THREE.WebGLRenderer({
+    canvas: window.canvas,
+    context: window.gl,
+    alpha: false,
+    depth: true,
+    preserveDrawingBuffer: true,
+  });
+  threeRenderer.autoClear = false;
+  threeRenderer.setClearColor(0xff00ff, 1);
 
-   const N = 5;
-   const data = [];
+  const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 100);
+  model.threeCamera = camera;
 
-   for (let n = 0; n < N; n++) {
-      data.push({ s: 1, p: [0, 1.5, 0] });
-   }
+  // Scene + Lights
+  const scene = new THREE.Scene();
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+  scene.add(ambientLight);
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+  directionalLight.position.set(3, 5, 2);
+  scene.add(directionalLight);
 
-   // 🟢 Create Three.js scene and instanced mesh (no new renderer or canvas!)
-   const scene = new THREE.Scene();
-   // const geometry = new THREE.BoxGeometry(0.02, 0.02, 0.02);
-   // const material = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+  // Test cube
+  const testBox = new THREE.Mesh(
+    new THREE.BoxGeometry(1, 1, 1),
+    new THREE.MeshStandardMaterial({ color: 0xff0000 })
+  );
+  testBox.position.set(0, 1.5, 0);
+  testBox.scale.set(0, 0, 0);
+  scene.add(testBox);
 
-   const testBox = new THREE.Mesh(
-   new THREE.BoxGeometry(1, 1, 1),
-   new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: false, })
-);
+  // Load skeleton.xyz file and parse point cloud
+  const response = await fetch('./media/point_cloud/skeleton.xyz'); 
+  const text = await response.text();
+  
+  // Parse each line into { s, p: [x, y, z] }
+  const data = text.trim().split('\n').map(line => {
+    const [x, y, z] = line.trim().split(/\s+/).map(Number);
+    return { s: 1, p: [0.01 * x, 1.5 + 0.01 * y, 0.01 * z] };
+  });
 
-   testBox.position.set(0, 1.5, 0);
-   // testBox.renderOrder = 999;
-   // testBox.material.depthTest = false;
-   // testBox.material.depthWrite = false;
-   // testBox.material.transparent = false;
-   // testBox.material.blending = THREE.NoBlending;
+  const N = data.length;
+  // Instanced mesh
+  const geometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
+  const material = new THREE.MeshStandardMaterial({ color: 0x00ffff });
+  const instancedMesh = new THREE.InstancedMesh(geometry, material, N);
 
-   scene.add(testBox);
-   model.add('cube').move(0, 1, 0).scale(0.5)
-   // const instancedMesh = new THREE.InstancedMesh(geometry, material, N);
-   // const dummy = new THREE.Object3D();
+  const dummy = new THREE.Object3D();
+  for (let i = 0; i < N; i++) {
+    dummy.position.set(...data[i].p);
+    dummy.scale.setScalar(data[i].s);
+    dummy.updateMatrix();
+    instancedMesh.setMatrixAt(i, dummy.matrix);
+  }
+  instancedMesh.instanceMatrix.needsUpdate = true;
+  scene.add(instancedMesh);
 
-   // for (let i = 0; i < N; i++) {
-   //    dummy.position.set(...data[i].p);
-   //    dummy.scale.setScalar(data[i].s);
-   //    dummy.updateMatrix();
-   //    instancedMesh.setMatrixAt(i, dummy.matrix);
-   // }
-   // instancedMesh.instanceMatrix.needsUpdate = true;
-   // scene.add(instancedMesh);
+  // Animate
+  model.animate(() => {
+    for (let i = 0; i < N; i++) {
+      data[i].p[0] += 0.01 * (Math.random() - 0.5)
+      data[i].p[1] += 0.01 * (Math.random() - 0.5)
+      data[i].p[2] += 0.01 * (Math.random() - 0.5)
+      dummy.position.set(...data[i].p);
+      dummy.updateMatrix();
+      instancedMesh.setMatrixAt(i, dummy.matrix);
+    }
+    instancedMesh.instanceMatrix.needsUpdate = true;
 
-   // // Optional: store scene and mesh in model if you want to reuse later
-   // model.threeScene = scene;
-   // model.threeMesh = instancedMesh;
+    const viewMatrix = clay.root().viewMatrix(0);
+    const view = new THREE.Matrix4().fromArray(viewMatrix);
+    const world = new THREE.Matrix4().copy(view).invert();
+    model.threeCamera.matrix.fromArray(world.elements);
+    model.threeCamera.matrix.decompose(
+      model.threeCamera.position,
+      model.threeCamera.quaternion,
+      model.threeCamera.scale
+    );
 
-   // 🟢 Main animation loop – let your system drive it
-   model.animate(() => {
-      framecount ++;
-      for (let n = 0; n < N; n++) {
-         data[n].p[0] += 0.009 * Math.sin(0.5 * n);
-         data[n].p[2] += 0.009 * Math.cos(0.5 * n);
-         data[n].p[1] -= 0.005 + 0.004 * Math.sin(0.4 * n);
-         if (Math.abs(data[n].p[0]) > 3) data[n].p[0] *= -1;
-         if (Math.abs(data[n].p[2]) > 3) data[n].p[2] *= -1;
-         if (data[n].p[1] < 0) data[n].p[1] = 4;
-      }
+    // Save GL state
+    const oldFBO = gl.getParameter(gl.FRAMEBUFFER_BINDING);
+    const oldVAO = gl.getParameter(gl.VERTEX_ARRAY_BINDING);
+    const oldProgram = gl.getParameter(gl.CURRENT_PROGRAM);
+    const oldActiveTexture = gl.getParameter(gl.ACTIVE_TEXTURE);
+    const oldArrayBuffer = gl.getParameter(gl.ARRAY_BUFFER_BINDING);
 
-      // for (let i = 0; i < N; i++) {
-      //    dummy.position.set(...data[i].p);
-      //    dummy.updateMatrix();
-      //    instancedMesh.setMatrixAt(i, dummy.matrix);
-      // }
-      // instancedMesh.instanceMatrix.needsUpdate = true;
-      // Assuming you already get a 4x4 view matrix each frame from your XR system
-      const viewMatrix = clay.root().viewMatrix(0); // Float32Array[16]
+    if (gl.bindVertexArray) gl.bindVertexArray(null);
+    gl.useProgram(null);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    threeRenderer.state.reset();
+    threeRenderer.clearDepth();
+    threeRenderer.clear();
 
-      // Convert it to Three.js Matrix4 and invert it (because view = inverse of world)
-      const view = new THREE.Matrix4().fromArray(viewMatrix);
-      const world = new THREE.Matrix4().copy(view).invert();
+    // Render Three.js scene
+    threeRenderer.render(scene, model.threeCamera);
 
-      model.threeCamera.matrix.fromArray(world.elements);
-      model.threeCamera.matrix.decompose(
-         model.threeCamera.position,
-         model.threeCamera.quaternion,
-         model.threeCamera.scale
-      );
-      // Save all critical state
-const oldFBO = gl.getParameter(gl.FRAMEBUFFER_BINDING);
-const oldVAO = gl.getParameter(gl.VERTEX_ARRAY_BINDING);
-const oldProgram = gl.getParameter(gl.CURRENT_PROGRAM);
-const oldActiveTexture = gl.getParameter(gl.ACTIVE_TEXTURE);
-const oldArrayBuffer = gl.getParameter(gl.ARRAY_BUFFER_BINDING);
-// const oldElementArrayBuffer = gl.getParameter(gl.ELEMENT_ARRAY_BUFFER_BINDING);
-
-// Reset everything
-if (gl.bindVertexArray) gl.bindVertexArray(null);
-gl.useProgram(null);
-gl.bindBuffer(gl.ARRAY_BUFFER, null);
-// gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
-threeRenderer.state.reset();
-threeRenderer.clearDepth();
-      // threeRenderer.setClearColor(0xff0000, 1);
-threeRenderer.clear(); // clears color + depth (if autoClear is false)
-
-// Draw Three.js
-try {
-//   console.log("rendering three.js...");
-  threeRenderer.render(scene, model.threeCamera);
-   // if (!model.renderTarget) {
-   // model.renderTarget = new THREE.WebGLRenderTarget(window.canvas.width, window.canvas.height);
-   // }
-
-   // threeRenderer.setRenderTarget(model.renderTarget);
-   // threeRenderer.clear(); // optional, but safe
-   // threeRenderer.render(scene, model.threeCamera);
-   // threeRenderer.setRenderTarget(null); // reset to screen
-
-//   console.log("✅ render successful");
-} catch (err) {
-  console.error("❌ render failed", err);
-}
-
-
-// Restore all state
-gl.useProgram(oldProgram);
-gl.bindFramebuffer(gl.FRAMEBUFFER, oldFBO);
-gl.bindBuffer(gl.ARRAY_BUFFER, oldArrayBuffer);
-// gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, oldElementArrayBuffer);
-if (gl.bindVertexArray && oldVAO) gl.bindVertexArray(oldVAO);
-gl.activeTexture(oldActiveTexture);
-
-
-   });
+    // Restore GL state
+    gl.useProgram(oldProgram);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, oldFBO);
+    gl.bindBuffer(gl.ARRAY_BUFFER, oldArrayBuffer);
+    if (gl.bindVertexArray && oldVAO) gl.bindVertexArray(oldVAO);
+    gl.activeTexture(oldActiveTexture);
+  });
 };
