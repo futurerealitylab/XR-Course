@@ -8,14 +8,15 @@ export const init = async model => {
     depth: true,
     preserveDrawingBuffer: true,
   });
-  threeRenderer.autoClear = false;
-  threeRenderer.setClearColor(0xff00ff, 1);
+//   threeRenderer.autoClear = false;
+//   threeRenderer.setClearColor(0xff00ff, 1);
 
   const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 100);
   model.threeCamera = camera;
 
   // Scene + Lights
   const scene = new THREE.Scene();
+  scene.background = null;
   const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
   scene.add(ambientLight);
   const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
@@ -28,7 +29,7 @@ export const init = async model => {
     new THREE.MeshStandardMaterial({ color: 0xff0000 })
   );
   testBox.position.set(0, 1.5, 0);
-  testBox.scale.set(0, 0, 0);
+  testBox.scale.set(1, 1, 1);
   scene.add(testBox);
 
   // Load skeleton.xyz file and parse point cloud
@@ -38,7 +39,7 @@ export const init = async model => {
   // Parse each line into { s, p: [x, y, z] }
   const data = text.trim().split('\n').map(line => {
     const [x, y, z] = line.trim().split(/\s+/).map(Number);
-    return { s: 1, p: [0.01 * x, 1.5 + 0.01 * y, 0.01 * z] };
+    return { s: 1, p: [1 + 0.01 * x, 3.5 + 0.01 * y, 3 + 0.01 * z] };
   });
 
   const N = data.length;
@@ -91,7 +92,7 @@ export const init = async model => {
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
     threeRenderer.state.reset();
     threeRenderer.clearDepth();
-    threeRenderer.clear();
+   //  threeRenderer.clear();
 
     // Render Three.js scene
     threeRenderer.render(scene, model.threeCamera);
