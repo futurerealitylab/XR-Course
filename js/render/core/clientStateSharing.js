@@ -8,6 +8,28 @@ let color = [[.48,.36,.27],[1,1,1],[1,.19,0],[1,1,0],[0,.88,0],[0,0,1],[1,0,0]];
                                                                                  //                                 //
 let pinchState = {};                                                             // Previous pinch states.          //
                                                                                  //                                 //
+window.isMasterClient = () => {
+   return clientID == clients[0];
+/*
+   if (! isHeadset) {                                // STILL DEBUGGING THIS.
+      for (let i = 0 ; i < clients.length ; i++) {
+         let h = clientState.isHeadset(clients[i]);
+	 if (h !== undefined && ! h)
+	    return clientID == clients[i];
+      }
+      return true;
+   }
+   else {
+      for (let i = 0 ; i < clients.length ; i++) {
+         let h = clientState.isHeadset(clients[i]);
+	 if (h !== undefined && ! h)
+	    return false;
+      }
+      return clientID == clients[0];
+   }
+*/
+}
+
 window.clientState = {                                                           // The global clientState object   //
    button: (id,hand,b) => clientData[id] &&                                      // contains methods that let any   //
                             clientData[id][hand]                                 // client get the current state    //
@@ -35,6 +57,7 @@ window.clientState = {                                                          
    isHand: id          => clientData[id] &&                                      // isHand(): is client handtracked //
                             clientData[id].left &&                               //                                 //
                               clientData[id].left.fingers ? true : false,        // isXR(): is client immersive     //
+   isHeadset : id      => clientData[id] && clientData[id].isHeadset,            //                                 //
    isXR  : id          => Array.isArray(clientState.head(id)),                   //                                 //
    pinchState : (id,hand,i) => {                                                 // When you need more detailed     // 
       let P0 = pinchState[id + ',' + hand + ',' + i];                            // knowledge of pinch state, use   //
@@ -97,7 +120,7 @@ export function ClientStateSharing() {                                          
    let message = msg => {msg.id=clientID;server.send('clientDataMessages',msg);} // Add clientID to each message.   //
    this.update = () => {                                                         //                                 //
       let parseSpeech = speech => {                                              // The first client parses speech. //
-         if (clientID == clients[0]) {                                           //                                 //
+         if (isMasterClient()) {                                                 //                                 //
             let prefix = 'my name is';                                           //   Let a user choose their name. //
             if (speakerID >= 0 && speech.indexOf(prefix) == 0)                   //                                 //
                clientData[speakerID].name = speech.substring(prefix.length+1);   //                                 //
@@ -106,7 +129,7 @@ export function ClientStateSharing() {                                          
          }                                                                       //                                 //
       }                                                                          //                                 //
       server.sync('clientDataMessages', msgs => {                                // Respond to messages.            //
-         if (clientID == clients[0])                                             // Only the first client responds  //
+         if (isMasterClient())                                                   // Only the first client responds  //
             for (let id in msgs) {                                               // to messages.                    //
                let msg = msgs[id];                                               //                                 //
                if (msg.id !== undefined && ! clientData[msg.id])                 // If this is the first message    //
@@ -130,6 +153,8 @@ export function ClientStateSharing() {                                          
                      clientData[msg.id][msg.hand].fingers = msg.fingers;                 // Set fingertips.         //
                   }                                                              //                                 //
                }                                                                 //                                 //
+               else if (msg.isHeadset !== undefined)
+	          clientData[msg.id].isHeadset = msg.isHeadset;
             }                                                                    //                                 //
       });                                                                        //                                 //
       if (! clientData[clientID])                                                //                                 //
@@ -200,7 +225,8 @@ export function ClientStateSharing() {                                          
             message({ speaking: true });                                         // headset starts to speak, send a //
          previousAudioVolume = audioVolume;                                      // message to indicate that.       //
       }                                                                          //                                 //
-      if (clientID == clients[0])                                                // The first client sends their    //
+      message({ isHeadset: isHeadset });
+      if (isMasterClient())                                                      // The first client sends their    //
          server.broadcastGlobal('clientData');                                   // state to all other clients at   //
    }                                                                             // every animation frame.          //
 }                                                                                //                                 //
