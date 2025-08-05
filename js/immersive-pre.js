@@ -272,7 +272,7 @@ export function initXR() {
     let pending = null;
     if (navigator.xr) {
         pending = navigator.xr.isSessionSupported("immersive-ar").then((supported) => {
-            console.log("immersive-vr supported:[" + supported + "]");
+            console.log("immersive-ar supported:[" + supported + "]");
             xrButton.enabled = supported;
             window.vr = supported;
             window.avatars[window.playerid].vr = window.vr;
@@ -282,7 +282,7 @@ export function initXR() {
             navigator.xr.requestSession("inline").then(onSessionStarted);
         }).catch((err) => {
             navigator.xr.requestSession("inline").then(onSessionStarted);
-            console.warn("immersive-vr not supported on this platform!");
+            console.warn("immersive-ar not supported on this platform!");
         });
 
         // Load multiple audio sources.
@@ -480,7 +480,7 @@ function onRequestSession() {
     return navigator.xr
         .requestSession("immersive-ar", {
             requiredFeatures: ["local-floor"],
-            optionalFeatures: ["hand-tracking", "layers", "mesh-detection", "depth-sensing"],
+            optionalFeatures: ["hand-tracking", "mesh-detection", "depth-sensing"],
         })
         .then((session) => {
 	    isXRMode = true;
@@ -494,13 +494,13 @@ function onRequestSession() {
 window.xrRefSpace = null;
 let xrSession = null;
 
-let xrGLFactory = null;
+window.xrGLFactory = null;
 
-let xrLayers = [];//0:glLayer, 1+: xrLayers
+window.xrLayers = [];//0:glLayer, 1+: xrLayers
 let xrLayerObjects = []; //0:null, 1+: xrLayers
 
 async function onSessionStarted(session) {
-    xrLayers = [];
+    window.xrLayers = [];
     xrLayerObjects = [];
     xrLayerObjects.push(null);
     session.addEventListener("end", onSessionEnded);
@@ -538,7 +538,7 @@ async function onSessionStarted(session) {
 
     window.isLayersSuported = true;
     try {
-        xrGLFactory = new XRWebGLBinding(session, gl);
+        window.xrGLFactory = new XRWebGLBinding(session, gl);
     } catch (error) {
         window.isLayersSuported = false;
     }
@@ -546,8 +546,8 @@ async function onSessionStarted(session) {
 
     let glLayer = new XRWebGLLayer(session, gl);
     if (window.isLayersSuported && session.isImmersive){
-        xrGLFactory = new XRWebGLBinding(session, gl);
-        xrLayers.push(glLayer);
+        window.xrGLFactory = new XRWebGLBinding(session, gl);
+        window.xrLayers.push(glLayer);
         session.updateRenderState({
             layers: [glLayer]
         });
@@ -573,6 +573,7 @@ async function onSessionStarted(session) {
 
         xrRefSpace = refSpace;
         xrSession = session;
+        window.session = session;
 
         if(refSpaceType == "bounded-floor"){
 
@@ -658,7 +659,7 @@ export function addNewQuadLayerImage(src, pos, orient, scale, callback){
     imageElement.src = src;
     imageElement.onload = function () {
     
-    let layer = xrGLFactory.createQuadLayer({
+    let layer = window.xrGLFactory.createQuadLayer({
         space: xrRefSpace,
         viewPixelWidth: imageElement.width * (1/scale.x),
         viewPixelHeight: imageElement.height * (1/scale.y),
@@ -670,12 +671,12 @@ export function addNewQuadLayerImage(src, pos, orient, scale, callback){
       layer.transform = new XRRigidTransform(pos, orient);
 
       let lo = new LayerObject_Image(layer, imageElement, pos, orient);
-      xrLayers.push(layer);
+      window.xrLayers.push(layer);
       xrLayerObjects.push(lo);
 
       if(callback) callback(lo);
 
-    xrSession.updateRenderState({ layers: xrLayers });
+    xrSession.updateRenderState({ layers: window.xrLayers });
     }
 }
 
@@ -685,7 +686,7 @@ export function addNewCylinderLayerImage(src, pos, orient, scale, callback){
     imageElement.src = src;
     imageElement.onload = function () {
 
-    let layer = xrGLFactory.createCylinderLayer({
+    let layer = window.xrGLFactory.createCylinderLayer({
         space: xrRefSpace,
         viewPixelWidth: imageElement.width * (1/scale.x),
         viewPixelHeight: imageElement.height * (1/scale.y),
@@ -701,12 +702,12 @@ export function addNewCylinderLayerImage(src, pos, orient, scale, callback){
 
 
       let lo = new LayerObject_Image(layer, imageElement, pos, orient);
-      xrLayers.push(layer);
+      window.xrLayers.push(layer);
       xrLayerObjects.push(lo);
 
       if(callback) callback(lo);
 
-    xrSession.updateRenderState({ layers: xrLayers });
+    xrSession.updateRenderState({ layers: window.xrLayers });
     }
 }
 
@@ -716,7 +717,7 @@ export function addNewEquirectLayerImage(src, pos, orient, scale, callback){
     imageElement.src = src;
     imageElement.onload = function () {
 
-    let layer = xrGLFactory.createEquirectLayer({
+    let layer = window.xrGLFactory.createEquirectLayer({
         space: xrRefSpace,
         viewPixelWidth: imageElement.width * (1/scale.x),
         viewPixelHeight: imageElement.height * (1/scale.y),
@@ -733,19 +734,19 @@ export function addNewEquirectLayerImage(src, pos, orient, scale, callback){
 
 
       let lo = new LayerObject_Image(layer, imageElement, pos, orient);
-      xrLayers.push(layer);
+      window.xrLayers.push(layer);
       xrLayerObjects.push(lo);
 
       if(callback) callback(lo);
 
-    xrSession.updateRenderState({ layers: xrLayers });
+    xrSession.updateRenderState({ layers: window.xrLayers });
     }
 }
 
 export function removeLayerObject(lo){
     xrLayerObjects = xrLayerObjects.filter(item => item !== lo);
-    xrLayers = xrLayers.filter(item => item !== lo.layer);
-    xrSession.updateRenderState({ layers: xrLayers });
+    window.xrLayers = window.xrLayers.filter(item => item !== lo.layer);
+    xrSession.updateRenderState({ layers: window.xrLayers });
 }
 
 
@@ -967,7 +968,6 @@ function onSelectEnd(ev) {
 
 
 function onXRFrame(t, frame) {
-
     if (! window.SpeechRecognition && isSpeechRecognitionEnabled)
        initWebSpeech();
 
@@ -978,6 +978,11 @@ function onXRFrame(t, frame) {
         : inlineViewerHelper.referenceSpace;
     let pose = frame.getViewerPose(refSpace);
     clay.pose = pose;
+
+    window.session = session;
+    window._latestXRFrame = frame;
+    window._latestXRRefSpace = refSpace;
+
 
     session.requestAnimationFrame(onXRFrame);
 
@@ -994,7 +999,7 @@ function onXRFrame(t, frame) {
             let lo = xrLayerObjects[i];
             let layer = lo.layer;
             if (layer && layer.needsRedraw) {
-                let glayer = xrGLFactory.getSubImage(layer, frame);
+                let glayer = window.xrGLFactory.getSubImage(layer, frame);
                 gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
                 gl.activeTexture(gl.TEXTURE0 + i);
                 gl.bindTexture(gl.TEXTURE_2D, glayer.colorTexture);
