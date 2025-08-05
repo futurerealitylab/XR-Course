@@ -32,6 +32,7 @@ export const init = async (model) => {
   directionalLight.position.set(-3, 5, 2);
   scene.add(directionalLight);
 
+  // Test cube — will stay in front of user
   const testBox = new THREE.Mesh(
     new THREE.BoxGeometry(0, 0, 0),
     new THREE.MeshStandardMaterial({ color: 0xff0000 })
@@ -39,28 +40,42 @@ export const init = async (model) => {
   scene.add(testBox);
 
   // ===== LOAD POINT CLOUD =====
-  const response = await fetch('./media/point_cloud/static_occupancy_last_vr_filtered.xyz');
+  const response = await fetch('./media/point_cloud/static_occupancy_last_vr.xyz');
   const text = await response.text();
   const data = text.trim().split('\n').map(line => {
     const [x, y, z] = line.trim().split(/\s+/).map(Number);
-    // return { s: 1, p: [1 + 0.01 * x, 3.5 + 0.01 * y, 3 + 0.01 * z] };
-      return { s: 1, p: [x, y, z] };
+    return { s: 1, p: [x, y, z] };
   });
 
   const N = data.length;
+
+  // ===== CREATE INSTANCED MESH WITH COLOR =====
   const geometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
-  const material = new THREE.MeshStandardMaterial({ color: 0x00ffff });
+  const material = new THREE.MeshStandardMaterial({ color: 0xffffff });
   const instancedMesh = new THREE.InstancedMesh(geometry, material, N);
   instancedMesh.frustumCulled = false;
 
   const dummy = new THREE.Object3D();
+  const minY = 0;
+  const maxY = 3;
+
   for (let i = 0; i < N; i++) {
+    const y = data[i].p[1];
+    const t = THREE.MathUtils.clamp((y - minY) / (maxY - minY), 0, 1);
+    const hue = 0.66 * (1 - t); // 0.66 → 0.0 as t increases
+    const color = new THREE.Color().setHSL(hue, 1.0, 0.5);
+
+    // colors.push(1, 0, 0); // All red for debug
     dummy.position.set(...data[i].p);
     dummy.scale.setScalar(data[i].s);
     dummy.updateMatrix();
     instancedMesh.setMatrixAt(i, dummy.matrix);
+    instancedMesh.setColorAt(i, color);
   }
+
   instancedMesh.instanceMatrix.needsUpdate = true;
+  instancedMesh.instanceColor.needsUpdate = true;
+
   scene.add(instancedMesh);
 
   // ===== ANIMATE =====
@@ -71,13 +86,29 @@ export const init = async (model) => {
       setSession = true;
     }
 
-
     // Save old GL state
     const oldFBO = gl.getParameter(gl.FRAMEBUFFER_BINDING);
     const oldVAO = gl.getParameter(gl.VERTEX_ARRAY_BINDING);
     const oldProgram = gl.getParameter(gl.CURRENT_PROGRAM);
     const oldActiveTexture = gl.getParameter(gl.ACTIVE_TEXTURE);
     const oldArrayBuffer = gl.getParameter(gl.ARRAY_BUFFER_BINDING);
+
+            // Animate point cloud jitter
+        for (let i = 0; i < N; i++) {
+          data[i].p[0] += 0.01 * (Math.random() - 0.5);
+          data[i].p[1] += 0.01 * (Math.random() - 0.5);
+          data[i].p[2] += 0.01 * (Math.random() - 0.5);
+          const y = data[i].p[1];
+          const t = THREE.MathUtils.clamp((y - minY) / (maxY - minY), 0, 1);
+          const hue = 0.66 * (1 - t); // 0.66 → 0.0 as t increases
+          const color = new THREE.Color().setHSL(hue, 1.0, 0.5);
+          dummy.position.set(...data[i].p);
+          dummy.updateMatrix();
+          instancedMesh.setMatrixAt(i, dummy.matrix);
+          instancedMesh.setColorAt(i, color);
+        }
+        instancedMesh.instanceMatrix.needsUpdate = true;
+        instancedMesh.instanceColor.needsUpdate = true;
 
     // ===== IMMERSIVE MODE =====
     if (setSession && glLayer && window._latestXRFrame && window._latestXRRefSpace) {
@@ -100,21 +131,11 @@ export const init = async (model) => {
         camera.matrix.fromArray(worldMatrix.elements);
         camera.matrix.decompose(camera.position, camera.quaternion, camera.scale);
 
-               // Animate point cloud jitter
-        for (let i = 0; i < N; i++) {
-          data[i].p[0] += 0.001 * (Math.random() - 0.5);
-          data[i].p[1] += 0.001 * (Math.random() - 0.5);
-          data[i].p[2] += 0.001 * (Math.random() - 0.5);
-          dummy.position.set(...data[i].p);
-          dummy.updateMatrix();
-          instancedMesh.setMatrixAt(i, dummy.matrix);
-        }
-        instancedMesh.instanceMatrix.needsUpdate = true;
-
         // Keep cube in front of camera
         const forward = new THREE.Vector3(0, 0, -1.5);
         forward.applyQuaternion(camera.quaternion);
         testBox.position.copy(camera.position).add(forward);
+
         // Render this eye
         threeRenderer.render(scene, camera);
       }
@@ -122,14 +143,13 @@ export const init = async (model) => {
 
     // ===== NON-IMMERSIVE MODE =====
     else {
-      const xrBaseLayer = window.session.renderState.baseLayer;
+      const xrBaseLayer = window.session?.renderState.baseLayer;
       if (xrBaseLayer) {
         gl.bindFramebuffer(gl.FRAMEBUFFER, xrBaseLayer.framebuffer);
       }
       if (gl.bindVertexArray) gl.bindVertexArray(null);
       gl.useProgram(null);
       gl.bindBuffer(gl.ARRAY_BUFFER, null);
-      // threeRenderer.state.reset();
       threeRenderer.clearDepth();
 
       // Camera from Clay
@@ -142,20 +162,11 @@ export const init = async (model) => {
         model.threeCamera2D.quaternion,
         model.threeCamera2D.scale
       );
-         for (let i = 0; i < N; i++) {
-          data[i].p[0] += 0.001 * (Math.random() - 0.5);
-          data[i].p[1] += 0.001 * (Math.random() - 0.5);
-          data[i].p[2] += 0.001 * (Math.random() - 0.5);
-          dummy.position.set(...data[i].p);
-          dummy.updateMatrix();
-          instancedMesh.setMatrixAt(i, dummy.matrix);
-        }
-        instancedMesh.instanceMatrix.needsUpdate = true;
 
-        // Keep cube in front of camera
-        const forward = new THREE.Vector3(0, 0, -1.5);
-        forward.applyQuaternion(model.threeCamera2D.quaternion);
-        testBox.position.copy(model.threeCamera2D.position).add(forward);
+      // Keep cube in front of camera
+      const forward = new THREE.Vector3(0, 0, -1.5);
+      forward.applyQuaternion(model.threeCamera2D.quaternion);
+      testBox.position.copy(model.threeCamera2D.position).add(forward);
 
       threeRenderer.render(scene, camera2D);
     }
