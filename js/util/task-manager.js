@@ -965,7 +965,7 @@ export class Task_Manager {
             // for debugg purpose
             // this.visualize_point_clouds();
             // this.visualize_final_goal();
-            // this.visualize_mpl_path();
+            this.visualize_mpl_path();
 
             tm_utils.change_robot_color(this.robot_pose, this.robot_cube);
             this.t_past_odom = new Date().getTime() / 1000;
