@@ -825,6 +825,38 @@ this.animateWire = (wire, r, f) => {
                                                  cg.scale(Y[nu*u >> 0], r * Math.cos(2 * Math.PI * v))));
 }
 
+
+this.animateWireColor = (wire, r, f, colors) => {
+   let nu = parseInt(wire._form.substring(5,wire.length));
+
+   let z = cg.subtract(f(.01), f(0)),
+       xx = z[0]*z[0], yy = z[1]*z[1], zz = z[2]*z[2],
+       x = cg.normalize(cg.cross(z, [ yy+zz, zz+xx, xx+yy ])),
+       y = cg.normalize(cg.cross(z, x));
+
+   let X = [], Y = [];
+   for (let i = 0 ; i <= nu ; i++) {
+      X.push(x);
+      Y.push(y);
+      let u = i / nu;
+      z = cg.subtract(f(u + .01), f(u));
+      x = cg.normalize(cg.cross(y, z));
+      y = cg.normalize(cg.cross(z, x));
+   }
+   
+   wire.setVertices((u,v) => {
+      let basePosition = cg.add(cg.add(f(u), cg.scale(X[nu*u >> 0], r * Math.sin(2 * Math.PI * v))),
+                                cg.scale(Y[nu*u >> 0], r * Math.cos(2 * Math.PI * v)));
+      if(colors) {
+         let colorIndex = Math.floor(u * (colors.length - 1)); // Sample the color using the same u
+         let color = colors[colorIndex];
+         return [...basePosition, ...color];
+      }
+
+      return basePosition;
+   });
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////// IMPLICIT SURFACES ///////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////

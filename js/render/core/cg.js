@@ -168,10 +168,18 @@
    export let distance  = (a,b)     => norm(subtract(a,b));
    export let dot       = (a,b)     => { let s = 0 ; for (let i=0 ; i<a.length ; i++) s += a[i] * b[i]; return s; }
    export let mix       = (a,b,t,u) => { let v = []; for (let i=0 ; i<a.length ; i++) v.push(mixf(a[i],b[i],t,u)); return v; }
+   export let mixSimple = (a, b, t) => {
+      return [
+          a[0] + t * (b[0] - a[0]),
+          a[1] + t * (b[1] - a[1]),
+          a[2] + t * (b[2] - a[2])
+      ];
+   }
    export let norm      = v         => Math.sqrt(dot(v,v));
    export let normalize = v         => scale(v, 1 / norm(v));
    export let scale     = (a,s)     => { let v = []; for (let i=0 ; i<a.length ; i++) v.push(s * a[i]); return v; }
    export let subtract  = (a,b)     => { let v = []; for (let i=0 ; i<a.length ; i++) v.push(a[i] - b[i]); return v; }
+   export let distVec3  = (a,b)     => { let dx = a[0] - b[0]; let dy = a[1] - b[1]; let dz = a[2] - b[2]; return Math.sqrt(dx * dx + dy * dy + dz * dz);}
 
 // CURVE METHODS
 
@@ -707,5 +715,28 @@ export let computeQuadric = (s) => {
                                  0, 1, 0, 0,
                                  0, 0, 1, 0,
                                  0, 0, 0,-1], IM));
+}
+
+export let quat2eul = (quat_vec ) =>{
+   let x = quat_vec[0];
+   let y = quat_vec[1];
+   let z = quat_vec[2];
+   let w = quat_vec[3];
+
+   let eul = 0; 
+   const t0 = 2.0 * (w * x + y * z);
+    const t1 = 1.0 - 2.0 * (x * x + y * y);
+    const roll_x = Math.atan2(t0, t1);
+
+    const t2 = 2.0 * (w * y - z * x);
+    t2 > 1.0 && (t2 = 1.0);
+    t2 < -1.0 && (t2 = -1.0);
+    const pitch_y = Math.asin(t2);
+
+    const t3 = 2.0 * (w * z + x * y);
+    const t4 = 1.0 - 2.0 * (y * y + z * z);
+    const yaw_z = Math.atan2(t3, t4);
+
+   return eul = { roll: roll_x, pitch: pitch_y, yaw: yaw_z }; 
 }
 

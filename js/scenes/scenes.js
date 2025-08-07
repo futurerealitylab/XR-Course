@@ -71,6 +71,7 @@ export default () => {
             { name: "spider"             , path: "./spider.js"             , public: true  },
             { name: "ikHumanoid"         , path: "./ikHumanoid.js"         , public: true  },
             { name: "ikTetrapod"         , path: "./ikTetrapod.js"         , public: true  },
+            { name: "demoDrone"          , path: "./demoDrone.js"          , public: true  },
 
 //          { name: "pinscreen"          , path: "./pinscreen.js"          , public: true  },
 //          { name: "share_ball"         , path: "./share_ball.js"         , public: false },

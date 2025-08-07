@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <style>
+        body {
+            font-family: Tahoma, Geneva, sans-serif;
+        }
+
+        div {
+            display: inline;
+        }
+    </style>
+    <script>
+        async function publish() { //Once the button on the page is pressed the fucntion publish here is called and a message is sent through websocket
+            var message = document.getElementById('message').value;
+            var channel = document.getElementById('channel').value;
+
+            var host = "128.238.47.51"; //window.document.location.host.replace(/:.*/, '');
+            var ws = new WebSocket('ws://' + host + ':8080');
+            let n = 10; 
+           
+            ws.onopen = function () {
+                ws.send(JSON.stringify({
+                    request: 'PUBLISH',
+                    message: message,
+                    channel: channel
+                }));
+                ws.close();
+                console.log("Publishing: ");
+            };
+        
+          
+        
+        }
+
+        async function loop_publish()
+        {
+            let n = 10; 
+            for (let i = 0; i < n; i++){
+                publish();
+            }
+        }
+    </script>
+</head>
+
+<body>
+    <h1>Publisher</h1>
+    <input type="text" id="channel" placeholder="Channel (weather, sports etc.)" />
+    <input type="text" id="message" placeholder="What you want to publish?" />
+    <button onclick="loop_publish()">Publish</button> 
+</body>
+
+</html>
