@@ -103,13 +103,14 @@ export function Clay(gl, canvas) {
    this.defineMesh = (name, value) => formMesh[name] = convertToMesh(value);
 
    this.defineDataMesh = (name, data, defaults) => {
+      let default_cap      = (defaults && defaults.cap     ) ?? false;
       let default_isNormal = (defaults && defaults.isNormal) ?? true;
       let default_nSides   = (defaults && defaults.nSides  ) ?? 6;
       let default_rgb      = (defaults && defaults.rgb     ) ?? [1,1,1];
       let default_width    = (defaults && defaults.width   ) ?? 0.01;
 
       let meshData = [];
-      let extra = [];
+      let textData = [];
       for (let n = 0 ; n < data.length ; n++) {
          let item = data[n];
          switch (item.type) {
@@ -119,46 +120,35 @@ export function Clay(gl, canvas) {
                let at = item.at ?? [0,0,0];
                let text = item.text ?? '';
                let ry = (item.height ?? .01) / 2;
-               let turn = item.turn ?? 0;
                let rgb = item.rgb ?? default_rgb;
-
-	       let c = Math.cos(turn), s = Math.sin(turn);
                let w = ry * 7 / 6;
 
-               let dx = w/2 * (text.length - 1);
+               let d = (text.length - 1) / 2;
 	       for (let n = 0 ; n < text.length ; n++) {
-                  let char = item.text.charCodeAt(n) - 32;
-                  let col = char % 12;
-                  let row = char / 12 >> 0;
+                  let ch = item.text.charCodeAt(n) - 32;
+                  let col = ch % 12;
+                  let row = ch / 12 >> 0;
 	          let uv = (du,dv) => [ (col + du) / 12, (row + dv) / 8 ];
 
-		  let AB = n * w - dx - w/2;
-		  let CD = n * w - dx + w/2;
+		  let AB = (n - d - .5) * w;
+		  let CD = (n - d + .5) * w;
 
-	          let A = { pos: [ at[0] + c * AB, at[1] - ry, at[2] - s * AB], uv: uv(0,1) };
-	          let B = { pos: [ at[0] + c * AB, at[1] + ry, at[2] - s * AB], uv: uv(0,0) };
-	          let C = { pos: [ at[0] + c * CD, at[1] + ry, at[2] - s * CD], uv: uv(1,0) };
-	          let D = { pos: [ at[0] + c * CD, at[1] - ry, at[2] - s * CD], uv: uv(1,1) };
+	          let A = { uv: uv(0,1) };
+	          let B = { uv: uv(0,0) };
+	          let C = { uv: uv(1,0) };
+	          let D = { uv: uv(1,1) };
 
                   A.rgb = B.rgb = C.rgb = D.rgb = rgb;
 
-                  let i = meshData.length;
-		  extra.push( { i:i  , r:CD, x:at[0], y:at[1]+ry, z:at[2] },
-		              { i:i+1, r:AB, x:at[0], y:at[1]+ry, z:at[2] },
-		              { i:i+2, r:AB, x:at[0], y:at[1]-ry, z:at[2] },
-		              { i:i+3, r:AB, x:at[0], y:at[1]-ry, z:at[2] },
-		              { i:i+4, r:CD, x:at[0], y:at[1]-ry, z:at[2] },
-		              { i:i+5, r:CD, x:at[0], y:at[1]+ry, z:at[2] } );
+                  let i = meshData.length, up = [0,ry,0], dn = [0,-ry,0];
+		  textData.push( { i: i  , r: CD, P: cg.add(at, up) },
+		                 { i: i+1, r: AB, P: cg.add(at, up) },
+		                 { i: i+2, r: AB, P: cg.add(at, dn) },
+		                 { i: i+3, r: AB, P: cg.add(at, dn) },
+		                 { i: i+4, r: CD, P: cg.add(at, dn) },
+		                 { i: i+5, r: CD, P: cg.add(at, up) } );
 
                   meshData.push(C, B, A, A, D, C);
-/*
-                  Given turn about y angle for each vertex v[e.i] in extra:
-
-		      let c = Math.cos(angle), s = Math.sin(angle);
-		      v.pos = [ e.x - s * e.r, e.y, z + c * e.r ]
-		      v.nor = [ c, 0, s ]
-		      v.tan = [-s, 0, c ]
-*/
 	       }
 	    }
             break;
@@ -171,11 +161,14 @@ export function Clay(gl, canvas) {
                let nSides   = item.nSides   ?? default_nSides;
                let radius   = (item.width   ?? default_width) / 2;
                let rgb      = item.rgb      ?? default_rgb;
+               let cap      = item.cap      ?? default_cap;
 
                let d = cg.subtract(b, a);
                let dw = cg.scale(cg.normalize(d), radius);
                a = cg.subtract(a, dw);
                b = cg.add     (b, dw);
+
+               radius /= Math.cos(Math.PI / nSides);
 
                let xx = d[0]*d[0], yy = d[1]*d[1], zz = d[2]*d[2];
                let c = xx < yy && xx < zz ? [1,0,0]
@@ -211,13 +204,19 @@ export function Clay(gl, canvas) {
                   A.rgb = B.rgb = C.rgb = D.rgb = rgb;
 
                   meshData.push(C, B, A, A, D, C);
+
+		  if (cap) {
+		     let E = { pos: a, rgb: rgb };
+		     let F = { pos: b, rgb: rgb };
+		     meshData.push(A, B, E, F, C, D);
+                  }
                }
             }
             break;
          }
       }
       let mesh = this.trianglesMesh(meshData);
-      mesh.extra = extra;
+      mesh.textData = textData;
       this.defineMesh(name, mesh);
    }
 
@@ -392,19 +391,19 @@ let drawMesh = (mesh, materialId, textureSrc, txtr, bumpTextureSrc, bumptxtr, du
 
    // WHEN RENDERING A TEXT LABEL IN A DATA MESH, ROTATE IT TO ALWAYS FACE THE VIEWER
 
-   if (mesh.extra) {
+   if (mesh.textData) {
       let eye = cg.mMultiply(clay.inverseRootMatrix, this.pose.transform.matrix).slice(12,15);
-      for (let n = 0 ; n < mesh.extra.length ; n++) {
-         let e = mesh.extra[n];
-	 let P = [e.x,e.y,e.z];
+      for (let n = 0 ; n < mesh.textData.length ; n++) {
+         let d = mesh.textData[n];
+	 let P = d.P;
 	 let Z = cg.normalize(cg.subtract(eye, cg.mTransform(m, P)));
 	 let X = cg.normalize(cg.cross([0,1,0], Z));
 	 let M = cg.mMultiply(mInv, [ X,0, 0,1,0,0, Z,0, P,1 ].flat());
 	 X = cg.normalize(M.slice(0, 3));
 	 Z = cg.normalize(M.slice(8,11));
 	 for (let j = 0 ; j < 3 ; j++) {
-	    mesh[16 * e.i + j    ] = P[j] + X[j] * e.r;
-	    mesh[16 * e.i + j + 3] = packAB(Z[j], X[j]);
+	    mesh[16 * d.i + j    ] = P[j] + X[j] * d.r;
+	    mesh[16 * d.i + j + 3] = packAB(Z[j], X[j]);
          }
       }
    }
@@ -622,7 +621,7 @@ this.trianglesMesh = vertexData => {
                                    v.length >=  8 ? v.slice(6,  8) : null,
                                    v.length >= 11 ? v.slice(8, 11) : null));
       else
-         vertices.push(vertexArray(v.pos,v.nor??[],v.tan??null,v.uv??null,v.rgb??null,v.wts??null));
+         vertices.push(vertexArray(v.pos??[],v.nor??[],v.tan??null,v.uv??null,v.rgb??null,v.wts??null));
    }
    let mesh = new Float32Array(vertices.flat());
    mesh.isTriangles = true;

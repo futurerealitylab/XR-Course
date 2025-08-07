@@ -1597,7 +1597,7 @@ export class Renderer {
              let lHit = lcb.hitLabel(obj);
              let rHit = rcb.hitLabel(obj);
 
-             if (info == '<   open   >' ||info == '<close>') {
+             if (info == '<open>' ||info == '<close>') {
               obj.color(lHit && lcb.down || rHit && rcb.down ? [.3,.5,1] :
                 lHit || rHit ? [1,0,1] : [.2,.5,1]);
                 obj.identity().move(-1,1.7+.1,-.7)
@@ -1642,10 +1642,10 @@ export class Renderer {
               canChooseFlag=false;
              }
              else if (lHit && lcb.click || rHit && rcb.click) {
-              if (info == '<   open   >' ||info == '<close>') {
+              if (info == '<open>' ||info == '<close>') {
                 canChooseFlag=false;
                 window.isMenuClosed = ! window.isMenuClosed;
-                obj.info(window.isMenuClosed?'<   open   >':'<close>');
+                obj.info(window.isMenuClosed?'<open>':'<close>');
               }
               else if (info.substring(0,6) == '<guide'){
                 window.useGuide = !window.useGuide;

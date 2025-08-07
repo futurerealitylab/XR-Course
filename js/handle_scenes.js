@@ -149,7 +149,7 @@ const addDemoButtons = (demoNames, scenesInit) => {
    window["setSceneFlagByID"] = {};
 
    if (!scenesInit && ! window.onlyScene) {
-      clay.vrWidgets.add('label').info('<   open   >')
+      clay.vrWidgets.add('label').info('<open>')
                                  .move(-1,1.7+.1,-.7)
                                  .turnY(Math.PI/6)
                                  .scale(.045);
