@@ -99,7 +99,7 @@ export let G3 = function(model, callback) {
          return false;
 
       p_path = P;
-      p_z    = P.reduce((a,b) => a+b[2], 0) / P.length;
+      p_z    = P.reduce((a,b) => a+(b==null?0:b[2]), 0) / P.length;
       return true;
    }
 
@@ -120,8 +120,9 @@ export let G3 = function(model, callback) {
       return true;
    }
 
-   let isSorting = true;
+   let isSorting = true, isAvatar = true;
    this.disableSort = () => isSorting = false;
+   this.disableAvatar = () => isAvatar = false;
 
    this.color = c => { color = c; return this; }
    this.distance = p => {
@@ -258,12 +259,31 @@ export let G3 = function(model, callback) {
    }
    this.lineWidth = lw => { lineWidth = lw; return this; }
    this.setUpright = state => projected.setUpright(state);
+   this.slider = (text,center,x,y,callback) => {
+      let p = projected.projectPoint(center);
+      if (p) {
+         this.text(text, center, 'center', x, y);
+         let scale = projected.getScale(center);
+         g2[0].textHeight(textHeight);
+	 x = x ? x : 0;
+	 y = y ? y : 0;
+         let w = g2[0].getCanvas().context.measureText(text).width / 2040 + .01;
+         let h = textHeight + .01;
+         let a = [x-w,y-h], b = [x-w,y+h], c = [x+w,y+h], d = [x+w,y-h];
+	 let t = callback();
+	 t = Math.max(0, Math.min(1, t ?? .5));
+	 center = cg.add(center, cg.scale(projected.getMatrix().slice(8,11), -.001));
+         this.color('#404040').fill2D([a,b,c,d],center);
+         this.color('#808080').fill2D([a,b,cg.mix(b,c,t),cg.mix(a,d,t)],center);
+      }
+      return this;
+   }
    this.text = (text,center,alignment,x,y,rotation) => {
       let p = projected.projectPoint(center);
       if (p) {
          let scale = projected.getScale(center);
-         x = cg.def(x,0);
-         y = cg.def(y,0);
+         x = x ?? 0;
+         y = y ?? 0;
          if (! displayList[nd]) displayList[nd] = []; let dl = displayList[nd++];
          dl[0] = p[2];
          dl[1] = TEXT;
@@ -273,8 +293,8 @@ export let G3 = function(model, callback) {
          dl[5] = text;
          dl[6] = p[0] + scale * x;
          dl[7] = p[1] - scale * y;
-         dl[8] = cg.def(alignment, 'center');
-         dl[9] = cg.def(rotation,0);
+         dl[8] = 'center';
+         dl[9] = 0;
       }
       return this;
    }
@@ -315,6 +335,7 @@ export let G3 = function(model, callback) {
 
          let isTouching = (a,b) => { let d = cg.distance(a,b); return d > 0 && d < .025; }
 
+         if (isAvatar)
          for (let n = 0 ; n < clients.length ; n++) {
             let id = clients[n], p, hm = clientState.head(id);
 

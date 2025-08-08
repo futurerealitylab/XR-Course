@@ -25,6 +25,9 @@ export const init = async model => {
    let who;
    let waitForLoadCounter = false; // COUNTER FOR WAITING AFTER FIRST LOADING THE SCENE
 
+   if (clientID == masterClient())
+      drawColor = '#ffffff';
+
    let timeStamp;
    {
       let date = new Date();
@@ -1068,7 +1071,7 @@ export const init = async model => {
 
       // ONLY THE MASTER CLIENT UPDATES THINGS. IT WILL SEND THE RESULT TO ALL OTHER CLIENTS.
 
-      if (clientID == clients[0])
+      if (clientID == masterClient())
          updateMasterClient();
 
       // EACH CLIENT THEN FILLS IN MISSING STROKES USING LOCAL PROCEDURES AND CACHE.
@@ -1080,7 +1083,7 @@ export const init = async model => {
 
             // FOR NON-SKETCH THINGS, IF NOT THE MASTER CLIENT THEN REGENERATE THE STROKES.
 
-            if (thing.type != 'sketch' && clientID != clients[0]) {
+            if (thing.type != 'sketch' && clientID != masterClient()) {
                if (! thingCode[id]) {
                   let glyph = matchCurves.glyph(thing.K);
                   try {
@@ -1130,7 +1133,7 @@ export const init = async model => {
       // BEFORE WRITING THE SCENE STATE, THE MASTER CLIENT FIRST REMOVES NON-NEW STROKES.
       // THE RECIPIENT CLIENTS WILL RESTORE THOSE STROKES FROM CACHE.
 
-      if (clientID == clients[0]) {
+      if (clientID == masterClient()) {
          for (let n = 0 ; n < things.length ; n++) {
             let thing = things[n];
 
@@ -1161,15 +1164,16 @@ export const init = async model => {
                thing.timer = cg.roundFloat(3, thing.timer);
          }
 
-         for (let i = 1 ; i < clients.length ; i++) {
-            channel[clients[i]].send(things);
-	    console.log('sending to', i, JSON.stringify(things).length);
-         }
+         for (let i = 0 ; i < clients.length ; i++)
+	    if (clients[i] != clientID) {
+	       channel[clients[i]].send(things);
+	       console.log('sending to', i, JSON.stringify(things).length);
+            }
 
          server.set('ct' + sceneID, things);
       }
       else {
-         channel[clients[0]].on = data => {
+         channel[clientID].on = data => {
 	    things = data;
 	    console.log('receiving', JSON.stringify(things).length);
          }

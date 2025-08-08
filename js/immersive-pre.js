@@ -100,6 +100,10 @@ window.team = "team1";
 import * as mtt from "../js/util/mtt/mtt.js"
 mtt.init();
 
+// CHECK TO SEE WHETHER THE CLIENT DEVICE IS USING AN IMU.
+
+window.isHeadset = navigator.userAgent.indexOf('Oculus') >= 0;
+
 // RETURNS AN OBJECT WITH FIELDS:
 //    near   : float
 //    far    : float

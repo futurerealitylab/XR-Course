@@ -380,7 +380,7 @@ function Server(wsPort) {
       let counter = Date.now() / (1000 * i) >> 0;
       if (! neverLoadOrSave && ! window['waitForFirstUpdate__' + name] // IF NOT WAITING FOR A
           && counter > this.counter                     // FIRST UPDATE, THEN AT EVERY INTERVAL
-          && window.clientID == window.clients[0]) {    // COUNT THE OLDEST CLIENT SAVES ITS
+          && isMasterClient()) {                        // COUNT THE MASTER CLIENT SAVES ITS
          this.set(name, window[name]);                  // CURRENT VALUE TO PERSISTENT STORAGE.
          if (interval > 0)                              // IF THE INTERVAL IS POSITIVE THEN
             this.broadcastGlobal(name);                 // IT ALSO UPDATES ALL OTHER CLIENTS.
@@ -427,13 +427,14 @@ function Channel() {
 
 window._shared_result = null;
 window.shared = func => {
-   if (clientID == clients[0]) {
+   if (isMasterClient()) {
       _shared_result = func();
-      for (let i = 1 ; i < clients.length ; i++)
-         channel[clients[i]].send(_shared_result);
+      for (let i = 0 ; i < clients.length ; i++)
+         if (clients[i] != clientID)
+            channel[clients[i]].send(_shared_result);
    }
    else
-      channel[clients[0]].on = data => _shared_result = data;
+      channel[clientID].on = data => _shared_result = data;
    return _shared_result;
 }
 

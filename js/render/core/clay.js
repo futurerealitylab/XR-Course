@@ -102,6 +102,123 @@ export function Clay(gl, canvas) {
    
    this.defineMesh = (name, value) => formMesh[name] = convertToMesh(value);
 
+   this.defineDataMesh = (name, data, defaults) => {
+      let default_cap      = (defaults && defaults.cap     ) ?? false;
+      let default_isNormal = (defaults && defaults.isNormal) ?? true;
+      let default_nSides   = (defaults && defaults.nSides  ) ?? 6;
+      let default_rgb      = (defaults && defaults.rgb     ) ?? [1,1,1];
+      let default_width    = (defaults && defaults.width   ) ?? 0.01;
+
+      let meshData = [];
+      let textData = [];
+      for (let n = 0 ; n < data.length ; n++) {
+         let item = data[n];
+         switch (item.type) {
+
+         case 'text':
+	    {
+               let at = item.at ?? [0,0,0];
+               let text = item.text ?? '';
+               let ry = (item.height ?? .01) / 2;
+               let rgb = item.rgb ?? default_rgb;
+               let w = ry * 7 / 6;
+
+               let d = (text.length - 1) / 2;
+	       for (let n = 0 ; n < text.length ; n++) {
+                  let ch = item.text.charCodeAt(n) - 32;
+                  let col = ch % 12;
+                  let row = ch / 12 >> 0;
+	          let uv = (du,dv) => [ (col + du) / 12, (row + dv) / 8 ];
+
+		  let AB = (n - d - .5) * w;
+		  let CD = (n - d + .5) * w;
+
+	          let A = { uv: uv(0,1) };
+	          let B = { uv: uv(0,0) };
+	          let C = { uv: uv(1,0) };
+	          let D = { uv: uv(1,1) };
+
+                  A.rgb = B.rgb = C.rgb = D.rgb = rgb;
+
+                  let i = meshData.length, up = [0,ry,0], dn = [0,-ry,0];
+		  textData.push( { i: i  , r: CD, P: cg.add(at, up) },
+		                 { i: i+1, r: AB, P: cg.add(at, up) },
+		                 { i: i+2, r: AB, P: cg.add(at, dn) },
+		                 { i: i+3, r: AB, P: cg.add(at, dn) },
+		                 { i: i+4, r: CD, P: cg.add(at, dn) },
+		                 { i: i+5, r: CD, P: cg.add(at, up) } );
+
+                  meshData.push(C, B, A, A, D, C);
+	       }
+	    }
+            break;
+
+         case 'rod':
+            {
+               let a = item.a;
+               let b = item.b;
+               let isNormal = item.isNormal ?? default_isNormal;
+               let nSides   = item.nSides   ?? default_nSides;
+               let radius   = (item.width   ?? default_width) / 2;
+               let rgb      = item.rgb      ?? default_rgb;
+               let cap      = item.cap      ?? default_cap;
+
+               let d = cg.subtract(b, a);
+               let dw = cg.scale(cg.normalize(d), radius);
+               a = cg.subtract(a, dw);
+               b = cg.add     (b, dw);
+
+               radius /= Math.cos(Math.PI / nSides);
+
+               let xx = d[0]*d[0], yy = d[1]*d[1], zz = d[2]*d[2];
+               let c = xx < yy && xx < zz ? [1,0,0]
+                                : yy < zz ? [0,1,0]
+                                          : [0,0,1];
+               let u = cg.normalize(cg.cross(d, c));
+               let v = cg.normalize(cg.cross(u, d));
+
+               for (let n = 0 ; n < nSides ; n++) {
+                  let t0 = (n-.5) * 2 * Math.PI / nSides, c0 = Math.cos(t0), s0 = Math.sin(t0);
+                  let t1 = (n+.5) * 2 * Math.PI / nSides, c1 = Math.cos(t1), s1 = Math.sin(t1);
+
+                  let A = {}, B = {}, C = {}, D = {};
+
+                  A.pos = []; B.pos = []; C.pos = []; D.pos = [];
+                  for (let i = 0 ; i < 3 ; i++) {
+                     A.pos[i] = a[i] + radius * (c0 * u[i] + s0 * v[i]);
+                     B.pos[i] = a[i] + radius * (c1 * u[i] + s1 * v[i]);
+                     C.pos[i] = b[i] + radius * (c1 * u[i] + s1 * v[i]);
+                     D.pos[i] = b[i] + radius * (c0 * u[i] + s0 * v[i]);
+                  }
+
+                  if (isNormal) {
+                     A.nor = []; B.nor = []; C.nor = []; D.nor = [];
+                     for (let i = 0 ; i < 3 ; i++) {
+                        A.nor[i] = c0 * v[i] - s0 * u[i];
+                        B.nor[i] = c1 * v[i] - s1 * u[i];
+                        C.nor[i] = c1 * v[i] - s1 * u[i];
+                        D.nor[i] = c0 * v[i] - s0 * u[i];
+                     }
+                  }
+
+                  A.rgb = B.rgb = C.rgb = D.rgb = rgb;
+
+                  meshData.push(C, B, A, A, D, C);
+
+		  if (cap) {
+		     let E = { pos: a, rgb: rgb };
+		     let F = { pos: b, rgb: rgb };
+		     meshData.push(A, B, E, F, C, D);
+                  }
+               }
+            }
+            break;
+         }
+      }
+      let mesh = this.trianglesMesh(meshData);
+      mesh.textData = textData;
+      this.defineMesh(name, mesh);
+   }
 
 let M = new cg.Matrix();
 
@@ -271,6 +388,25 @@ let drawMesh = (mesh, materialId, textureSrc, txtr, bumpTextureSrc, bumptxtr, du
          this.renderParticlesMeshInline(this, mesh, views);
       else
          renderParticlesMesh(mesh, mInv);
+
+   // WHEN RENDERING A TEXT LABEL IN A DATA MESH, ROTATE IT TO ALWAYS FACE THE VIEWER
+
+   if (mesh.textData) {
+      let eye = cg.mMultiply(clay.inverseRootMatrix, this.pose.transform.matrix).slice(12,15);
+      for (let n = 0 ; n < mesh.textData.length ; n++) {
+         let d = mesh.textData[n];
+	 let P = d.P;
+	 let Z = cg.normalize(cg.subtract(eye, cg.mTransform(m, P)));
+	 let X = cg.normalize(cg.cross([0,1,0], Z));
+	 let M = cg.mMultiply(mInv, [ X,0, 0,1,0,0, Z,0, P,1 ].flat());
+	 X = cg.normalize(M.slice(0, 3));
+	 Z = cg.normalize(M.slice(8,11));
+	 for (let j = 0 ; j < 3 ; j++) {
+	    mesh[16 * d.i + j    ] = P[j] + X[j] * d.r;
+	    mesh[16 * d.i + j + 3] = packAB(Z[j], X[j]);
+         }
+      }
+   }
 
    setUniform('1iv', 'uSampler', [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]);  // SPECIFY TEXTURE INDICES.
    setUniform('1i', 'uTexture' , isTexture(textureSrc) ? 1 : 0); // ARE WE RENDERING A TEXTURE?
@@ -478,11 +614,14 @@ this.trianglesMesh = vertexData => {
    let vertices = [];
    for (let n = 0 ; n < vertexData.length ; n++) {
       let v = vertexData[n];
-      vertices.push(vertexArray(v.slice(0, 3),
-                                v.slice(3, 6),
-                                null,
-                                v.length >=  8 ? v.slice(6,  8) : null,
-                                v.length >= 11 ? v.slice(8, 11) : null));
+      if (Array.isArray(v))
+         vertices.push(vertexArray(v.slice(0, 3),
+                                   v.slice(3, 6),
+                                   null,
+                                   v.length >=  8 ? v.slice(6,  8) : null,
+                                   v.length >= 11 ? v.slice(8, 11) : null));
+      else
+         vertices.push(vertexArray(v.pos??[],v.nor??[],v.tan??null,v.uv??null,v.rgb??null,v.wts??null));
    }
    let mesh = new Float32Array(vertices.flat());
    mesh.isTriangles = true;
@@ -558,8 +697,8 @@ let createTextMesh = text => {
       let c = text.charCodeAt(i) - 32;
       let col = c % 12;
       let row = c / 12 >> 0;
-      let u = (col + du + italic*(dv/2-1/4)) / 12,
-          v = (row + dv) / 8;
+      let u = .006 + (col + du + italic*(dv/2-1/4)) / 12,
+          v = .006 + (row + dv) / 8;
       return [u, v];
    };
    let V = [];
@@ -623,7 +762,7 @@ let renderParticlesMesh = (mesh, mInv) => {
                ny = cg.normalize(cg.cross(nz,nx));
             }
             else {
-	       ny = [0,1,0];
+               ny = [0,1,0];
                nx = cg.normalize(cg.cross(ny,n));
                nz = cg.normalize(cg.cross(nx,ny));
             }
@@ -1755,8 +1894,8 @@ let fl = 5;                                                          // CAMERA F
          else {
             let i = 0;
             for (let b = 0 ; b < 7 ; b++)
-	       if (clientState.button(clientID, hand, b))
-	          i = b + 1;
+               if (clientState.button(clientID, hand, b))
+                  i = b + 1;
             this.controllerWidgets[hand].setMatrix(clientState.hand(clientID, hand))
                                         .scale(this.controllerBallSize)
                                         .color(clientState.color(i));
@@ -2565,16 +2704,16 @@ function Node(_form) {
          color = materialName;
       }
 
-      if (this._update && window.clientID !== undefined) {    // TO HANDLE SCENE UPDATES BY A WIZARD CLIENT:
+      if (this._update && window.clientID !== undefined) {    // TO HANDLE SCENE UPDATES BY A MASTER CLIENT:
 
          if (window.input_state === undefined)
             window.input_state = [];
 
-         if (clientID != clients[0]) {                        // OTHER CLIENTS JUST BROADCAST THEIR INPUT DATA
+         if (isMasterClient()) {                              // OTHER CLIENTS JUST BROADCAST THEIR INPUT DATA
             input_state[clientID] = createInput();
             server.broadcastGlobalSlice('input_state', clientID, clientID+1);
          }
-         else {                                               // BUT THE WIZARD CLIENT:
+         else {                                               // BUT THE MASTER CLIENT:
 
             input_state = server.synchronize('input_state');  //    GATHERS INPUT DATA FROM ALL OTHER CLIENTS
 
@@ -2743,11 +2882,11 @@ function Node(_form) {
          let image = new Image();                           
          image.onload = () => {
              gl.activeTexture (gl.TEXTURE0 + txtr);
-	          gl.bindTexture   (gl.TEXTURE_2D, gl.createTexture());
+                  gl.bindTexture   (gl.TEXTURE_2D, gl.createTexture());
              gl.texImage2D    (gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
              gl.texParameteri (gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
              gl.texParameteri (gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-	   }
+           }
          image.src = src;
          delete _canvas_txtr[txtr];
       }

@@ -12,7 +12,7 @@ export function XRSharing(handle) {                                             
    let isHandSharing = false;                                                    // Default = no shared hand matrix //
    this.update = () => {                                                         //                                 //
       let parseSpeech = (model, speech) => {                                     // The first client parses speech. //
-         if (clientID == clients[0]) {                                           //                                 //
+         if (isMasterClient()) {                                                 //                                 //
             let pre = 'my name is';                                              //   Let a user choose their name. //
             if (speakerID >= 0 && speech.indexOf(pre) == 0)                      //                                 //
                xrS[speakerID].name = speech.substring(pre.length+1);             //                                 //
@@ -21,7 +21,7 @@ export function XRSharing(handle) {                                             
          }                                                                       //                                 //
       }                                                                          //                                 //
       server.sync('xrI', msgs => {                                               // Respond to messages.            //
-         if (clientID == clients[0])                                             // Only the first client responds  //
+         if (isMasterClient())                                                   // Only the first client responds  //
             for (let id in msgs) {                                               // to messages.                    //
                let msg = msgs[id];                                               //                                 //
                if (msg.id !== undefined && ! xrS[msg.id])                        // If this is the first message    //
@@ -75,7 +75,7 @@ export function XRSharing(handle) {                                             
             message({ speaking: true });                                         // headset starts to speak, send a //
          previousAudioVolume = audioVolume;                                      // message to indicate that.       //
       }                                                                          //                                 //
-      if (clientID == clients[0])                                                // The first client sends their    //
+      if (isMasterClient())                                                      // The first client sends their    //
          server.broadcastGlobal('xrS');                                          // state to all other clients at   //
    }                                                                             // every animation frame.          //
 }                                                                                //                                 //
