@@ -202,9 +202,54 @@ function initHands() {
     indexFingerBoxes.right = addBox(0, 0, 0, rightBoxColor.r, rightBoxColor.g, rightBoxColor.b);
 }
 
+async function processAudioData(buffer, callback) {
+    console.log("sending audio data to Wit.ai");
+    console.log(buffer.length, buffer);
+    
+    // Convert the JavaScript array to a Float32Array buffer
+    const float32Array = new Float32Array(buffer);
+    const arrayBuffer = float32Array.buffer;
+    
+    const res = await fetch('/api/wit/speech', {
+        method: 'POST',
+        headers: {
+            'content-type': 'audio/raw;encoding=floating-point;bits=32;rate=44100;endian=little',
+            // 'Transfer-Encoding': 'chunked',
+        },
+        body: arrayBuffer,
+    }).then(response => {
+        response.json().then((json) => {
+            console.log("Received response from Wit.ai:", json);
+            if (json && json.response) {
+                if (callback) {
+                    callback(json.response);
+                }
+            }
+        });
+        return response;
+    });
+}
+
+let audioBuffer = [];
+let speechRecognitionActive = false;
+
+export function beginSpeechRecognition() {
+    if (speechRecognitionActive) return;
+    speechRecognitionActive = true;
+    audioBuffer = [];
+}
+
+export function stopSpeechRecognition(callback) {
+    if (!speechRecognitionActive) return;
+    speechRecognitionActive = false;
+    processAudioData(audioBuffer, callback);
+    audioBuffer = [];
+}
+
 function initAudioVolume() {
    window.audioVolume = 0;
    if (! window.audioContext) {
+    console.log("init audio context");
       let onSuccess = stream => {
          window.audioContext = new AudioContext();
          let mediaStreamSource = audioContext.createMediaStreamSource(stream);
@@ -212,11 +257,16 @@ function initAudioVolume() {
          mediaStreamSource.connect(scriptProcessor);
          scriptProcessor.connect(audioContext.destination);
          scriptProcessor.onaudioprocess = e => {
-            let amp = 0, data = e.inputBuffer.getChannelData(0);
-            for (let i = 0 ; i < 2048 ; i++)
-               amp += data[i] * data[i];
-            audioVolume = Math.max(0, Math.min(1, Math.log(amp) / 3));
-         }
+            const data = e.inputBuffer.getChannelData(0);
+            if (audioBuffer.length < 20 * 44100) { // 44100 samples = 1 second, max 20 seconds
+                audioBuffer.push(...data);
+            }
+            // let amp = 0;
+            // for (let i = 0 ; i < 2048 ; i++)
+            //    amp += data[i] * data[i];
+            // audioVolume = Math.max(0, Math.min(1, Math.log(amp) / 3));
+            // console.log("audio volume:", audioVolume);
+        }
       }
       navigator.mediaDevices.getUserMedia({video: false, audio: true})
                             .then(onSuccess)

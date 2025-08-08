@@ -49,6 +49,9 @@ app.use(express.static("./"));
 // handle uploaded files
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+// Add raw body parser for speech endpoint
+app.use('/api/wit/speech', bodyParser.raw({ type: 'audio/raw', limit: '10mb' }));
 app.route("/upload").post(function(req, res, next) {
    var form = new formidable.IncomingForm();
    form.uploadDir = "./sketches";
@@ -472,3 +475,41 @@ app.route("/api/aiquery").post(function(req, res) {
    });
 });
 
+app.route("/api/wit/speech").post(function(req, res) {
+   const buffer = req.body;
+   
+   if (!buffer || buffer.length === 0) {
+      return res.status(400).json({ error: "Audio buffer is required" });
+   }
+      
+   const apiKey = process.env.WIT_API_KEY;
+   if (!apiKey) {
+      console.error('Wit.ai API key not found in .env file');
+      return res.status(500).json({ 
+         error: "Wit.ai API key not configured", 
+         details: "Add WIT_API_KEY to your .env file"
+      });
+   }
+
+    if (!apiKey) {
+        console.error("WIT_API_KEY is not set");
+        return;
+    }
+    fetch('https://api.wit.ai/speech', {
+        method: 'POST',
+        headers: {
+            'content-type': 'audio/raw;encoding=floating-point;bits=32;rate=44100;endian=little',
+            'authorization': `Bearer ${apiKey}`,
+            // 'Transfer-Encoding': 'chunked',
+        },
+        body: buffer,
+    }).then(response => {
+         if (!response.ok) {
+               console.error(`Wit.ai API error: ${response.status} ${response.statusText}`);
+               return;
+         }
+         return response.text().then(text => {
+            res.status(200).json({ response: text });
+         });
+      });
+});
