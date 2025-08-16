@@ -11,6 +11,7 @@ export default () => {
    return {
       enableSceneReloading: true,
       scenes: [ 
+            { name: "testStructure"      , path: "./testStructure.js"      , public: true  },
             { name: "hypercube"          , path: "./hypercube.js"          , public: true  },
             { name: "floorplan"          , path: "./floorplan.js"          , public: true  },
             { name: "hudtext"            , path: "./hudtext.js"            , public: true  },

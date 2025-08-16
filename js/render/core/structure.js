@@ -52,18 +52,33 @@ export function Structure(name) {
       return this;
    }
 
+   let textData = {};
+
+   this.setText = (textID, col, row, text) => {
+      if (textData[textID]) {
+         let id = textData[textID][row];
+	 console.log(textID, col, row, text, id);
+         clay.setDataMeshText(name, id, text, col);
+      }
+   }
+
    this.text = (text, at, nCols, nRows) => {
+      let textID = cg.uniqueID();
+      textData[textID] = [];
       let item = (text, at, nCols) => {
          if (nCols !== undefined)
             for (let i = text.length ; i < nCols ; i++)
                text += ' ';
+         let id = cg.uniqueID();
          data.push({
             type: 'text',
             text: text,
             at: at,
             height: textHeight,
             rgb: color,
+            id: id,
          });
+	 textData[textID].push(id);
       }
       if (nRows === undefined)
          item(text, at, nCols ?? text.length);
@@ -72,7 +87,7 @@ export function Structure(name) {
          for (let row = 0 ; row < nRows ; row++)
             item(lines[row] ?? '', cg.add(at, [0,-row*textHeight,0]), nCols);
       }
-      return this;
+      return textID;
    }
 
    this.line = (a,b) => {

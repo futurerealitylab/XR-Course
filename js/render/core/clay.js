@@ -102,6 +102,19 @@ export function Clay(gl, canvas) {
    
    this.defineMesh = (name, value) => formMesh[name] = convertToMesh(value);
 
+   this.setDataMeshText = (form, id, text, offset = 0) => {
+      let mesh = this.getMesh(form), data = mesh.textData;
+      for (let n = 0 ; n < text.length ; n++) {
+         let I = text.charCodeAt(n) - 32, uCol = I % 12, vRow = I / 12 >> 0;
+         for (let k = 0 ; k < data.length ; k++)
+            if (data[k].id == id && data[k].n == n + offset) {
+	       let i = 16 * data[k].i, m = data[k].m;
+	       mesh[i + 6] = (uCol + (m& 1)) / 12;
+	       mesh[i + 7] = (vRow + (m>>1)) /  8;
+	    }
+      }
+   }
+
    this.defineDataMesh = (name, data, defaults) => {
       let default_flatShading = (defaults && defaults.flatShading) ?? false;
       let default_lineCap     = (defaults && defaults.lineCap    ) ?? false;
@@ -119,6 +132,7 @@ export function Clay(gl, canvas) {
 
          case 'text':
 	    {
+               let id = item.id;
                let at = item.at ?? [0,0,0];
                let text = item.text ?? '';
                let ry = (item.height ?? .01) / 2;
@@ -143,12 +157,12 @@ export function Clay(gl, canvas) {
                   A.rgb = B.rgb = C.rgb = D.rgb = rgb;
 
                   let i = meshData.length, up = [0,ry,0], dn = [0,-ry,0];
-		  textData.push( { i: i  , r: CD, P: cg.add(at, up) },
-		                 { i: i+1, r: AB, P: cg.add(at, up) },
-		                 { i: i+2, r: AB, P: cg.add(at, dn) },
-		                 { i: i+3, r: AB, P: cg.add(at, dn) },
-		                 { i: i+4, r: CD, P: cg.add(at, dn) },
-		                 { i: i+5, r: CD, P: cg.add(at, up) } );
+		  textData.push( { i: i  , r: CD, P: cg.add(at, up), id: id, n: n, m: 1 },
+		                 { i: i+1, r: AB, P: cg.add(at, up), id: id, n: n, m: 0 },
+		                 { i: i+2, r: AB, P: cg.add(at, dn), id: id, n: n, m: 2 },
+		                 { i: i+3, r: AB, P: cg.add(at, dn), id: id, n: n, m: 2 },
+		                 { i: i+4, r: CD, P: cg.add(at, dn), id: id, n: n, m: 3 },
+		                 { i: i+5, r: CD, P: cg.add(at, up), id: id, n: n, m: 1 } );
 
                   meshData.push(C, B, A, A, D, C);
 	       }
