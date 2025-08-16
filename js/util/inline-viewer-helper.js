@@ -36,6 +36,18 @@ window.mouseX = 0;
 window.mouseY = 0;
 window.mouseZ = 0;
 
+window.eventQueue = [];
+
+function EventHandler() {
+   this.mousedown = e => eventQueue.push('mousedown', e);
+   this.mousemove = e => eventQueue.push('mousemove', e);
+   this.mouseup   = e => eventQueue.push('mouseup'  , e);
+   this.keydown   = e => eventQueue.push('keydown'  , e);
+   this.keyup     = e => eventQueue.push('keyup'    , e);
+}
+
+let eventHandler = new EventHandler();
+
 export class InlineViewerHelper {
 
   constructor(canvas, referenceSpace) {
@@ -62,14 +74,26 @@ export class InlineViewerHelper {
       window.mouseX = event.x;
       window.mouseY = event.y;
       window.mouseZ = 1;
+
+      if (window.interactMode == 1) {
+         eventHandler.mousedown(event);
+	 return;
+      }
+
       if (window.interactMode == 2) {
          anidraw.mousedown(event);
-	       return;
+	 return;
       }
     });
 
     canvas.addEventListener("mouseup", event => {
       window.mouseZ = 0;
+
+      if (window.interactMode == 1) {
+         eventHandler.mouseup(event);
+	 return;
+      }
+
       if (window.interactMode == 2) {
          anidraw.mouseup(event);
 	 return;
@@ -80,6 +104,10 @@ export class InlineViewerHelper {
       window.mouseX = event.x;
       window.mouseY = event.y;
 
+      if (window.interactMode == 1) {
+         eventHandler.mousemove(event);
+	 return;
+      }
       if (window.interactMode == 2) {
          anidraw.mousemove(event);
 	 return;
@@ -234,6 +262,11 @@ export class InlineViewerHelper {
     if (e.key == 'Meta') this._isMetaKeyDown = true;
     if (e.key == 'Control') this._isControlKeyDown = true;
    
+    if (window.interactMode == 1) {
+       eventHandler.keydown(e);
+       return;
+    }
+   
     if (window.interactMode == 2) {
        anidraw.keydown(e);
        return;
@@ -285,6 +318,10 @@ export class InlineViewerHelper {
        return;
     }
 
+    if (window.interactMode == 1) {
+       eventHandler.keyup(e);
+       return;
+    }
     if (window.interactMode == 2) {
        anidraw.keyup(e);
        return;

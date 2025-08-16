@@ -1,51 +1,77 @@
 import * as cg from "./cg.js";
 
-export function Structure() {
+export function Structure(name) {
+
+   if (name === undefined)
+      name = 'structure';
+   let stateName = name + 'State';
+
+   server.init(stateName, { offset: [0,.7,0], theta:0, sizeIndex: 0 });
 
    let stack = [];
    let data = [];
 
-   let color      = [1,1,1];
-   let lineCap    = false;
-   let lineWidth  = .1;
-   let nSides     = 6;
-   let textHeight = 1;
+   let color       = [1,1,1];
+   let flatShading = false;
+   let lineCap     = null;
+   let lineWidth   = .1;
+   let nSides      = 6;
+   let taper       = 0;
+   let textHeight  = 1;
 
-   this.color      = arg => { color      = arg; return this; }
-   this.lineCap    = arg => { lineCap    = arg; return this; }
-   this.lineWidth  = arg => { lineWidth  = arg; return this; }
-   this.nSides     = arg => { nSides     = arg; return this; }
-   this.textHeight = arg => { textHeight = arg; return this; }
+   this.color       = arg => { color       = arg; return this; }
+   this.flatShading = arg => { flatShading = arg; return this; }
+   this.lineCap     = arg => { lineCap     = arg; return this; }
+   this.lineWidth   = arg => { lineWidth   = arg; return this; }
+   this.nSides      = arg => { nSides      = arg; return this; }
+   this.taper       = arg => { taper       = arg; return this; }
+   this.textHeight  = arg => { textHeight  = arg; return this; }
 
    this.save = () => {
       stack.push({
-         color:      color,
-         lineCap:    lineCap,
-         lineWidth:  lineWidth,
-         nSides:     nSides,
-         textHeight: textHeight,
+         color:       color,
+         flatShading: flatShading,
+         lineCap:     lineCap,
+         lineWidth:   lineWidth,
+         nSides:      nSides,
+         taper:       taper,
+         textHeight:  textHeight,
       });
       return this;
    }
 
    this.restore = () => {
       let top = stack.pop();
-      color      = top.color     ;
-      lineCap    = top.lineCap   ;
-      lineWidth  = top.lineWidth ;
-      nSides     = top.nSides    ;
-      textHeight = top.textHeight;
+      color       = top.color      ;
+      flatShading = top.flatShading;
+      lineCap     = top.lineCap    ;
+      lineWidth   = top.lineWidth  ;
+      nSides      = top.nSides     ;
+      taper       = top.taper      ;
+      textHeight  = top.textHeight ;
       return this;
    }
 
-   this.text = (text, at) => {
-      data.push({
-         type: 'text',
-         text: text,
-         at: at,
-         height: textHeight,
-         rgb: color,
-      });
+   this.text = (text, at, nCols, nRows) => {
+      let item = (text, at, nCols) => {
+         if (nCols !== undefined)
+            for (let i = text.length ; i < nCols ; i++)
+               text += ' ';
+         data.push({
+            type: 'text',
+            text: text,
+            at: at,
+            height: textHeight,
+            rgb: color,
+         });
+      }
+      if (nRows === undefined)
+         item(text, at, nCols ?? text.length);
+      else {
+         let lines = text.split('\n');
+         for (let row = 0 ; row < nRows ; row++)
+            item(lines[row] ?? '', cg.add(at, [0,-row*textHeight,0]), nCols);
+      }
       return this;
    }
 
@@ -56,7 +82,9 @@ export function Structure() {
          b:b,
          width:lineWidth,
          rgb: color,
-         cap: lineCap,
+         lineCap: lineCap,
+         flatShading: flatShading,
+         taper: taper,
          nSides: nSides,
       });
       return this;
@@ -64,7 +92,7 @@ export function Structure() {
 
    this.path = p => {
       for (let n = 0 ; n < p.length-1 ; n++)
-         this.line(p[n], p[n+1], w);
+         this.line(p[n], p[n+1]);
       return this;
    }
 
@@ -113,107 +141,121 @@ export function Structure() {
          this.poly([ a, [bx,ay,az], [bx,by,az], [ax,by,az], a ], rectEdges);
    }
 
+   this.sizes = arg => size = arg;
+
    let model, obj;
+
+   let size = [ 1 ];
+   let p0 = [0,0,0], a0 = 0, P0 = {left:[], right:[]};
+
+   let controllerHelpTextLeft = `
+   Press trigger
+  and drag to spin
+ ------------------
+ Click side trigger
+  to toggle scale
+`;
+   let controllerHelpTextRight = `
+   Press trigger    
+  and drag to move  
+ ------------------ 
+  Use side trigger  
+   to move slowly   
+`;
+
+   let leftHelp, rightHelp;
 
    this.build = (_model, defaults) => {
       model = _model;
       clay.defineDataMesh('structure', data, defaults);
-      obj = model.add('structure').color(10,10,10).txtr(15);
-   }
+      obj = model.add('structure').txtr(15);
 
-   const size = [ 1/12, 1/4, 1 ];
-   let sizeIndex = 0;
-   let offset = [0,.7,0];
-   let theta = 0;
-   let p0 = [0,0,0], a0 = 0, P0 = {left:[], right:[]};
-   let help;
+      this.textHeight(.01).color([1,1,1]);
+
+      data = [];
+      this.text(controllerHelpTextLeft, [0,.08,0], 20, 7);
+      clay.defineDataMesh('leftHelp', data, defaults);
+
+      data = [];
+      this.text(controllerHelpTextRight, [0,.08,0], 20, 7);
+      clay.defineDataMesh('rightHelp', data, defaults);
+
+      leftHelp  = model.add('leftHelp' ).txtr(15).opacity(.8);
+      rightHelp = model.add('rightHelp').txtr(15).opacity(.8);
+   }
 
    this.update = () => {
 
-      let L1 = clientState.finger(clientID, 'left' , 1) ?? [0,0,0];
-      let R1 = clientState.finger(clientID, 'right', 1) ?? [0,0,0];
+      let m = cg.mInverse(model.getMatrix());
+      leftHelp .setMatrix(m).move(clientState.finger(clientID, 'left' , 1) ?? [0,0,0]);
+      rightHelp.setMatrix(m).move(clientState.finger(clientID, 'right', 1) ?? [0,0,0]);
 
-      data = [];
+      structureState = server.synchronize(stateName);
+      if (isMasterClient()) {
 
-      this.textHeight(.01).color([1,1,1]);
-      this.text('  Press trigger   ', cg.add(L1,[0,.07,0]));
-      this.text(' and drag to spin ', cg.add(L1,[0,.06,0]));
-      this.text('------------------', cg.add(L1,[0,.05,0]));
-      this.text('Click side trigger', cg.add(L1,[0,.04,0]));
-      this.text(' to toggle scale  ', cg.add(L1,[0,.03,0]));
+         // DETERMINE CURRENT PINCH STATE FOR EACH FINGER OF EACH HAND
 
-      this.text('  Press trigger   ', cg.add(R1,[0,.07,0]));
-      this.text(' and drag to move ', cg.add(R1,[0,.06,0]));
-      this.text('------------------', cg.add(R1,[0,.05,0]));
-      this.text(' Use side trigger ', cg.add(R1,[0,.04,0]));
-      this.text('  to move slowly  ', cg.add(R1,[0,.03,0]));
+         let P1 = {left:[], right:[]};
+         for (let hand in {left:0,right:0})
+            for (let f = 0 ; f < 5 ; f++)
+               P1[hand][f] = clientState.pinch(clientID, hand, f);
 
-      clay.defineDataMesh('h1Help', data);
+         // IF DRAGGING WITH RIGHT TRIGGER, MOVE THE OBJECT
 
-      if (help)
-         model.remove(help);
-      help = model.add('h1Help').txtr(15).opacity(.8);
-
-      // DETERMINE CURRENT PINCH STATE FOR EACH FINGER OF EACH HAND
-
-      let P1 = {left:[], right:[]};
-      for (let hand in {left:0,right:0})
-         for (let f = 0 ; f < 5 ; f++)
-            P1[hand][f] = clientState.pinch(clientID, hand, f);
-
-      // IF DRAGGING WITH RIGHT TRIGGER, MOVE THE OBJECT
-
-      if (P1.right[1])
-         if (! P0.right[1])
-            p0 = clientState.finger(clientID, 'right', 1);
-         else {
-            let p = clientState.finger(clientID, 'right', 1);
-            if (p && p0) {
-               offset = cg.add(offset, cg.subtract(p, p0));
-               p0 = p;
+         if (P1.right[1])
+            if (! P0.right[1])
+               p0 = clientState.finger(clientID, 'right', 1);
+            else {
+               let p = clientState.finger(clientID, 'right', 1);
+               if (p && p0) {
+                  structureState.offset = cg.add(structureState.offset, cg.subtract(p, p0));
+                  p0 = p;
+               }
             }
-         }
 
-      // IF DRAGGING WITH RIGHT SIDE TRIGGER, MOVE THE OBJECT SLOWLY
+         // IF DRAGGING WITH RIGHT SIDE TRIGGER, MOVE THE OBJECT SLOWLY
 
-      if (P1.right[2])
-         if (! P0.right[2])
-            p0 = clientState.finger(clientID, 'right', 2);
-         else { 
-            let p = clientState.finger(clientID, 'right', 2);
-            if (p && p0) {
-               offset = cg.add(offset, cg.scale(cg.subtract(p, p0), 0.1));
-               p0 = p;
+         if (P1.right[2])
+            if (! P0.right[2])
+               p0 = clientState.finger(clientID, 'right', 2);
+            else { 
+               let p = clientState.finger(clientID, 'right', 2);
+               if (p && p0) {
+                  structureState.offset = cg.add(structureState.offset, cg.scale(cg.subtract(p, p0), 0.1));
+                  p0 = p;
+               }
+            }         
+
+         // IF DRAGGING WITH LEFT TRIGGER, ROTATE THE OBJECT
+                      
+         if (P1.left[1])
+            if (! P0.left[1])
+               a0 = clientState.finger(clientID, 'left', 1)[0];
+            else {
+               let p = clientState.finger(clientID, 'left', 1);
+               if (p) {
+                  structureState.theta += p[0] - a0;
+                  a0 = p[0];
+               }
             }
-         }         
 
-      // IF DRAGGING WITH LEFT TRIGGER, ROTATE THE OBJECT
-                   
-      if (P1.left[1])
-         if (! P0.left[1])
-            a0 = clientState.finger(clientID, 'left', 1)[0];
-         else {
-            let p = clientState.finger(clientID, 'left', 1);
-            if (p) {
-               theta += p[0] - a0;
-               a0 = p[0];
-            }
-         }
+         // IF CLICKING WITH LEFT SIDE TRIGGER, CHANGE SCALE
 
-      // IF CLICKING WITH LEFT SIDE TRIGGER, CHANGE SCALE
+         if (P0.left[2] && ! P1.left[2])
+            structureState.sizeIndex = (structureState.sizeIndex + 1) % size.length;
 
-      if (P0.left[2] && ! P1.left[2])
-         sizeIndex = (sizeIndex + 1) % size.length;
+         // MAKE THE CURRENT PINCH STATE THE NEW PREVIOUS PINCH STATE
 
-      // MAKE THE CURRENT PINCH STATE THE NEW PREVIOUS PINCH STATE
+         P0 = P1;
 
-      P0 = P1;
+         server.broadcastGlobal(stateName);
+      }
 
       // RENDER THE OBJECT
 
-      obj.identity().move(offset)
-                    .turnY(theta)
-                    .scale(.3048 * size[sizeIndex]);
+      obj.identity().move(structureState.offset)
+                    .turnY(structureState.theta)
+                    .scale(size[structureState.sizeIndex]);
    }
-
 }
+

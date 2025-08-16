@@ -5,6 +5,8 @@ export const init = async model => {
 
    let S = new Structure();
 
+   S.sizes([ .3048/12, .3048/4, .3048 ]); // Positions will be in feet rather in meters.
+
    // GEOMETRY
 
    S.save().lineWidth(.1).color([0,1,0])

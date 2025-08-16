@@ -36,6 +36,8 @@ window.clientState = {                                                          
                               ? clientData[id][hand][b] : null,                  // of every other client.          //
    color : i           => color[i],                                              //                                 //
    coords: id          => clientData[id] ? clientData[id].coords : null,         // button() returns true or false  //
+   event: id           => clientData[id] && clientData[id].events
+                          ? clientData[id].events.shift() : undefined,
    thumb: (id,hand)    => clientState.isHand(id) &&
                            clientData[id] &&
                             clientData[id][hand] &&
@@ -153,12 +155,35 @@ export function ClientStateSharing() {                                          
                      clientData[msg.id][msg.hand].fingers = msg.fingers;                 // Set fingertips.         //
                   }                                                              //                                 //
                }                                                                 //                                 //
-               else if (msg.isHeadset !== undefined)
-	          clientData[msg.id].isHeadset = msg.isHeadset;
+               else if (msg.event) {                                             //                                 //
+	          if (! clientData[msg.id].events)                               // Append mouse or keyboard events //
+	             clientData[msg.id].events = [];                             // received from various clients.  //
+	          clientData[msg.id].events.push(msg);                           //                                 //
+	       }                                                                 //                                 //
+               else if (msg.isHeadset !== undefined)                             // Set whether each client is an   //
+	          clientData[msg.id].isHeadset = msg.isHeadset;                  // XR headset.                     //
             }                                                                    //                                 //
       });                                                                        //                                 //
       if (! clientData[clientID])                                                //                                 //
          clientData[clientID] = {};                                              //                                 //
+      while (eventQueue.length > 0) {
+         for (let n = 0 ; n < eventQueue.length ; n += 2) {
+            let type = eventQueue[n];
+            let e = eventQueue[n+1];
+	    switch (type) {
+	    case 'mousedown':
+	    case 'mousemove':
+	    case 'mouseup'  :
+	       message({ event: type, x: e.clientX, y: e.clientY });
+	       break;
+	    case 'keydown':
+	    case 'keyup'  :
+	       message({ event: type, key: e.key });
+	       break;
+	    }
+         }
+	 eventQueue = [];
+      }
       for (let hand in { left: {}, right: {} })                                  //                                 //
          for (let b = 0 ; b < 7 ; b++)                                           // Update up/down button states.   //
             if (buttonState[hand][b]) {                                          //                                 //

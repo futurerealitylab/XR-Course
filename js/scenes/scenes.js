@@ -11,6 +11,7 @@ export default () => {
    return {
       enableSceneReloading: true,
       scenes: [ 
+            { name: "hypercube"          , path: "./hypercube.js"          , public: true  },
             { name: "floorplan"          , path: "./floorplan.js"          , public: true  },
             { name: "hudtext"            , path: "./hudtext.js"            , public: true  },
             { name: "cubes"              , path: "./cubes.js"              , public: true  },
@@ -180,6 +181,7 @@ export default () => {
 //          { name: "opti-track-offset"  , path: "./demoTrackOffset.js"    , public: false },
             { name: "demoSpeechToText"   , path: "./demoSpeechToText.js"   , public: true  },
             { name: "webCam"             , path: "./webCam.js"             , public: true  },
+            { name: "webCamHUD"          , path: "./webCamHUD.js"          , public: true  },
       ]
    };
 }

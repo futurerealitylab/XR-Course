@@ -103,11 +103,13 @@ export function Clay(gl, canvas) {
    this.defineMesh = (name, value) => formMesh[name] = convertToMesh(value);
 
    this.defineDataMesh = (name, data, defaults) => {
-      let default_cap      = (defaults && defaults.cap     ) ?? false;
-      let default_isNormal = (defaults && defaults.isNormal) ?? true;
-      let default_nSides   = (defaults && defaults.nSides  ) ?? 6;
-      let default_rgb      = (defaults && defaults.rgb     ) ?? [1,1,1];
-      let default_width    = (defaults && defaults.width   ) ?? 0.01;
+      let default_flatShading = (defaults && defaults.flatShading) ?? false;
+      let default_lineCap     = (defaults && defaults.lineCap    ) ?? false;
+      let default_isNormal    = (defaults && defaults.isNormal   ) ?? true;
+      let default_nSides      = (defaults && defaults.nSides     ) ?? 6;
+      let default_rgb         = (defaults && defaults.rgb        ) ?? [1,1,1];
+      let default_taper       = (defaults && defaults.taper      ) ?? 0;
+      let default_width       = (defaults && defaults.width      ) ?? 0.01;
 
       let meshData = [];
       let textData = [];
@@ -157,18 +159,25 @@ export function Clay(gl, canvas) {
             {
                let a = item.a;
                let b = item.b;
-               let isNormal = item.isNormal ?? default_isNormal;
-               let nSides   = item.nSides   ?? default_nSides;
-               let radius   = (item.width   ?? default_width) / 2;
-               let rgb      = item.rgb      ?? default_rgb;
-               let cap      = item.cap      ?? default_cap;
+               let flatShading = item.flatShading ?? default_flatShading;
+               let isNormal    = item.isNormal    ?? default_isNormal;
+               let nSides      = item.nSides      ?? default_nSides;
+               let radius      = (item.width      ?? default_width) / 2;
+               let rgb         = item.rgb         ?? default_rgb;
+               let lineCap     = item.lineCap     ?? default_lineCap;
+               let taper       = item.taper       ?? default_taper;
 
                let d = cg.subtract(b, a);
-               let dw = cg.scale(cg.normalize(d), radius);
-               a = cg.subtract(a, dw);
-               b = cg.add     (b, dw);
+               let w = cg.normalize(d);
 
-               radius /= Math.cos(Math.PI / nSides);
+	       let r0 = radius;
+	       let r1 = radius * (1 - taper);
+	       if (lineCap == 'square') {
+                  a = cg.subtract(a, cg.scale(w, r0));
+                  b = cg.add     (b, cg.scale(w, r1));
+               }
+               r0 /= Math.cos(Math.PI / nSides);
+               r1 /= Math.cos(Math.PI / nSides);
 
                let xx = d[0]*d[0], yy = d[1]*d[1], zz = d[2]*d[2];
                let c = xx < yy && xx < zz ? [1,0,0]
@@ -179,36 +188,57 @@ export function Clay(gl, canvas) {
 
                for (let n = 0 ; n < nSides ; n++) {
                   let t0 = (n-.5) * 2 * Math.PI / nSides, c0 = Math.cos(t0), s0 = Math.sin(t0);
+                  let t  =  n     * 2 * Math.PI / nSides, c  = Math.cos(t ), s  = Math.sin(t );
                   let t1 = (n+.5) * 2 * Math.PI / nSides, c1 = Math.cos(t1), s1 = Math.sin(t1);
 
                   let A = {}, B = {}, C = {}, D = {};
 
                   A.pos = []; B.pos = []; C.pos = []; D.pos = [];
                   for (let i = 0 ; i < 3 ; i++) {
-                     A.pos[i] = a[i] + radius * (c0 * u[i] + s0 * v[i]);
-                     B.pos[i] = a[i] + radius * (c1 * u[i] + s1 * v[i]);
-                     C.pos[i] = b[i] + radius * (c1 * u[i] + s1 * v[i]);
-                     D.pos[i] = b[i] + radius * (c0 * u[i] + s0 * v[i]);
+                     A.pos[i] = a[i] + r0 * (c0 * u[i] + s0 * v[i]);
+                     B.pos[i] = a[i] + r0 * (c1 * u[i] + s1 * v[i]);
+                     C.pos[i] = b[i] + r1 * (c1 * u[i] + s1 * v[i]);
+                     D.pos[i] = b[i] + r1 * (c0 * u[i] + s0 * v[i]);
                   }
 
                   if (isNormal) {
                      A.nor = []; B.nor = []; C.nor = []; D.nor = [];
-                     for (let i = 0 ; i < 3 ; i++) {
-                        A.nor[i] = c0 * v[i] - s0 * u[i];
-                        B.nor[i] = c1 * v[i] - s1 * u[i];
-                        C.nor[i] = c1 * v[i] - s1 * u[i];
-                        D.nor[i] = c0 * v[i] - s0 * u[i];
-                     }
+		     if (flatShading) {
+                        for (let i = 0 ; i < 3 ; i++)
+		           A.nor[i] = c * v[i] - s * u[i];
+                        B.nor = C.nor = D.nor = A.nor;
+		     }
+		     else
+                        for (let i = 0 ; i < 3 ; i++) {
+                           A.nor[i] = c0 * v[i] - s0 * u[i];
+                           B.nor[i] = c1 * v[i] - s1 * u[i];
+                           C.nor[i] = c1 * v[i] - s1 * u[i];
+                           D.nor[i] = c0 * v[i] - s0 * u[i];
+                        }
+		     if (taper) {
+			let cs = cg.normalize([cg.norm(d), r0 - r1]);
+                        for (let i = 0 ; i < 3 ; i++) {
+                           A.nor[i] = cs[0] * A.nor[i] + cs[1] * w[i];
+                           B.nor[i] = cs[0] * B.nor[i] + cs[1] * w[i];
+                           C.nor[i] = cs[0] * C.nor[i] + cs[1] * w[i];
+                           D.nor[i] = cs[0] * D.nor[i] + cs[1] * w[i];
+                        }
+		     }
                   }
 
                   A.rgb = B.rgb = C.rgb = D.rgb = rgb;
 
                   meshData.push(C, B, A, A, D, C);
 
-		  if (cap) {
-		     let E = { pos: a, rgb: rgb };
-		     let F = { pos: b, rgb: rgb };
-		     meshData.push(A, B, E, F, C, D);
+		  if (lineCap) {
+		     let wn = cg.scale(w, -1);
+		     let AA = { pos: A.pos, rgb: A.rgb, nor: wn };
+		     let BB = { pos: B.pos, rgb: B.rgb, nor: wn };
+		     let CC = { pos: C.pos, rgb: C.rgb, nor: w  };
+		     let DD = { pos: D.pos, rgb: D.rgb, nor: w  };
+		     let E = { pos: a, rgb: rgb, nor: wn };
+		     let F = { pos: b, rgb: rgb, nor: w  };
+		     meshData.push(AA, BB, E, F, CC, DD);
                   }
                }
             }
@@ -518,6 +548,8 @@ let unpackRGB = c => {
 // CREATE A MESH FROM A PARAMETRIC FUNCTION
 
 let vertexArray = (pos, nor, tan, uv, rgb, wts) => {
+   if (! pos) pos = [0,0,0];
+   if (! nor) nor = [1,0,0];
    if (! tan) tan = orthogonalVector(nor);
    if (! uv ) uv  = [0,0];
    if (! rgb) rgb = [1,1,1];
@@ -620,8 +652,9 @@ this.trianglesMesh = vertexData => {
                                    null,
                                    v.length >=  8 ? v.slice(6,  8) : null,
                                    v.length >= 11 ? v.slice(8, 11) : null));
-      else
-         vertices.push(vertexArray(v.pos??[],v.nor??[],v.tan??null,v.uv??null,v.rgb??null,v.wts??null));
+      else {
+         vertices.push(vertexArray(v.pos??null,v.nor??null,v.tan??null,v.uv??null,v.rgb??null));
+      }
    }
    let mesh = new Float32Array(vertices.flat());
    mesh.isTriangles = true;
