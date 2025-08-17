@@ -11,10 +11,12 @@ export default () => {
    return {
       enableSceneReloading: true,
       scenes: [ 
+            { name: "computerWebcam"     , path: "./computerWebcam.js"     , public: true  },
             { name: "edit"               , path: "./edit.js"               , public: true  },
             { name: "testStructure"      , path: "./testStructure.js"      , public: true  },
             { name: "hypercube"          , path: "./hypercube.js"          , public: true  },
             { name: "floorplan"          , path: "./floorplan.js"          , public: true  },
+            { name: "webCam"             , path: "./webCam.js"             , public: true  },
             { name: "hudtext"            , path: "./hudtext.js"            , public: true  },
             { name: "cubes"              , path: "./cubes.js"              , public: true  },
 
@@ -72,7 +74,7 @@ export default () => {
             { name: "fractal"            , path: "./fractal.js"            , public: true  },
 //          { name: "nestedA"            , path: "./nestedA.js"            , public: true  },
 //          { name: "nestedB"            , path: "./nestedB.js"            , public: true  },
-//          { name: "textured"           , path: "./textured.js"           , public: true  },
+            { name: "textured"           , path: "./textured.js"           , public: true  },
 
 //          { name: "particleNoise"      , path: "./particleNoise.js"      , public: true  },
 

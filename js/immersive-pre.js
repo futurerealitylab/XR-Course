@@ -274,6 +274,16 @@ function initAudioVolume() {
    }
 }
 
+function initWebcam() {
+   if (! isHeadset) {
+      videoElement.innerHTML = '<video id=webcam autoplay=true style="position:absolute;left:-2560px;"</video>';
+      if (navigator.mediaDevices.getUserMedia)
+        navigator.mediaDevices.getUserMedia({ audio: false, video: true })
+                 .then(function(stream) { webcam.srcObject = stream; },
+                       function(error ) { console.log(error); });
+   }
+}
+
 let recognition = null;
 function initWebSpeech() {
     // if (! isSpeechRecognitionEnabled)
@@ -585,6 +595,7 @@ async function onSessionStarted(session) {
     initGL();
     initHands();
     initAudioVolume();
+    initWebcam();
     await scenesSetup();
     // scene.inputRenderer.useProfileControllerMeshes(session);
 
