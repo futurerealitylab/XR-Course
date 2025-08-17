@@ -1,4 +1,4 @@
-// Color-based filtering of a video texture.
+// Color-based filtering of a video texture: Turn red pixels to black.
 
 export const init = async model => {
    webcam._animate = true;
