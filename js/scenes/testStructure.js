@@ -13,7 +13,7 @@ export const init = async model => {
       T += (row == 0 ? '  ' : '\n  ') + lines[row];
    }
    S.textHeight(.01);
-   let textID = S.text(T, [0,1,0], nCols + 4, lines.length + 2);
+   let textID = S.text(T, [0,.8,0], nCols + 4, lines.length + 2);
 /*
    S.lineWidth(.1).nSides(8).lineCap('square').flatShading(true);
    S.line([-.2,1,0],[.2,1,0]);
@@ -27,7 +27,6 @@ export const init = async model => {
             console.log(id, event);
       }
       S.update();
-      //model.identity().move(0,1.5,0).turnY(model.time);
    });
 }
 

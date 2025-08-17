@@ -439,14 +439,14 @@ let drawMesh = (mesh, materialId, textureSrc, txtr, bumpTextureSrc, bumptxtr, du
       else
          renderParticlesMesh(mesh, mInv);
 
-   // WHEN RENDERING A TEXT LABEL IN A DATA MESH, ROTATE IT TO ALWAYS FACE THE VIEWER
+   // WHEN RENDERING A TEXT LABEL IN A DATA MESH, ROTATE IT TO ALWAYS FACE THE VIEWER'S HEAD
 
    if (mesh.textData) {
-      let eye = cg.mMultiply(clay.inverseRootMatrix, this.pose.transform.matrix).slice(12,15);
+      let head = cg.mTransform(cg.mMultiply(clay.inverseRootMatrix, this.pose.transform.matrix), [0,0,.14]);
       for (let n = 0 ; n < mesh.textData.length ; n++) {
          let d = mesh.textData[n];
 	 let P = d.P;
-	 let Z = cg.normalize(cg.subtract(eye, cg.mTransform(m, P)));
+	 let Z = cg.normalize(cg.subtract(head, cg.mTransform(m, P)));
 	 let X = cg.normalize(cg.cross([0,1,0], Z));
 	 let M = cg.mMultiply(mInv, [ X,0, 0,1,0,0, Z,0, P,1 ].flat());
 	 X = cg.normalize(M.slice(0, 3));
@@ -2934,11 +2934,15 @@ function Node(_form) {
       if (typeof src == 'string') {                             // IF THE TEXTURE SOURCE IS AN IMAGE FILE
          let image = new Image();                           
          image.onload = () => {
+	     let isPowerOfTwo = n => (n & (n-1)) === 0;
+	     let isMipmap = isPowerOfTwo(image.width) && isPowerOfTwo(image.height);
              gl.activeTexture (gl.TEXTURE0 + txtr);
-                  gl.bindTexture   (gl.TEXTURE_2D, gl.createTexture());
+             gl.bindTexture   (gl.TEXTURE_2D, gl.createTexture());
              gl.texImage2D    (gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+	     if (isMipmap)
+	        gl.generateMipmap(gl.TEXTURE_2D);
              gl.texParameteri (gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-             gl.texParameteri (gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+             gl.texParameteri (gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, isMipmap ? gl_LINEAR_MIPMAP_LINEAR : gl.LINEAR);
            }
          image.src = src;
          delete _canvas_txtr[txtr];
