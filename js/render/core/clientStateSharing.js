@@ -158,6 +158,8 @@ export function ClientStateSharing() {                                          
                else if (msg.event) {                                             //                                 //
 	          if (! clientData[msg.id].events)                               // Append mouse or keyboard events //
 	             clientData[msg.id].events = [];                             // received from various clients.  //
+                  msg.type = msg.event;
+                  delete msg.event;
 	          clientData[msg.id].events.push(msg);                           //                                 //
 	       }                                                                 //                                 //
                else if (msg.isHeadset !== undefined)                             // Set whether each client is an   //

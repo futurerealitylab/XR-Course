@@ -102,17 +102,23 @@ export function Clay(gl, canvas) {
    
    this.defineMesh = (name, value) => formMesh[name] = convertToMesh(value);
 
-   this.setDataMeshText = (form, id, text, offset = 0) => {
+   this.setDataMeshText = (form, id, text, col = 0) => {
       let mesh = this.getMesh(form), data = mesh.textData;
       for (let n = 0 ; n < text.length ; n++) {
          let I = text.charCodeAt(n) - 32, uCol = I % 12, vRow = I / 12 >> 0;
          for (let k = 0 ; k < data.length ; k++)
-            if (data[k].id == id && data[k].n == n + offset) {
+            if (data[k].id == id && data[k].n == col + n) {
 	       let i = 16 * data[k].i, m = data[k].m;
 	       mesh[i + 6] = (uCol + (m& 1)) / 12;
 	       mesh[i + 7] = (vRow + (m>>1)) /  8;
 	    }
       }
+   }
+   this.setDataMeshTextColor = (form, id, col = 0, rgb) => {
+      let mesh = this.getMesh(form), data = mesh.textData;
+      for (let k = 0 ; k < data.length ; k++)
+         if (data[k].id == id && data[k].n == col)
+	    mesh[16 * data[k].i + 8] = packRGB(rgb);
    }
 
    this.defineDataMesh = (name, data, defaults) => {

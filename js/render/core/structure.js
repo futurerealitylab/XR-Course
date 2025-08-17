@@ -57,8 +57,14 @@ export function Structure(name) {
    this.setText = (textID, col, row, text) => {
       if (textData[textID]) {
          let id = textData[textID][row];
-	 console.log(textID, col, row, text, id);
          clay.setDataMeshText(name, id, text, col);
+      }
+   }
+
+   this.setTextColor = (textID, col, row, rgb) => {
+      if (textData[textID]) {
+         let id = textData[textID][row];
+         clay.setDataMeshTextColor(name, id, col, rgb);
       }
    }
 
