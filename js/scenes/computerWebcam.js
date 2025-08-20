@@ -1,4 +1,40 @@
-// Color-based filtering of a video texture: Blue objects reveal a 3D scene.
+/* Color-based filtering of a video texture: Blue objects reveal a 3D scene.
+
+How this demo works:
+
+   Objects in the model are built as a sandwich. In both the near and far
+   parts of the sandwich are squares that act as screens which stream the
+   contents of the computer's webcam as a video texture. The two video images
+   are visually aligned so that the pixels on both screens show the same
+   view of the video image.
+
+   In between these two screens is an animated 3D scene.
+
+   The front screen contains a custom shader which causes that screen to
+   not render at any pixels where the video image is blue.
+
+   Therefore, wherever the user holds a blue object in front of the webcam,
+   the front screen does not render. Therefore, at pixels which contain an
+   object of the 3D scene, the objects of the 3D screen become visible. At
+   those pixels which do not contain objects of the 3D scene, the rear video
+   screen becomes visible.
+
+   The net visual effect is that objects in the 3D scene become visible
+   wherever the video contains a blue object, but nowhere else.
+
+The eventual goal:
+
+   This demo is just a test of the basic principle. The eventual plan is
+   to replace the webcam video feed by the video feed from a depth camera
+   (RGB+Depth), where the depth will appear in the fragment shader as the
+   alpha channel, and to replace the shader logic which responds to blue
+   objects by shader logic which responds to depth.
+
+   The goal is to create a mixed reality scene in which virtual 3D objects
+   properly intermix with real people and physical objects, with correct
+   depth priority.
+*/
+
 import * as cg from "../render/core/cg.js";
 
 export const init = async model => {
