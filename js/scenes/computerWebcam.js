@@ -38,12 +38,19 @@ The eventual goal:
 import * as cg from "../render/core/cg.js";
 
 export const init = async model => {
+
+   // REMOVE THE WEBXR MENU, SO THAT THE VIDEO WILL COVER THE ENTIRE WINDOW
+
+   header.innerHTML = '';
+
+   // USE COMPUTER'S WEBCAM AS AN ANIMATING TEXTURE (WON'T WORK ON HEADSETS)
+
    webcam._animate = true;
    model.txtrSrc(10, webcam);
 
    // CREATE THE VIDEO TEXTURE
 
-   let fg = model.add('square').txtr(10).move(0,1.5,.75).scale(.5,.3625,1);
+   let fg = model.add('square').txtr(10).move(0,1.6,.75).scale(.4,.3,1);
    fg.flag('uWebcam');
    fg.customShader(`
      uniform int uWebcam;
@@ -51,8 +58,10 @@ export const init = async model => {
       if (uWebcam == 1)
          if (color.b > .25 && color.b > 1.5 * max(color.r, color.g))
 	    discard;
+         else
+            color = 2. * color * color;
    `);
-   let bg = model.add('square').txtr(10).move(0,1.2,0).scale(2,4*.3625,1);
+   let bg = model.add('square').txtr(10).move(0,1.6,0).scale(1.6,1.2,1);
 
    // CREATE THE 3D SCENE
 

@@ -2942,7 +2942,7 @@ function Node(_form) {
 	     if (isMipmap)
 	        gl.generateMipmap(gl.TEXTURE_2D);
              gl.texParameteri (gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-             gl.texParameteri (gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, isMipmap ? gl_LINEAR_MIPMAP_LINEAR : gl.LINEAR);
+             gl.texParameteri (gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, isMipmap ? gl.LINEAR_MIPMAP_LINEAR : gl.LINEAR);
            }
          image.src = src;
          delete _canvas_txtr[txtr];
