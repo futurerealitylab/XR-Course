@@ -48,20 +48,19 @@ export const init = async model => {
    webcam._animate = true;
    model.txtrSrc(10, webcam);
 
-   // CREATE THE VIDEO TEXTURE
+   // CREATE THE VIDEO TEXTURE AND CUSTOM SHADER
 
-   let fg = model.add('square').txtr(10).move(0,1.6,.75).scale(.4,.3,1);
-   fg.flag('uWebcam');
-   fg.customShader(`
-     uniform int uWebcam;
-     ---------------------------------------------------------------------
-      if (uWebcam == 1)
-         if (color.b > .25 && color.b > 1.5 * max(color.r, color.g))
-	    discard;
-         else
-            color = 2. * color * color;
+   let fg = model.add('square').txtr(10).move(0,1.6,1-1/8).scale(1.6/8,1.2/8,1).flag('uFG');
+   let bg = model.add('square').txtr(10).move(0,1.6,1-8.0).scale(1.6*8,1.2*8,1).flag('uBG');
+
+   model.customShader(`
+     uniform int uFG, uBG;
+     ------------------------------------------------------------------------
+      if (uFG == 1 && color.b > .25 && color.b > 1.5 * max(color.r, color.g))
+         discard;
+      if (uFG == 1 || uBG == 1)
+         color = 2. * color * color;
    `);
-   let bg = model.add('square').txtr(10).move(0,1.6,0).scale(1.6,1.2,1);
 
    // CREATE THE 3D SCENE
 
@@ -78,7 +77,7 @@ export const init = async model => {
       for (let row = 0 ; row < 5 ; row++)
       for (let col = 0 ; col < 5 ; col++)
          obj.child(5*row+col).identity().move(.4 * (row-2), 1.5 + .4 * (col-2), .3)
-	                                .scale(.1).turnX(model.time).turnY(model.time);
+                                        .scale(.1).turnX(model.time).turnY(model.time);
    });
 }
 
