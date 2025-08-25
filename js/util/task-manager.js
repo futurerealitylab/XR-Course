@@ -880,7 +880,7 @@ export class Task_Manager {
 
             }
             this.colors = [];
-            tm_utils.buildWires(this.strokes, curves, this.wires, this.colors);
+            // tm_utils.buildWires(this.strokes, curves, this.wires, this.colors);
             this.isDrawing_on_cloud = false; //Don't need to sync with itself
             
 

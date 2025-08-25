@@ -12,15 +12,15 @@ import * as global from "../global.js";
 
 // this should be adjusted according to the local ip configuration
 // let host = "172.20.10.10";  
-let host = "10.21.11.165";
+let host = "10.20.115.52";
 let port = "8080";
 
 
-let drone = new Gltf2Node({ url: './media/gltf/demoDrone/drone.glb' });
-let drone2_1 = new Gltf2Node({ url: './media/gltf/demoDrone/drone.glb' });
-let drone2_5 = new Gltf2Node({ url: './media/gltf/demoDrone/drone.glb' });
-let drone2_8 = new Gltf2Node({ url: './media/gltf/demoDrone/drone.glb' });
-let drone2_9 = new Gltf2Node({ url: './media/gltf/demoDrone/drone.glb' });
+let drone = new Gltf2Node({ url: './media/gltf/demoDrone/race_S.gltf' });
+let drone2_1 = new Gltf2Node({ url: './media/gltf/demoDrone/race_S.gltf' });
+let drone2_5 = new Gltf2Node({ url: './media/gltf/demoDrone/race_S.gltf' });
+let drone2_8 = new Gltf2Node({ url: './media/gltf/demoDrone/race_S.gltf' });
+let drone2_9 = new Gltf2Node({ url: './media/gltf/demoDrone/race_S.gltf' });
 
 
 
@@ -131,7 +131,10 @@ export const init = async model => {
 
     // ===== CREATE INSTANCED MESH WITH COLOR =====
     const geometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
-    const material = new THREE.MeshStandardMaterial({ color: 0xffffff });
+    const material = new THREE.MeshStandardMaterial({ 
+        color: 0xffffff,
+        transparent: true,
+        opacity: 1.0 });
     const instancedMesh = new THREE.InstancedMesh(geometry, material, N);
     instancedMesh.frustumCulled = false;
     
@@ -225,19 +228,19 @@ export const init = async model => {
     let robot_cube2_9 = robot_cube2_9_;
 
     // scale the drone glb model
-    drone.scale = [W * .2, W * .2, W * .2];
+    // drone.scale = [W * .2, W * .2, W * .2];
     global.gltfRoot.addNode(drone);
  
-    drone2_1.scale = [W * .2, W * .2, W * .2];
+    // drone2_1.scale = [W * .2, W * .2, W * .2];
     global.gltfRoot.addNode(drone2_1);
 
-    drone2_5.scale = [W * .2, W * .2, W * .2];
+    // drone2_5.scale = [W * .2, W * .2, W * .2];
     global.gltfRoot.addNode(drone2_5);
 
-    drone2_8.scale = [W * .2, W * .2, W * .2];
+    // drone2_8.scale = [W * .2, W * .2, W * .2];
     global.gltfRoot.addNode(drone2_8);
 
-    drone2_9.scale = [W * .2, W * .2, W * .2];
+    // drone2_9.scale = [W * .2, W * .2, W * .2];
     global.gltfRoot.addNode(drone2_9);
     
 
