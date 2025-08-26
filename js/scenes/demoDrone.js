@@ -28,6 +28,8 @@ const inch = 0.0254;                  // inches per meter
 let W = (15) * inch; // width of one square on the board
 let H = W / (100);      // height of the board
 
+// maximum number of the point cloud array
+const MAX_Points = 1000; // This can be adjusted to avoid network bandwidth issue
 
 //Define a struct data with all the informatin that the user wish to send over the web
 window.task_sync = {
@@ -303,18 +305,19 @@ export const init = async model => {
 
             const points = ts.ws_sender_occupancy.static_occupancy.points; 
 
-            // // Clear existing point cloud
-            // let nChildren = pointCloudContainer.nChildren();
-            // for (let i = nChildren - 1; i >= 0; i--) {
-            //     pointCloudContainer.remove(i);
-            // }
+            // Algorithm to remove the point if the array size outweights limit
+            let limitedPoints = points;
+            if (points.length > MAX_Points){
+                const pointsToRemove = points.length - MAX_Points;
+                limitedPoints = points.slice(pointsToRemove);
+            }
             
             // First pass: find height range for color mapping
             let minHeight = Infinity;
             let maxHeight = -Infinity;
             
-            for (let i = 0; i < points.length; i++) {
-                const point = points[i];
+            for (let i = 0; i < limitedPoints.length; i++) {
+                const point = limitedPoints[i];
                 const y = point[1];  // Height
 
                 minHeight = Math.min(minHeight, y);
@@ -360,12 +363,11 @@ export const init = async model => {
             }
 
 
-            // const maxPoints = Math.min(points.length, 10000);
-            // const skipPoints = Math.max(1, Math.floor(points.length / maxPoints));
+            
             
             for (let i = 0; i < N; i ++) {
-                if(i < points.length) {
-                    const point = points[i];
+                if(i < limitedPoints.length) {
+                    const point = limitedPoints[i];
                     const x = point[0];
                     const y = point[1]; 
                     const z = point[2]; 
