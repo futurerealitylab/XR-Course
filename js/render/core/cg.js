@@ -93,6 +93,14 @@
       return a;
    }
 
+   // Pad a string with spaces.
+
+   export let pad = (s,n) => {
+      while (s.length < n)
+         s += ' ';
+      return s;
+   }
+
    // Rounded string representations of a floating point value
 
    export let round = (t,n) => {

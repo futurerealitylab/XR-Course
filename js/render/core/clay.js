@@ -121,6 +121,29 @@ export function Clay(gl, canvas) {
 	    mesh[16 * data[k].i + 8] = packRGB(rgb);
    }
 
+   this.getDataMeshTextColor = (form, id, col = 0) => {
+      let mesh = this.getMesh(form), data = mesh.textData;
+      for (let k = 0 ; k < data.length ; k++)
+         if (data[k].id == id && data[k].n == col)
+	    return unpackRGB(mesh[16 * data[k].i + 8]);
+      return [0,0,0];
+   }
+
+   this.setDataMeshTextOrient = (form, id, orient = null) => {
+      let mesh = this.getMesh(form), data = mesh.textData;
+      for (let k = 0 ; k < data.length ; k++)
+         if (data[k].id == id)
+	    data[k].orient = orient;
+   }
+
+   this.getDataMeshTextOrient = (form, id) => {
+      let mesh = this.getMesh(form), data = mesh.textData;
+      for (let k = 0 ; k < data.length ; k++)
+         if (data[k].id == id)
+	    return data[k].orient;
+      return null;
+   }
+
    this.defineDataMesh = (name, data, defaults) => {
       let default_flatShading = (defaults && defaults.flatShading) ?? false;
       let default_lineCap     = (defaults && defaults.lineCap    ) ?? false;
@@ -140,6 +163,7 @@ export function Clay(gl, canvas) {
 	    {
                let id = item.id;
                let at = item.at ?? [0,0,0];
+               let orient = item.orient;
                let text = item.text ?? '';
                let ry = (item.height ?? .01) / 2;
                let rgb = item.rgb ?? default_rgb;
@@ -155,20 +179,20 @@ export function Clay(gl, canvas) {
 		  let AB = (n - d - .5) * w;
 		  let CD = (n - d + .5) * w;
 
-	          let A = { uv: uv(0,1) };
-	          let B = { uv: uv(0,0) };
-	          let C = { uv: uv(1,0) };
-	          let D = { uv: uv(1,1) };
+	          let A = { uv: uv(0,1), nor: [0,0,1] };
+	          let B = { uv: uv(0,0), nor: [0,0,1] };
+	          let C = { uv: uv(1,0), nor: [0,0,1] };
+	          let D = { uv: uv(1,1), nor: [0,0,1] };
 
                   A.rgb = B.rgb = C.rgb = D.rgb = rgb;
 
                   let i = meshData.length, up = [0,ry,0], dn = [0,-ry,0];
-		  textData.push( { i: i  , r: CD, P: cg.add(at, up), id: id, n: n, m: 1 },
-		                 { i: i+1, r: AB, P: cg.add(at, up), id: id, n: n, m: 0 },
-		                 { i: i+2, r: AB, P: cg.add(at, dn), id: id, n: n, m: 2 },
-		                 { i: i+3, r: AB, P: cg.add(at, dn), id: id, n: n, m: 2 },
-		                 { i: i+4, r: CD, P: cg.add(at, dn), id: id, n: n, m: 3 },
-		                 { i: i+5, r: CD, P: cg.add(at, up), id: id, n: n, m: 1 } );
+		  textData.push( { i: i  , r: CD, P: cg.add(at, up), id: id, n: n, m: 1, orient: orient },
+		                 { i: i+1, r: AB, P: cg.add(at, up), id: id, n: n, m: 0, orient: orient },
+		                 { i: i+2, r: AB, P: cg.add(at, dn), id: id, n: n, m: 2, orient: orient },
+		                 { i: i+3, r: AB, P: cg.add(at, dn), id: id, n: n, m: 2, orient: orient },
+		                 { i: i+4, r: CD, P: cg.add(at, dn), id: id, n: n, m: 3, orient: orient },
+		                 { i: i+5, r: CD, P: cg.add(at, up), id: id, n: n, m: 1, orient: orient } );
 
                   meshData.push(C, B, A, A, D, C);
 	       }
@@ -196,8 +220,9 @@ export function Clay(gl, canvas) {
                   a = cg.subtract(a, cg.scale(w, r0));
                   b = cg.add     (b, cg.scale(w, r1));
                }
-               r0 /= Math.cos(Math.PI / nSides);
-               r1 /= Math.cos(Math.PI / nSides);
+	       let rDiag = 1 / Math.cos(Math.PI / nSides);
+               r0 *= rDiag;
+               r1 *= rDiag;
 
                let xx = d[0]*d[0], yy = d[1]*d[1], zz = d[2]*d[2];
                let c = xx < yy && xx < zz ? [1,0,0]
@@ -248,17 +273,39 @@ export function Clay(gl, canvas) {
 
                   A.rgb = B.rgb = C.rgb = D.rgb = rgb;
 
-                  meshData.push(C, B, A, A, D, C);
+		  let pushQuad = (A,B,C,D) => meshData.push(C, B, A, A, D, C);
 
-		  if (lineCap) {
+		  pushQuad(A,B,C,D);
+
+                  switch (lineCap) {
+		  case 'butt':
+		  case 'square':
 		     let wn = cg.scale(w, -1);
 		     let AA = { pos: A.pos, rgb: A.rgb, nor: wn };
 		     let BB = { pos: B.pos, rgb: B.rgb, nor: wn };
+		     let EE = { pos: a, rgb: rgb, nor: wn };
+		     meshData.push(AA, BB, EE);
 		     let CC = { pos: C.pos, rgb: C.rgb, nor: w  };
 		     let DD = { pos: D.pos, rgb: D.rgb, nor: w  };
-		     let E = { pos: a, rgb: rgb, nor: wn };
-		     let F = { pos: b, rgb: rgb, nor: w  };
-		     meshData.push(AA, BB, E, F, CC, DD);
+		     let FF = { pos: b, rgb: rgb, nor: w  };
+		     meshData.push(CC, DD, FF);
+		     break;
+		  case 'round':
+		     let buildRoundCap = (C,R0,R1,D) => {
+		        for (let phi = 0 ; phi < Math.PI/2 - .0001 ; phi += Math.PI/6) {
+			   let d = (U,V,phi) => cg.add(cg.scale(U, Math.cos(phi)),
+			                               cg.scale(V, Math.sin(phi)));
+                           let d00 = d(R0,D,phi), d01 = d(R0,D,phi+Math.PI/6),
+                               d10 = d(R1,D,phi), d11 = d(R1,D,phi+Math.PI/6);
+			   pushQuad({ pos: cg.add(C, d00), rgb: A.rgb, nor: cg.normalize(d00) },
+			            { pos: cg.add(C, d10), rgb: A.rgb, nor: cg.normalize(d10) },
+			            { pos: cg.add(C, d11), rgb: A.rgb, nor: cg.normalize(d11) },
+			            { pos: cg.add(C, d01), rgb: A.rgb, nor: cg.normalize(d01) });
+		        }
+		     }
+		     buildRoundCap(a, cg.subtract(B.pos,a), cg.subtract(A.pos,a), cg.scale(w,-r0));
+		     buildRoundCap(b, cg.subtract(D.pos,b), cg.subtract(C.pos,b), cg.scale(w, r1));
+		     break;
                   }
                }
             }
@@ -445,12 +492,19 @@ let drawMesh = (mesh, materialId, textureSrc, txtr, bumpTextureSrc, bumptxtr, du
       let head = cg.mTransform(cg.mMultiply(clay.inverseRootMatrix, this.pose.transform.matrix), [0,0,.14]);
       for (let n = 0 ; n < mesh.textData.length ; n++) {
          let d = mesh.textData[n];
-	 let P = d.P;
-	 let Z = cg.normalize(cg.subtract(head, cg.mTransform(m, P)));
-	 let X = cg.normalize(cg.cross([0,1,0], Z));
-	 let M = cg.mMultiply(mInv, [ X,0, 0,1,0,0, Z,0, P,1 ].flat());
-	 X = cg.normalize(M.slice(0, 3));
-	 Z = cg.normalize(M.slice(8,11));
+	 let P = d.P, X, Z;
+	 if (d.orient == null) {
+	    Z = cg.normalize(cg.subtract(head, cg.mTransform(m, P)));
+	    X = cg.normalize(cg.cross([0,1,0], Z));
+	    let M = cg.mMultiply(mInv, [ X,0, 0,1,0,0, Z,0, P,1 ].flat());
+	    X = cg.normalize(M.slice(0, 3));
+	    Z = cg.normalize(M.slice(8,11));
+         }
+	 else {
+	    let c = Math.cos(d.orient), s = Math.sin(d.orient);
+	    X = [ c, 0,-s ];
+	    Z = [ s, 0, c ];
+	 }
 	 for (let j = 0 ; j < 3 ; j++) {
 	    mesh[16 * d.i + j    ] = P[j] + X[j] * d.r;
 	    mesh[16 * d.i + j + 3] = packAB(Z[j], X[j]);

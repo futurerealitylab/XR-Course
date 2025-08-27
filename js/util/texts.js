@@ -5,12 +5,12 @@ import { G3 } from "../util/g3.js";
 import { cities } from "../util/major_cities.js";
 
 export const init = async model => {
-   let lo3 = 23.7752, hi3 = 49.9566, lo4 = -125.1162, hi4 = -69.0202, y = 1;
+   let lo3=23.7752, hi3=49.9566, lo4=-125.1162, hi4=-69.0202, y=1;
 
    let map = model.add('square').setTxtr('media/textures/grid_map.jpg')
                   .move(0,y,0).turnX(-Math.PI/2).scale(.9,.6,1);
 
-   let table = model.add('cube').move(0,y/2,0).scale(.9,y/2-.0001,.6).opacity(.7);
+   let table = model.add('cube').move(0,y/2,0).scale(.9,y/2-.0001,.6);
 
    let g3 = new G3(model, draw => {
       draw.color('blue').textHeight(.04).text(1/delta >> 0, [0,2.5,0]);

@@ -12,20 +12,13 @@ export const init = async model => {
       nCols = Math.max(nCols, lines[row].length);
       T += (row == 0 ? '  ' : '\n  ') + lines[row];
    }
-   S.textHeight(.01);
-   let textID = S.text(T, [0,.8,0], nCols + 4, lines.length + 2);
-/*
-   S.lineWidth(.1).nSides(8).lineCap('square').flatShading(true);
-   S.line([-.2,1,0],[.2,1,0]);
-*/
+   S.textHeight(.02);
+   let textID = S.text(T, [0,1.3,0], nCols + 4, lines.length + 2);
+
    S.build(model);
    S.setText(textID, 10, 1, 'Hello there!');
+   S.edit(textID);
    model.animate(() => {
-      for (let i = 0 ; i < clients.length ; i++) {
-         let id = clients[i], event;
-	 while ((event = clientState.event(id)) !== undefined)
-            console.log(id, event);
-      }
       S.update();
    });
 }

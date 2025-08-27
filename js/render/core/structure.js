@@ -1,18 +1,23 @@
 import * as cg from "./cg.js";
+import { EditText } from "./editText.js";
 
 export function Structure(name) {
 
    if (name === undefined)
       name = 'structure';
-   let stateName = name + 'State';
+   let myState = name + 'State';
+   let myMsgs  = name + 'Msgs';
+   let myForm  = name + 'Form';
 
-   server.init(stateName, { offset: [0,.7,0], theta:0, sizeIndex: 0 });
+   server.init(myState, { offset: [0,0,0], theta:0, sizeIndex: 0 });
+   server.init(myMsgs, { });
 
    let stack = [];
    let data = [];
 
    let color       = [1,1,1];
    let flatShading = false;
+   let orient      = null;
    let lineCap     = null;
    let lineWidth   = .1;
    let nSides      = 6;
@@ -21,6 +26,7 @@ export function Structure(name) {
 
    this.color       = arg => { color       = arg; return this; }
    this.flatShading = arg => { flatShading = arg; return this; }
+   this.orient      = arg => { orient      = arg; return this; }
    this.lineCap     = arg => { lineCap     = arg; return this; }
    this.lineWidth   = arg => { lineWidth   = arg; return this; }
    this.nSides      = arg => { nSides      = arg; return this; }
@@ -31,6 +37,7 @@ export function Structure(name) {
       stack.push({
          color:       color,
          flatShading: flatShading,
+         orient:      orient,
          lineCap:     lineCap,
          lineWidth:   lineWidth,
          nSides:      nSides,
@@ -44,6 +51,7 @@ export function Structure(name) {
       let top = stack.pop();
       color       = top.color      ;
       flatShading = top.flatShading;
+      orient      = top.orient     ;
       lineCap     = top.lineCap    ;
       lineWidth   = top.lineWidth  ;
       nSides      = top.nSides     ;
@@ -55,26 +63,62 @@ export function Structure(name) {
    let textData = {};
 
    this.setText = (textID, col, row, text) => {
-      if (textData[textID]) {
-         let id = textData[textID][row];
-         clay.setDataMeshText(name, id, text, col);
+      if (textData[textID] && text != textData[textID][row].text) {
+         textData[textID][row].text = text;
+         let id = textData[textID][row].id;
+         clay.setDataMeshText(myForm, id, text, col);
       }
    }
 
    this.setTextColor = (textID, col, row, rgb) => {
       if (textData[textID]) {
-         let id = textData[textID][row];
-         clay.setDataMeshTextColor(name, id, col, rgb);
+         let id = textData[textID][row].id;
+         clay.setDataMeshTextColor(myForm, id, col, rgb);
       }
    }
 
+   this.getTextColor = (textID, col, row) => {
+      if (textData[textID]) {
+         let id = textData[textID][row].id;
+         return clay.getDataMeshTextColor(myForm, id, col);
+      }
+   }
+
+   this.setTextOrient = (textID, orient) => {
+      if (textData[textID])
+         for (let row = 0 ; row < textData[textID].length ; row++) {
+            let id = textData[textID][row].id;
+            clay.setDataMeshTextOrient(myForm, id, orient);
+         }
+   }
+
+   this.getTextOrient = (textID, orient) => {
+      if (textData[textID])
+         for (let row = 0 ; row < textData[textID].length ; row++) {
+            let id = textData[textID][row].id;
+            return clay.getDataMeshTextOrient(myForm, id);
+         }
+   }
+
+
+   let textIDs = 0;
+
    this.text = (text, at, nCols, nRows) => {
-      let textID = cg.uniqueID();
+      if (nCols === undefined) {
+         let lines = text.split('\n');
+	 nRows = lines.length;
+	 nCols = 0;
+	 for (let n = 0 ; n < nRows ; n++)
+	    nCols = Math.max(nCols, lines[n].length);
+      }
+      let textID = 'TEXT_ID' + textIDs++;
       textData[textID] = [];
+      textData[textID].text = text;
+      textData[textID].nCols = nCols ?? text.length;
+      textData[textID].nRows = nRows ?? 1;
       let item = (text, at, nCols) => {
-         if (nCols !== undefined)
-            for (let i = text.length ; i < nCols ; i++)
-               text += ' ';
+         for (let i = text.length ; i < nCols ; i++)
+            text += ' ';
          let id = cg.uniqueID();
          data.push({
             type: 'text',
@@ -82,9 +126,10 @@ export function Structure(name) {
             at: at,
             height: textHeight,
             rgb: color,
+            orient: orient,
             id: id,
          });
-	 textData[textID].push(id);
+         textData[textID].push({id:id, text:text});
       }
       if (nRows === undefined)
          item(text, at, nCols ?? text.length);
@@ -184,12 +229,12 @@ export function Structure(name) {
    to move slowly   
 `;
 
-   let leftHelp, rightHelp;
+   let object, leftHelp, rightHelp;
 
    this.build = (_model, defaults) => {
       model = _model;
-      clay.defineDataMesh('structure', data, defaults);
-      obj = model.add('structure').txtr(15);
+      clay.defineDataMesh(myForm, data, defaults);
+      object = model.add(myForm).txtr(15);
 
       this.textHeight(.01).color([1,1,1]);
 
@@ -205,13 +250,58 @@ export function Structure(name) {
       rightHelp = model.add('rightHelp').txtr(15).opacity(.8);
    }
 
+   let editTextID = null, editText;
+   let unhighlight = (textID,col,row) => this.setTextColor(textID, col, row, [1,1,1])
+   let highlight   = (textID,col,row) => this.setTextColor(textID, col, row, [0,.5,1])
+
+   this.edit = (textID, callback) => {
+      editTextID = textID;
+      if (editTextID && ! editText) {
+         editText = new EditText();
+         editText.setText(textData[textID].text);
+      }
+      if (editText && callback)
+         editText.setCallback(callback);
+      highlight(textID, 0, 0);
+   }
+
+   this.isModifierKey = key => editText && editText.isModifier(key);
+
+   this.getObject = () => object;
+
+   let col = 0, row = 0;
+   let setText = (textID, text) => {
+      let nCols = textData[textID].nCols;
+      let nRows = textData[textID].nRows;
+      let lines = text.split('\n');
+      for (let n = 0 ; n < nRows ; n++) {
+         let line = n < lines.length ? lines[n] : '';
+         while (line.length < nCols)
+            line += ' ';
+         this.setText(textID, 0, n, line.substring(0, nCols));
+      }
+      textData[textID].text = text;
+   }
+
+   this.getText = textID => textData[textID].text;
+
    this.update = () => {
 
       let m = cg.mInverse(model.getMatrix());
       leftHelp .setMatrix(m).move(clientState.finger(clientID, 'left' , 1) ?? [0,0,0]);
       rightHelp.setMatrix(m).move(clientState.finger(clientID, 'right', 1) ?? [0,0,0]);
 
-      structureState = server.synchronize(stateName);
+      window[myState] = server.synchronize(myState);
+
+      server.sync(myMsgs, msgs => {
+         for (let id in msgs) {
+	    let msg = msgs[id];
+	    unhighlight(msg.textID, col, row);
+            setText    (msg.textID, msg.text);
+	    highlight  (msg.textID, col = msg.col, row = msg.row);
+         }
+       });
+
       if (isMasterClient()) {
 
          // DETERMINE CURRENT PINCH STATE FOR EACH FINGER OF EACH HAND
@@ -229,7 +319,7 @@ export function Structure(name) {
             else {
                let p = clientState.finger(clientID, 'right', 1);
                if (p && p0) {
-                  structureState.offset = cg.add(structureState.offset, cg.subtract(p, p0));
+                  window[myState].offset = cg.add(window[myState].offset, cg.subtract(p, p0));
                   p0 = p;
                }
             }
@@ -242,7 +332,7 @@ export function Structure(name) {
             else { 
                let p = clientState.finger(clientID, 'right', 2);
                if (p && p0) {
-                  structureState.offset = cg.add(structureState.offset, cg.scale(cg.subtract(p, p0), 0.1));
+                  window[myState].offset = cg.add(window[myState].offset, cg.scale(cg.subtract(p, p0), 0.1));
                   p0 = p;
                }
             }         
@@ -255,7 +345,7 @@ export function Structure(name) {
             else {
                let p = clientState.finger(clientID, 'left', 1);
                if (p) {
-                  structureState.theta += p[0] - a0;
+                  window[myState].theta += p[0] - a0;
                   a0 = p[0];
                }
             }
@@ -263,20 +353,43 @@ export function Structure(name) {
          // IF CLICKING WITH LEFT SIDE TRIGGER, CHANGE SCALE
 
          if (P0.left[2] && ! P1.left[2])
-            structureState.sizeIndex = (structureState.sizeIndex + 1) % size.length;
+            window[myState].sizeIndex = (window[myState].sizeIndex + 1) % size.length;
 
          // MAKE THE CURRENT PINCH STATE THE NEW PREVIOUS PINCH STATE
 
          P0 = P1;
 
-         server.broadcastGlobal(stateName);
+         server.broadcastGlobal(myState);
+
+         // EDIT TEXT
+
+         if (editTextID) {
+            let isChanged = false, event;
+            for (let i = 0 ; i < clients.length ; i++)
+               while (event = clientState.event(clients[i]))
+                  if (event.type == 'keydown' || event.type == 'keyup') {
+                     if (! isChanged)
+                        unhighlight(editTextID, editText.getCol(), editText.getRow());
+                     editText[event.type](event);
+                     isChanged = true;
+                  }
+            if (isChanged) {
+               highlight(editTextID, editText.getCol(), editText.getRow());
+	       server.send(myMsgs, {
+	          textID: editTextID,
+		  text: editText.getText(),
+		  col: editText.getCol(),
+		  row: editText.getRow(),
+	       });
+            }
+         }
       }
 
       // RENDER THE OBJECT
 
-      obj.identity().move(structureState.offset)
-                    .turnY(structureState.theta)
-                    .scale(size[structureState.sizeIndex]);
+      object.identity().move(window[myState].offset)
+                       .turnY(window[myState].theta)
+                       .scale(size[window[myState].sizeIndex]);
    }
 }
 

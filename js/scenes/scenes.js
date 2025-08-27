@@ -11,6 +11,8 @@ export default () => {
    return {
       enableSceneReloading: true,
       scenes: [ 
+            { name: "whiteboard"         , path: "./whiteboard.js"         , public: true  },
+            { name: "futurezoom"         , path: "./futurezoom.js"         , public: true  },
             { name: "computerWebcam"     , path: "./computerWebcam.js"     , public: true  },
             { name: "edit"               , path: "./edit.js"               , public: true  },
             { name: "testStructure"      , path: "./testStructure.js"      , public: true  },

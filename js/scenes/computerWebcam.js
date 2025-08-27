@@ -56,10 +56,11 @@ export const init = async model => {
    model.customShader(`
      uniform int uFG, uBG;
      ------------------------------------------------------------------------
-      if (uFG == 1 && color.b > .25 && color.b > 1.5 * max(color.r, color.g))
-         discard;
-      if (uFG == 1 || uBG == 1)
-         color = 2. * color * color;
+     vec3 rgb = texture(uSampler[10],vec2(-1.,1.)*uv).rgb;
+     if (uFG == 1 && rgb.b > .25 && rgb.b > 1.5 * max(rgb.r, rgb.g))
+        discard;
+     if (uFG == 1 || uBG == 1)
+        color = rgb * rgb;
    `);
 
    // CREATE THE 3D SCENE

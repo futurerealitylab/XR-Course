@@ -6,12 +6,12 @@ export function EditText() {
    let callback = () => {};
    let col = 0;
    let index = 0;
-   let isCommand = false;
+   let isMeta    = false;
    let isControl = false;
-   let isDown = false;
-   let isOption = false;
-   let isShift = false;
-   let isSpace = false;
+   let isDown    = false;
+   let isAlt     = false;
+   let isShift   = false;
+   let isSpace   = false;
    let lines = [];
    let row = 0;
    let text = '';
@@ -26,38 +26,28 @@ export function EditText() {
    this.setRow  = r   => row = r;
    this.getRow  = ()  => Math.min(row, lines.length);
 
+   // LET CLIENT CHECK FOR MODIFIER KEYS
+
+   this.isModifier = key => {
+      switch (key) {
+      case ' '      : return isSpace  ;
+      case 'Alt'    : return isAlt    ;
+      case 'Control': return isControl;
+      case 'Meta'   : return isMeta   ;
+      case 'Shift'  : return isShift  ;
+      }
+      return false;
+   }
+
    // HANDLING KEYBOARD INPUT
 
    this.keydown = e => {
-
       switch (e.key) {
       case ' '      : isSpace   = true; break;
-      case 'Alt'    : isOption  = true; break;
+      case 'Alt'    : isAlt     = true; break;
       case 'Control': isControl = true; break;
-      case 'Meta'   : isCommand = true; break;
+      case 'Meta'   : isMeta    = true; break;
       case 'Shift'  : isShift   = true; break;
-      }
-
-      if (isCommand && e.key == 'z')
-         if (isShift)
-	    redo();
-	 else
-	    undo();
-
-      if (isCommand) {
-         if (e.code >= 'KeyA' && e.code < 'KeyZ') {
-	    callback(e.code);
-	    return;
-	 }
-
-         switch (e.code) {
-         case 'ArrowLeft' : col = 0; break;
-         case 'ArrowRight': col = rowLength(row); break;
-         case 'ArrowUp'   : row = 0; break;
-         case 'ArrowDown' : row = lines.length-1; break;
-         default          : return;
-         }
-         computeIndex();
       }
    }
 
@@ -65,13 +55,33 @@ export function EditText() {
 
       switch (e.key) {
       case ' '      : isSpace   = false; break;
-      case 'Alt'    : isOption  = false; return;
+      case 'Alt'    : isAlt     = false; return;
       case 'Control': isControl = false; return;
-      case 'Meta'   : isCommand = false; return;
+      case 'Meta'   : isMeta    = false; return;
       case 'Shift'  : isShift   = false; return;
       }
 
-      if (isControl || isOption || isCommand)
+      if (isControl) {
+         switch (e.key) {
+	 case 'y' : redo(); return;
+	 case 'z' : undo(); return;
+	 }
+      }
+
+      if (callback)
+         callback(e.key);
+
+      if (isShift) {
+         switch (e.key) {
+         case 'ArrowLeft' : col = 0; break;
+         case 'ArrowRight': col = rowLength(row); break;
+         case 'ArrowUp'   : row = 0; break;
+         case 'ArrowDown' : row = lines.length-1; break;
+         }
+         computeIndex();
+      }
+
+      if (isSpace || isAlt || isControl || isMeta)
          return;
 
       let deleteChar = () => {
@@ -94,21 +104,21 @@ export function EditText() {
 	    row++;
 	    col = 0;
 	 }
-	 else
-	    col++;
+	 else {
+	    col++;                               // AFTER INSERT: IF THE LINE ENDS
+	    let i = text.indexOf('\n', index);   // WITH A SPACE, THEN REMOVE IT.
+	    if (i >= 0 && text.charAt(i-1) == ' ')
+               text = text.substring(0, i-1) + text.substring(i, text.length);
+         }
          lines = text.split('\n');
          computeIndex();
       }
 
       saveForUndo();
 
-      switch (e.keyCode) {
-      case  8: deleteChar()    ; return;
-      case 13: insertChar('\n'); return;
-      case 32: insertChar(' ') ; return;
-      }
-
-      switch (e.code) {
+      switch (e.key) {
+      case 'Backspace' : deleteChar()    ; return;
+      case 'Enter'     : insertChar('\n'); return;
       case 'ArrowLeft' : col = Math.max(col-1,  0); break;
       case 'ArrowRight': col = Math.min(col+1, 80); break;
       case 'ArrowUp'   : row = Math.max(row-1,  0); break;
