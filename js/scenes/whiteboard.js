@@ -9,16 +9,21 @@ export const init = async model => {
    webcam._animate = true;
    model.txtrSrc(10, webcam);
    model.customShader(`
-     uniform int uLine;
+     uniform int uLine, uColor;
      ------------------------------------------------
      color = texture(uSampler[10],vec2(-1,1)*uv).rgb;
-     if (uLine == 1 || uv.y < .65 && color.b > .25 && color.b > 1.1 * max(color.r, color.g))
-        color = vec3(0);
+     if (uv.y < .65 && color.b > .25 && color.b > 1.1 * max(color.r, color.g))
+        color = uColor==0 ? vec3(0)
+	      : uColor==1 ? vec3(1,0,0)
+	      : uColor==2 ? vec3(0,1,0) : vec3(0,0,1);
+     if (uLine == 1)
+        color = 3. * color;
      color = color * color;
    `);
 
    let vid = model.add('square').txtr(10).move(0,1.6,1-.6).scale(1.6*.6,1.2*.6,1);
-   let lines = model.add().flag('uLine'), lineWidth = .002;
+   let lines = model.add().flag('uLine'), lineWidth = .002, colorIndex = 0;
+   let colors = [[0,0,0],[1,0,0],[0,1,0],[0,0,1]];
    let ctx = webcamCanvas.getContext('2d');
    let isPenDown = false;
    let P = [];
@@ -30,8 +35,11 @@ export const init = async model => {
 	 case 'keydown':
             if (event.key == ' ') {
 	       console.log('AAAAA');
-	       if (! isPenDown)
+	       if (! isPenDown) {
 	          P.push([]);
+	          P[P.length-1].lineWidth  = lineWidth;
+	          P[P.length-1].colorIndex = colorIndex;
+               }
 	       isPenDown = true;
             }
 	    break;
@@ -48,6 +56,12 @@ export const init = async model => {
 	       break;
             case 'ArrowDown':
 	       lineWidth /= 1.414;
+	       break;
+            case 'ArrowLeft':
+	       colorIndex = (colorIndex + colors.length-1) % colors.length;
+	       break;
+            case 'ArrowRight':
+	       colorIndex = (colorIndex + 1) % colors.length;
 	       break;
             }
             break;
@@ -73,14 +87,18 @@ export const init = async model => {
 	 P[P.length-1].push([ -x * 1.6*.2, 1.6 + y * 1.2*.2, 1-.2 ]);
       }
 
+      model.setUniform('1i', 'uColor', colorIndex);
       while (lines.nChildren())
          lines.remove(0);
       if (P.length > 0) {
          let S = new Structure('lines');
-         S.nSides(3).lineWidth(lineWidth).lineCap('round');
-         for (let n = 0 ; n < P.length ; n++)
+         S.nSides(3).lineCap('round');
+         for (let n = 0 ; n < P.length ; n++) {
+            S.lineWidth(P[n].lineWidth);
+	    S.color(colors[P[n].colorIndex]);
 	    for (let i = 0 ; i < P[n].length-1 ; i++)
                S.line(P[n][i], P[n][i+1]);
+         }
          S.build(lines);
          S.update();
       }

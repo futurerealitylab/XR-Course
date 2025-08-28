@@ -106,10 +106,10 @@ export function Structure(name) {
    this.text = (text, at, nCols, nRows) => {
       if (nCols === undefined) {
          let lines = text.split('\n');
-	 nRows = lines.length;
-	 nCols = 0;
-	 for (let n = 0 ; n < nRows ; n++)
-	    nCols = Math.max(nCols, lines[n].length);
+         nRows = lines.length;
+         nCols = 0;
+         for (let n = 0 ; n < nRows ; n++)
+            nCols = Math.max(nCols, lines[n].length);
       }
       let textID = 'TEXT_ID' + textIDs++;
       textData[textID] = [];
