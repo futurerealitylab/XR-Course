@@ -310,8 +310,17 @@ export class Task_Manager {
         //Convert from quaternion to euler angles 
         let euler = cg.quat2eul(this.robot_pose.orientation_quat);
         this.robot_pose.orientation_eul = [euler.roll, euler.pitch, euler.yaw];
-        this.trans_robot_cube.identity().move(this.robot_pose.position);
+        
+        //this.trans_robot_cube.identity().move(this.robot_pose.position);
+        let scaledPos = [
+            this.robot_pose.position[0] * 2,
+            this.robot_pose.position[1] * 2, 
+            this.robot_pose.position[2] * 2
+        ];
+        
+        this.trans_robot_cube.identity().move(scaledPos);
         this.drone.translation = this.robot_pose.position;
+        
         //to change the orientation 
         this.robot_cube.turnX(euler.roll);
         this.robot_cube.turnY(euler.pitch);
@@ -327,8 +336,16 @@ export class Task_Manager {
     update_robot_pose2_1() {
         let euler =  cg.quat2eul(this.robot_pose2_1.orientation_quat);
         this.robot_pose2_1.orientation_eul = [euler.roll, euler.pitch, euler.yaw];
-        this.trans_robot_cube2_1.identity().move(this.robot_pose2_1.position);
+        // this.trans_robot_cube2_1.identity().move(this.robot_pose2_1.position);
+        let scaledPos2_1 = [
+            this.robot_pose2_1.position[0] * 2,
+            this.robot_pose2_1.position[1] * 2, 
+            this.robot_pose2_1.position[2] * 2
+        ];
+        this.trans_robot_cube2_1.identity().move(scaledPos2_1);
         this.drone2_1.translation = this.robot_pose2_1.position;
+        
+
 
         this.robot_cube2_1.turnX(euler.roll);
         this.robot_cube2_1.turnY(euler.pitch);
@@ -340,7 +357,13 @@ export class Task_Manager {
     update_robot_pose2_5() {
         let euler =  cg.quat2eul(this.robot_pose2_5.orientation_quat);
         this.robot_pose2_5.orientation_eul = [euler.roll, euler.pitch, euler.yaw];
-        this.trans_robot_cube2_5.identity().move(this.robot_pose2_5.position);
+        // this.trans_robot_cube2_5.identity().move(this.robot_pose2_5.position);
+        let scaledPos2_5 = [
+            this.robot_pose2_5.position[0] * 2,
+            this.robot_pose2_5.position[1] * 2, 
+            this.robot_pose2_5.position[2] * 2
+        ];
+        this.trans_robot_cube2_5.identity().move(scaledPos2_5);
         this.drone2_5.translation = this.robot_pose2_5.position;
 
         this.robot_cube2_5.turnX(euler.roll);
@@ -353,7 +376,13 @@ export class Task_Manager {
     update_robot_pose2_8() {
         let euler =  cg.quat2eul(this.robot_pose2_8.orientation_quat);
         this.robot_pose2_8.orientation_eul = [euler.roll, euler.pitch, euler.yaw];
-        this.trans_robot_cube2_8.identity().move(this.robot_pose2_8.position);
+        // this.trans_robot_cube2_8.identity().move(this.robot_pose2_8.position);
+        let scaledPos2_8 = [
+            this.robot_pose2_8.position[0] * 2,
+            this.robot_pose2_8.position[1] * 2, 
+            this.robot_pose2_8.position[2] * 2
+        ];
+        this.trans_robot_cube2_8.identity().move(scaledPos2_8);
         this.drone2_8.translation = this.robot_pose2_8.position;
 
         this.robot_cube2_8.turnX(euler.roll);
@@ -366,7 +395,13 @@ export class Task_Manager {
     update_robot_pose2_9() {
         let euler =  cg.quat2eul(this.robot_pose2_9.orientation_quat);
         this.robot_pose2_9.orientation_eul = [euler.roll, euler.pitch, euler.yaw];
-        this.trans_robot_cube2_9.identity().move(this.robot_pose2_9.position);
+        // this.trans_robot_cube2_9.identity().move(this.robot_pose2_9.position);
+        let scaledPos2_9 = [
+            this.robot_pose2_9.position[0] * 2,
+            this.robot_pose2_9.position[1] * 2, 
+            this.robot_pose2_9.position[2] * 2
+        ];
+        this.trans_robot_cube2_9.identity().move(scaledPos2_9);
         this.drone2_9.translation = this.robot_pose2_9.position;
 
         this.robot_cube2_9.turnX(euler.roll);
@@ -737,9 +772,9 @@ export class Task_Manager {
             let mpl_color_array = [];
 
             for (let i = 0; i < path_points.length; i++){
-                let x = path_points[i][0];
-                let y = path_points[i][2];
-                let z = -path_points[i][1];
+                let x = path_points[i][0] * 0.5;
+                let y = path_points[i][2] * 0.5;
+                let z = -path_points[i][1] * 0.5;
 
                 let pose = [x, y, z];
                 
@@ -1162,7 +1197,9 @@ export class Task_Manager {
             //Manage the double case if the user is moving the ball touching it or through the klaser beam 
             if (this.user_hand.check_on_press) {
                 this.user_hand.p = cg.roundVec(3, inputEvents.pos(hand));
-                this.user_hand.p = inputEvents.pos(hand);
+                // this.user_hand.p = inputEvents.pos(hand);
+                let rawPos = inputEvents.pos(hand);
+                this.user_hand.p = [rawPos[0] * 2.0, rawPos[1] * 2.0, rawPos[2] * 2.0];
                 //Since the chess pieces have different height, it is looking if the height of the hand is inside the piece and not only in the xy position 
                 //This is also becasue when the user is dragging the chess piece and its taking it up alomg y, to avoid the user marker is going out the height of the piece.
                 this.user_hand.p[1] = cg.roundFloat(3, Math.max(this.H, this.user_hand.p[1] - this.plane.getMatrix()[13] - 0.4 * this.W));
@@ -1199,7 +1236,9 @@ export class Task_Manager {
                 this.t_past_des_pose = new Date().getTime() / 1000;
             }
             //Move the user ball in the scene
-            this.user_hand.p = inputEvents.pos(hand);
+            // this.user_hand.p = inputEvents.pos(hand);
+            let rawPos = inputEvents.pos(hand);
+            this.user_hand.p = [rawPos[0] * 2.0, rawPos[1] * 2.0, rawPos[2] * 2.0];
             if (!this.take_control_button_is_pressed){
             this.user_sphere.identity().move(this.user_hand.p);
             }
@@ -1226,7 +1265,9 @@ export class Task_Manager {
 
             //When the user press the button here a red sphere appear on the hand position. This is the marker taht represent a waypoint 
             //the drone has to reach. 
-            this.user_hand.p = cg.roundVec(3, inputEvents.pos(hand));
+            // this.user_hand.p = cg.roundVec(3, inputEvents.pos(hand));
+            let rawPos = inputEvents.pos(hand);
+            this.user_hand.p = cg.roundVec(3, [rawPos[0] * 2.0, rawPos[1] * 2.0, rawPos[2] * 2.0]);
             //Before generating a new waypoint check if the user wants to displace an already existing one 
             let return_values = tm_utils.check_user_waypoint_distance(controllerMatrix.left, controllerMatrix.right, this.user_waypoints.waypoints_list, true);
             this.user_waypoints.in_manipulation = return_values[1];
@@ -1302,7 +1343,9 @@ export class Task_Manager {
                 //Just place the manipulation object  in the user hand here 
 
 
-                this.user_hand.p = cg.roundVec(3, inputEvents.pos(hand));
+                // this.user_hand.p = cg.roundVec(3, inputEvents.pos(hand));
+                let rawPos = inputEvents.pos(hand);
+                this.user_hand.p = cg.roundVec(3, [rawPos[0] * 2.0, rawPos[1] * 2.0, rawPos[2] * 2.0]);
                 this.user_hand.p[1] = cg.roundFloat(3, Math.max(H, this.user_hand.p[1] - this.plane.getMatrix()[13] - 0.4 * W)); //this avoid the ball overshoot the height of the user controller
                 if (this.user_hand.in_manipulation_beam) {
                     this.user_hand.p = return_values_beam[2];

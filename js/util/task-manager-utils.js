@@ -5,7 +5,7 @@ import { buttonState } from "../render/core/controllerInput.js";
 import * as sr from "../util/sync_receiver_utils.js";
 
 // const strokeWidth = 0.007;
-const strokeWidth = 0.05;
+const strokeWidth = 0.02;
 
 //Check if the controller is inside the object 
 export let inObject = (p, object) => {

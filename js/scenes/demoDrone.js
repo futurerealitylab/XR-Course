@@ -12,7 +12,7 @@ import * as global from "../global.js";
 
 // this should be adjusted according to the local ip configuration
 // let host = "172.20.10.10";  
-let host = "10.20.115.52";
+let host = "10.20.111.254";
 let port = "8080";
 
 
@@ -129,7 +129,7 @@ export const init = async model => {
     );
     scene.add(testBox);
 
-    const N = 5000;
+    const N = 1200;
 
     // ===== CREATE INSTANCED MESH WITH COLOR =====
     const geometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
@@ -159,10 +159,10 @@ export const init = async model => {
     // instancedMesh.instanceColor.needsUpdate = true;
     
     scene.add(instancedMesh);
-    
+    instancedMesh.scale.setScalar(0.5);
     //Build the scene
     let plane = model.add();
-    plane.opacity(.7);
+    plane.opacity(.7).scale(0.5);
 
     //Texture for traj
     let wires = model.add();
@@ -230,19 +230,19 @@ export const init = async model => {
     let robot_cube2_9 = robot_cube2_9_;
 
     // scale the drone glb model
-    // drone.scale = [W * .2, W * .2, W * .2];
+    drone.scale = [0.5, 0.5, 0.5];
     global.gltfRoot.addNode(drone);
  
-    // drone2_1.scale = [W * .2, W * .2, W * .2];
+    drone2_1.scale = [0.5, 0.5, 0.5];
     global.gltfRoot.addNode(drone2_1);
 
-    // drone2_5.scale = [W * .2, W * .2, W * .2];
+    drone2_5.scale = [0.5, 0.5, 0.5];
     global.gltfRoot.addNode(drone2_5);
 
-    // drone2_8.scale = [W * .2, W * .2, W * .2];
+    drone2_8.scale = [0.5, 0.5, 0.5];
     global.gltfRoot.addNode(drone2_8);
 
-    // drone2_9.scale = [W * .2, W * .2, W * .2];
+    drone2_9.scale = [0.5, 0.5, 0.5];
     global.gltfRoot.addNode(drone2_9);
     
 
@@ -484,7 +484,7 @@ export const init = async model => {
             }else if(finalGoalPosition[0] === 0 && finalGoalPosition[1] === 0 && finalGoalPosition[2] === 0){
                 final_goal = model.add('sphere').color(1, 1, 1).move(0.0, 0.0, 0.0).scale(0);
             } else{
-                final_goal = model.add('sphere').color(0.8, 0, 0).move(finalGoalPosition[0], finalGoalPosition[1], finalGoalPosition[2]).scale(0.15);
+                final_goal = model.add('sphere').color(0.8, 0, 0).move(finalGoalPosition[0], finalGoalPosition[1], finalGoalPosition[2]).scale(0.075);
             }
         }
         
