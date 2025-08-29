@@ -104,6 +104,8 @@ export const init = async model => {
    S.text('bath', [-7,5,7]);
 
    S.build(model, { isNormal: false } );
+
+   model.move(0,1.5,0);
    model.animate(() => S.update());
 }
 

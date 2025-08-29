@@ -141,14 +141,28 @@ export function Structure(name) {
       return textID;
    }
 
-   this.line = (a,b) => {
+   this.curve = P => {
+      let computeDir = n => {
+         let a = cg.subtract(P[n  ], P[n-1]), aN = cg.dot(a,a);
+         let b = cg.subtract(P[n+1], P[n  ]), bN = cg.dot(b,b);
+	 return aN + bN == 0 ? null : aN == 0 ? b : bN == 0 ? a : cg.add(a, b);
+      }
+      for (let n = 0 ; n < P.length-1 ; n++)
+         this.line(P[n], P[n+1], n==0          ? null : computeDir(n  ),
+	                         n==P.length-2 ? null : computeDir(n+1));
+   }
+
+   this.line = (a,b, aDir, bDir) => {
       data.push({
          type: 'rod',
          a:a,
          b:b,
          width:lineWidth,
          rgb: color,
-         lineCap: lineCap,
+         aLineCap: aDir ? null : lineCap,
+         bLineCap: bDir ? null : lineCap,
+	 aDir: aDir,
+	 bDir: bDir,
          flatShading: flatShading,
          taper: taper,
          nSides: nSides,

@@ -76,7 +76,7 @@ export const init = async model => {
         vec3 a = texture(uSampler[9],vec2(U,V)).rgb;
         color = texture(uSampler[10],vec2(-1,1)*uv).rgb;
 	vec3 d = a - color;
-	if (dot(d,d) < .12)
+	if (dot(d,d) < .03)
 	   discard;
      }
 

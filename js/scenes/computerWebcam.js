@@ -39,9 +39,10 @@ import * as cg from "../render/core/cg.js";
 
 export const init = async model => {
 
-   // REMOVE THE WEBXR MENU, SO THAT THE VIDEO WILL COVER THE ENTIRE WINDOW
+   // REMOVE WEBXR MENU AND "<OPEN>" OBJECT, SO VIDEO WILL COVER THE ENTIRE WINDOW
 
    header.innerHTML = '';
+   clay.vrWidgets.remove(3);
 
    // USE COMPUTER'S WEBCAM AS AN ANIMATING TEXTURE (WON'T WORK ON HEADSETS)
 
@@ -77,8 +78,8 @@ export const init = async model => {
    model.animate(() => {
       for (let row = 0 ; row < 5 ; row++)
       for (let col = 0 ; col < 5 ; col++)
-         obj.child(5*row+col).identity().move(.4 * (row-2), 1.5 + .4 * (col-2), .3)
-                                        .scale(.1).turnX(model.time).turnY(model.time);
+         obj.child(5*row+col).identity().move(.3 + .25 * (row-2), 1.6 + .25 * (col-2), .3)
+                                        .scale(.07).turnX(model.time).turnY(model.time);
    });
 }
 

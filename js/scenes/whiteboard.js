@@ -25,7 +25,7 @@ export const init = async model => {
    let lines = model.add().flag('uLine'), lineWidth = .002, colorIndex = 0;
    let colors = [[0,0,0],[1,0,0],[0,1,0],[0,0,1]];
    let ctx = webcamCanvas.getContext('2d');
-   let isPenDown = false;
+   let isPenDown = false, isRotate = false;
    let P = [];
 
    model.animate(() => {
@@ -34,7 +34,6 @@ export const init = async model => {
          switch (event.type) {
 	 case 'keydown':
             if (event.key == ' ') {
-	       console.log('AAAAA');
 	       if (! isPenDown) {
 	          P.push([]);
 	          P[P.length-1].lineWidth  = lineWidth;
@@ -47,6 +46,9 @@ export const init = async model => {
 	    switch (event.key) {
 	    case ' ':
 	       isPenDown = false;
+	       break;
+	    case 'r':
+	       isRotate = ! isRotate;
 	       break;
             case 'Backspace':
 	       P.pop();
@@ -84,20 +86,23 @@ export const init = async model => {
       if (ns > 10 && isPenDown) {
 	 let x = (xs / ns - 320) / 320;
 	 let y = (240 - ys / ns) / 240;
-	 P[P.length-1].push([ -x * 1.6*.2, 1.6 + y * 1.2*.2, 1-.2 ]);
+	 let p = [ -x * 1.6*.2, 1.6 + y * 1.2*.2, 1-.2 ];
+	 let curve = P[P.length-1];
+	 if (curve.length == 0 || cg.distance(p, curve[curve.length-1]) > 0)
+	    curve.push(p);
       }
 
       model.setUniform('1i', 'uColor', colorIndex);
+      lines.identity().move(0,0,.8).turnY(isRotate ? model.time : 0).move(0,0,-.8);
       while (lines.nChildren())
          lines.remove(0);
       if (P.length > 0) {
          let S = new Structure('lines');
-         S.nSides(3).lineCap('round');
+         S.nSides(24).lineCap('round');
          for (let n = 0 ; n < P.length ; n++) {
-            S.lineWidth(P[n].lineWidth);
+            S.lineWidth(P[n].lineWidth ?? .01);
 	    S.color(colors[P[n].colorIndex]);
-	    for (let i = 0 ; i < P[n].length-1 ; i++)
-               S.line(P[n][i], P[n][i+1]);
+	    S.curve(P[n]);
          }
          S.build(lines);
          S.update();

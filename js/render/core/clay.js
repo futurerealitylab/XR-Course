@@ -208,28 +208,35 @@ export function Clay(gl, canvas) {
                let nSides      = item.nSides      ?? default_nSides;
                let radius      = (item.width      ?? default_width) / 2;
                let rgb         = item.rgb         ?? default_rgb;
-               let lineCap     = item.lineCap     ?? default_lineCap;
+               let aLineCap    = item.aLineCap    ?? default_lineCap;
+               let bLineCap    = item.bLineCap    ?? default_lineCap;
                let taper       = item.taper       ?? default_taper;
 
                let d = cg.subtract(b, a);
-               let w = cg.normalize(d);
+               let aW = cg.normalize(item.aDir ?? d);
+               let bW = cg.normalize(item.bDir ?? d);
 
 	       let r0 = radius;
 	       let r1 = radius * (1 - taper);
-	       if (lineCap == 'square') {
-                  a = cg.subtract(a, cg.scale(w, r0));
-                  b = cg.add     (b, cg.scale(w, r1));
-               }
+	       if (aLineCap == 'square')
+                  a = cg.subtract(a, cg.scale(aW, r0));
+	       if (bLineCap == 'square')
+                  b = cg.add(b, cg.scale(bW, r1));
 	       let rDiag = 1 / Math.cos(Math.PI / nSides);
                r0 *= rDiag;
                r1 *= rDiag;
 
-               let xx = d[0]*d[0], yy = d[1]*d[1], zz = d[2]*d[2];
-               let c = xx < yy && xx < zz ? [1,0,0]
-                                : yy < zz ? [0,1,0]
-                                          : [0,0,1];
-               let u = cg.normalize(cg.cross(d, c));
-               let v = cg.normalize(cg.cross(u, d));
+	       let findUV = d => {
+                  let xx = d[0]*d[0], yy = d[1]*d[1], zz = d[2]*d[2];
+                  let c = xx < yy && xx < zz ? [1,0,0]
+                                   : yy < zz ? [0,1,0]
+                                             : [0,0,1];
+                  let U = cg.normalize(cg.cross(d, c));
+                  let V = cg.normalize(cg.cross(U, d));
+		  return { U:U, V:V };
+	       }
+	       let aUV = findUV(item.aDir ?? d);
+	       let bUV = findUV(item.bDir ?? d);
 
                for (let n = 0 ; n < nSides ; n++) {
                   let t0 = (n-.5) * 2 * Math.PI / nSides, c0 = Math.cos(t0), s0 = Math.sin(t0);
@@ -240,33 +247,34 @@ export function Clay(gl, canvas) {
 
                   A.pos = []; B.pos = []; C.pos = []; D.pos = [];
                   for (let i = 0 ; i < 3 ; i++) {
-                     A.pos[i] = a[i] + r0 * (c0 * u[i] + s0 * v[i]);
-                     B.pos[i] = a[i] + r0 * (c1 * u[i] + s1 * v[i]);
-                     C.pos[i] = b[i] + r1 * (c1 * u[i] + s1 * v[i]);
-                     D.pos[i] = b[i] + r1 * (c0 * u[i] + s0 * v[i]);
+                     A.pos[i] = a[i] + r0 * (c0 * aUV.U[i] + s0 * aUV.V[i]);
+                     B.pos[i] = a[i] + r0 * (c1 * aUV.U[i] + s1 * aUV.V[i]);
+                     C.pos[i] = b[i] + r1 * (c1 * bUV.U[i] + s1 * bUV.V[i]);
+                     D.pos[i] = b[i] + r1 * (c0 * bUV.U[i] + s0 * aUV.V[i]);
                   }
 
                   if (isNormal) {
                      A.nor = []; B.nor = []; C.nor = []; D.nor = [];
 		     if (flatShading) {
-                        for (let i = 0 ; i < 3 ; i++)
-		           A.nor[i] = c * v[i] - s * u[i];
-                        B.nor = C.nor = D.nor = A.nor;
+                        for (let i = 0 ; i < 3 ; i++) {
+		           A.nor[i] = B.nor[i] = c * aUV.V[i] - s * aUV.U[i];
+		           C.nor[i] = D.nor[i] = c * bUV.V[i] - s * bUV.U[i];
+                        }
 		     }
 		     else
                         for (let i = 0 ; i < 3 ; i++) {
-                           A.nor[i] = c0 * v[i] - s0 * u[i];
-                           B.nor[i] = c1 * v[i] - s1 * u[i];
-                           C.nor[i] = c1 * v[i] - s1 * u[i];
-                           D.nor[i] = c0 * v[i] - s0 * u[i];
+                           A.nor[i] = c0 * aUV.V[i] - s0 * aUV.U[i];
+                           B.nor[i] = c1 * aUV.V[i] - s1 * aUV.U[i];
+                           C.nor[i] = c1 * bUV.V[i] - s1 * bUV.U[i];
+                           D.nor[i] = c0 * bUV.V[i] - s0 * bUV.U[i];
                         }
 		     if (taper) {
 			let cs = cg.normalize([cg.norm(d), r0 - r1]);
                         for (let i = 0 ; i < 3 ; i++) {
-                           A.nor[i] = cs[0] * A.nor[i] + cs[1] * w[i];
-                           B.nor[i] = cs[0] * B.nor[i] + cs[1] * w[i];
-                           C.nor[i] = cs[0] * C.nor[i] + cs[1] * w[i];
-                           D.nor[i] = cs[0] * D.nor[i] + cs[1] * w[i];
+                           A.nor[i] = cs[0] * A.nor[i] + cs[1] * aW[i];
+                           B.nor[i] = cs[0] * B.nor[i] + cs[1] * aW[i];
+                           C.nor[i] = cs[0] * C.nor[i] + cs[1] * bW[i];
+                           D.nor[i] = cs[0] * D.nor[i] + cs[1] * bW[i];
                         }
 		     }
                   }
@@ -277,34 +285,42 @@ export function Clay(gl, canvas) {
 
 		  pushQuad(A,B,C,D);
 
-                  switch (lineCap) {
+		  let buildRoundCap = (C,R0,R1,D) => {
+		     for (let phi = 0 ; phi < Math.PI/2 - .0001 ; phi += Math.PI/6) {
+		        let d = (U,V,phi) => cg.add(cg.scale(U, Math.cos(phi)),
+		                             cg.scale(V, Math.sin(phi)));
+                        let d00 = d(R0,D,phi), d01 = d(R0,D,phi+Math.PI/6),
+                            d10 = d(R1,D,phi), d11 = d(R1,D,phi+Math.PI/6);
+		        pushQuad({ pos: cg.add(C, d00), rgb: A.rgb, nor: cg.normalize(d00) },
+		                 { pos: cg.add(C, d10), rgb: A.rgb, nor: cg.normalize(d10) },
+		                 { pos: cg.add(C, d11), rgb: A.rgb, nor: cg.normalize(d11) },
+		                 { pos: cg.add(C, d01), rgb: A.rgb, nor: cg.normalize(d01) });
+		     }
+		  }
+
+                  switch (aLineCap) {
 		  case 'butt':
 		  case 'square':
-		     let wn = cg.scale(w, -1);
-		     let AA = { pos: A.pos, rgb: A.rgb, nor: wn };
-		     let BB = { pos: B.pos, rgb: B.rgb, nor: wn };
-		     let EE = { pos: a, rgb: rgb, nor: wn };
+		     let aWn = cg.scale(aW, -1);
+		     let AA = { pos: A.pos, rgb: A.rgb, nor: aWn };
+		     let BB = { pos: B.pos, rgb: B.rgb, nor: aWn };
+		     let EE = { pos: a, rgb: rgb, nor: aWn };
 		     meshData.push(AA, BB, EE);
-		     let CC = { pos: C.pos, rgb: C.rgb, nor: w  };
-		     let DD = { pos: D.pos, rgb: D.rgb, nor: w  };
-		     let FF = { pos: b, rgb: rgb, nor: w  };
+		     break;
+		  case 'round':
+		     buildRoundCap(a, cg.subtract(B.pos,a), cg.subtract(A.pos,a), cg.scale(aW,-r0));
+		     break;
+                  }
+                  switch (bLineCap) {
+		  case 'butt':
+		  case 'square':
+		     let CC = { pos: C.pos, rgb: C.rgb, nor: bW  };
+		     let DD = { pos: D.pos, rgb: D.rgb, nor: bW  };
+		     let FF = { pos: b, rgb: rgb, nor: bW  };
 		     meshData.push(CC, DD, FF);
 		     break;
 		  case 'round':
-		     let buildRoundCap = (C,R0,R1,D) => {
-		        for (let phi = 0 ; phi < Math.PI/2 - .0001 ; phi += Math.PI/6) {
-			   let d = (U,V,phi) => cg.add(cg.scale(U, Math.cos(phi)),
-			                               cg.scale(V, Math.sin(phi)));
-                           let d00 = d(R0,D,phi), d01 = d(R0,D,phi+Math.PI/6),
-                               d10 = d(R1,D,phi), d11 = d(R1,D,phi+Math.PI/6);
-			   pushQuad({ pos: cg.add(C, d00), rgb: A.rgb, nor: cg.normalize(d00) },
-			            { pos: cg.add(C, d10), rgb: A.rgb, nor: cg.normalize(d10) },
-			            { pos: cg.add(C, d11), rgb: A.rgb, nor: cg.normalize(d11) },
-			            { pos: cg.add(C, d01), rgb: A.rgb, nor: cg.normalize(d01) });
-		        }
-		     }
-		     buildRoundCap(a, cg.subtract(B.pos,a), cg.subtract(A.pos,a), cg.scale(w,-r0));
-		     buildRoundCap(b, cg.subtract(D.pos,b), cg.subtract(C.pos,b), cg.scale(w, r1));
+		     buildRoundCap(b, cg.subtract(D.pos,b), cg.subtract(C.pos,b), cg.scale(bW, r1));
 		     break;
                   }
                }
