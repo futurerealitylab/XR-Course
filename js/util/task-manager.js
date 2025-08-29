@@ -310,16 +310,13 @@ export class Task_Manager {
         //Convert from quaternion to euler angles 
         let euler = cg.quat2eul(this.robot_pose.orientation_quat);
         this.robot_pose.orientation_eul = [euler.roll, euler.pitch, euler.yaw];
-        
-        //this.trans_robot_cube.identity().move(this.robot_pose.position);
-        let scaledPos = [
-            this.robot_pose.position[0] * 2,
-            this.robot_pose.position[1] * 2, 
-            this.robot_pose.position[2] * 2
+
+        this.trans_robot_cube.identity().move(this.robot_pose.position);
+        this.drone.translation = [
+            this.robot_pose.position[0] * 0.5,
+            this.robot_pose.position[1] * 0.5, 
+            this.robot_pose.position[2] * 0.5
         ];
-        
-        this.trans_robot_cube.identity().move(scaledPos);
-        this.drone.translation = this.robot_pose.position;
         
         //to change the orientation 
         this.robot_cube.turnX(euler.roll);
@@ -336,15 +333,14 @@ export class Task_Manager {
     update_robot_pose2_1() {
         let euler =  cg.quat2eul(this.robot_pose2_1.orientation_quat);
         this.robot_pose2_1.orientation_eul = [euler.roll, euler.pitch, euler.yaw];
-        // this.trans_robot_cube2_1.identity().move(this.robot_pose2_1.position);
-        let scaledPos2_1 = [
-            this.robot_pose2_1.position[0] * 2,
-            this.robot_pose2_1.position[1] * 2, 
-            this.robot_pose2_1.position[2] * 2
+        this.trans_robot_cube2_1.identity().move(this.robot_pose2_1.position);
+
+        // this.drone2_1.translation = this.robot_pose2_1.position;
+        this.drone2_1.translation = [
+            this.robot_pose2_1.position[0] * 0.5,
+            this.robot_pose2_1.position[1] * 0.5, 
+            this.robot_pose2_1.position[2] * 0.5
         ];
-        this.trans_robot_cube2_1.identity().move(scaledPos2_1);
-        this.drone2_1.translation = this.robot_pose2_1.position;
-        
 
 
         this.robot_cube2_1.turnX(euler.roll);
@@ -357,14 +353,15 @@ export class Task_Manager {
     update_robot_pose2_5() {
         let euler =  cg.quat2eul(this.robot_pose2_5.orientation_quat);
         this.robot_pose2_5.orientation_eul = [euler.roll, euler.pitch, euler.yaw];
-        // this.trans_robot_cube2_5.identity().move(this.robot_pose2_5.position);
-        let scaledPos2_5 = [
-            this.robot_pose2_5.position[0] * 2,
-            this.robot_pose2_5.position[1] * 2, 
-            this.robot_pose2_5.position[2] * 2
+        this.trans_robot_cube2_5.identity().move(this.robot_pose2_5.position);
+
+        // this.drone2_5.translation = this.robot_pose2_5.position;
+        this.drone2_5.translation = [
+            this.robot_pose2_5.position[0] * 0.5,
+            this.robot_pose2_5.position[1] * 0.5, 
+            this.robot_pose2_5.position[2] * 0.5
         ];
-        this.trans_robot_cube2_5.identity().move(scaledPos2_5);
-        this.drone2_5.translation = this.robot_pose2_5.position;
+
 
         this.robot_cube2_5.turnX(euler.roll);
         this.robot_cube2_5.turnY(euler.pitch);
@@ -376,14 +373,15 @@ export class Task_Manager {
     update_robot_pose2_8() {
         let euler =  cg.quat2eul(this.robot_pose2_8.orientation_quat);
         this.robot_pose2_8.orientation_eul = [euler.roll, euler.pitch, euler.yaw];
-        // this.trans_robot_cube2_8.identity().move(this.robot_pose2_8.position);
-        let scaledPos2_8 = [
-            this.robot_pose2_8.position[0] * 2,
-            this.robot_pose2_8.position[1] * 2, 
-            this.robot_pose2_8.position[2] * 2
+        this.trans_robot_cube2_8.identity().move(this.robot_pose2_8.position);
+        
+        // this.drone2_8.translation = this.robot_pose2_8.position;
+        this.drone2_8.translation = [
+            this.robot_pose2_8.position[0] * 0.5,
+            this.robot_pose2_8.position[1] * 0.5, 
+            this.robot_pose2_8.position[2] * 0.5
         ];
-        this.trans_robot_cube2_8.identity().move(scaledPos2_8);
-        this.drone2_8.translation = this.robot_pose2_8.position;
+
 
         this.robot_cube2_8.turnX(euler.roll);
         this.robot_cube2_8.turnY(euler.pitch);
@@ -395,14 +393,15 @@ export class Task_Manager {
     update_robot_pose2_9() {
         let euler =  cg.quat2eul(this.robot_pose2_9.orientation_quat);
         this.robot_pose2_9.orientation_eul = [euler.roll, euler.pitch, euler.yaw];
-        // this.trans_robot_cube2_9.identity().move(this.robot_pose2_9.position);
-        let scaledPos2_9 = [
-            this.robot_pose2_9.position[0] * 2,
-            this.robot_pose2_9.position[1] * 2, 
-            this.robot_pose2_9.position[2] * 2
+        this.trans_robot_cube2_9.identity().move(this.robot_pose2_9.position);
+        
+        
+        // this.drone2_9.translation = this.robot_pose2_9.position;
+        this.drone2_9.translation = [
+            this.robot_pose2_9.position[0] * 0.5,
+            this.robot_pose2_9.position[1] * 0.5, 
+            this.robot_pose2_9.position[2] * 0.5
         ];
-        this.trans_robot_cube2_9.identity().move(scaledPos2_9);
-        this.drone2_9.translation = this.robot_pose2_9.position;
 
         this.robot_cube2_9.turnX(euler.roll);
         this.robot_cube2_9.turnY(euler.pitch);

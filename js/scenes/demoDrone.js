@@ -475,8 +475,13 @@ export const init = async model => {
         if (ts.ws_sender_goal && 
             ts.ws_sender_goal.final_goal && 
             ts.ws_sender_goal.final_goal.location) {
+            
+            // const finalGoalPosition = ts.ws_sender_goal.final_goal.location;
+            const finalGoalPosition = [ts.ws_sender_goal.final_goal.location[0] * 0.5,
+                ts.ws_sender_goal.final_goal.location[1] * 0.5,
+                ts.ws_sender_goal.final_goal.location[2] * 0.5]; 
 
-            const finalGoalPosition = ts.ws_sender_goal.final_goal.location; 
+            
 
             // Final goal
             if (!finalGoalPosition){
