@@ -116,3 +116,19 @@ export function stopAllSounds() {
     });
     console.log('All Sound Stops');
 }
+
+export function setSourceDistanceRange(sourceIndex, minDistance, maxDistance) {
+    const src = resonanceSources[sourceIndex]?.source;
+    if (!src) {
+        console.warn(`No source found at index ${sourceIndex}`);
+        return;
+    }
+
+    if (minDistance !== undefined && maxDistance !== undefined && minDistance > maxDistance) {
+        console.warn(`minDistance > maxDistance for index ${sourceIndex}, ignoring`);
+        return;
+    }
+
+    if (minDistance !== undefined) src.setMinDistance(minDistance);
+    if (maxDistance !== undefined) src.setMaxDistance(maxDistance);
+}
