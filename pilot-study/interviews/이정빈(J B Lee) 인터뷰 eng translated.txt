@@ -1,0 +1,222 @@
+Lee Jeongbin Interview - English Translation
+2026.05.14 Thu 4:50 PM - 8 min 1 sec
+Jongho Lee
+
+
+Participant 1 00:00
+Lee Jeongbin interview. We will begin the interview.
+You have completed both visits. About how many times a year do you go to museums?
+
+Participant 2 00:16
+I think I go about twice a year.
+
+Participant 1 00:20
+Including art galleries?
+
+Participant 2 00:21
+Sometimes I end up going a lot, but on average it is about twice.
+
+Participant 1 00:25
+When you go a lot, how much is that?
+
+Participant 2 00:27
+When I go a lot, it is usually because I follow friends or a partner, and then I sometimes go quite often.
+
+Participant 1 00:34
+How much did you go last year?
+
+Participant 2 00:35
+I think I barely went last year. Maybe three times.
+
+Participant 1 00:38
+Have you gone this year?
+
+Participant 2 00:40
+I have not gone at all this year.
+
+Participant 1 00:42
+Understood. Before asking the main questions, what did you think this study was about, and what did you think it was measuring?
+
+Participant 2 00:53
+I vaguely thought it might be testing how realistically people feel the presence of others inside VR.
+
+Participant 1 01:12
+Presence? For example?
+
+Participant 2 01:14
+For example, through sound and things like that, how realistically nearby visitors are felt.
+
+Participant 1 01:30
+The presence of others?
+
+Participant 2 01:32
+Yes, I vaguely thought it was about that.
+
+Participant 1 01:36
+You completed two visits. How were the two visits different?
+
+Participant 2 01:42
+In the second experiment, Session A, the sound felt very comfortable and quiet. It did not feel crowded.
+The first experiment felt a bit hectic to me.
+
+Participant 1 02:05
+Did you feel that people were there, or that you were alone, or something like that?
+Was there a sense of people from the sound?
+
+Participant 2 02:13
+I did feel that people were there. I am trying to think back. In the first one, there seemed to be a lot of sound information.
+Since it was the first experiment, and I became more accustomed in the second, it may also have felt that way because it was unexpected.
+
+Participant 1 02:37
+Did you perceive that the audio gave a feeling that another person was present?
+
+Participant 2 02:43
+Yes. I think I felt footsteps and a sense that someone was coming toward me from the side.
+Looking back, compared with the second one, I felt the sense of a person more strongly in the first one.
+
+Participant 1 03:00
+Which sound especially?
+
+Participant 2 03:01
+The footstep sound. It felt a little more realistic.
+
+Participant 1 03:06
+If there were people, how many?
+
+Participant 2 03:08
+I think about one or two people.
+
+Participant 1 03:10
+Did you feel that there were people, or just that there was sound, or that someone came and went?
+
+Participant 2 03:16
+It felt like someone was coming and going.
+
+Participant 1 03:18
+Coming and going in real time?
+
+Participant 2 03:20
+Yes, but I did feel it was artificial.
+
+Participant 1 03:23
+Did it feel like someone was just heard and then left? In other words, were they appreciating the works together in real time?
+Or was it something left behind by someone who had come earlier?
+
+Participant 2 03:31
+I think it felt real-time.
+
+Participant 1 03:35
+It felt real-time, not just sound left behind, but as if someone was actually coming and going.
+
+Participant 2 03:42
+But of course I did not feel it was a real person.
+
+Participant 1 03:48
+If it did not feel like a real person...
+
+Participant 2 03:50
+It felt like an NPC, for example.
+
+Participant 1 03:54
+So the sound felt a little artificial?
+
+Participant 2 03:57
+It felt artificial.
+
+Participant 1 03:58
+What made it feel artificial?
+
+Participant 2 04:00
+This may be a vague explanation, but the footsteps felt somewhat predictable.
+In reality, each person's walking sound is different, and each step can have a different texture. But this felt somewhat like a sound that had just been inserted.
+
+Participant 1 04:31
+Do you mean the sound sample itself felt that way, or the routine felt that way? By routine, I mean the route.
+
+Participant 2 04:39
+The route? No, I think the sound itself felt that way.
+
+Participant 1 04:45
+But you are not sure exactly why?
+
+Participant 2 04:47
+I was not focusing closely enough to listen to the route or things like that. I am explaining somewhat vaguely from the viewer's position.
+
+Participant 1 04:56
+What exactly do you think made you feel that way?
+
+Participant 2 05:00
+It felt a little like a repeating sound. Like repeated footstep sounds, almost like a loop.
+Of course, it was not continuously looping, but still...
+
+Participant 1 05:17
+It still felt artificial.
+
+Participant 2 05:20
+In a museum, I personally think people usually stay still for a while, so there are fewer footsteps.
+But I felt like I kept hearing them.
+
+Participant 1 05:33
+If you could visit a virtual or augmented museum like this again, which condition would you prefer?
+
+Participant 2 05:44
+Through augmented reality?
+
+Participant 1 05:47
+Like what you just experienced. If the two conditions were both available, which one would you prefer?
+
+Participant 2 05:53
+Could you specify the two again?
+
+Participant 1 05:55
+The first one, Section B...
+
+Participant 2 05:57
+You mean between Section B and A, right?
+
+Participant 1 05:59
+Even if the works or the space were different, would you prefer a setup like Section B or one like Section A?
+
+Participant 2 06:09
+I think A. The reason is, as I said, there was less sound information.
+And because of the nature of museums, I think they are about immersion and concentration. If too many things are moving around, it becomes distracting.
+
+Participant 1 06:27
+So it seems to reduce concentration.
+
+Participant 2 06:30
+Yes, that is how it felt.
+
+Participant 1 06:32
+To view the artworks, that quieter condition is necessary. Understood.
+Is there any additional experience you would like to share?
+
+Participant 2 06:44
+In this experiment?
+
+Participant 1 06:45
+Feedback, experience, or anything you were curious about.
+
+Participant 2 06:49
+This is not about sound, but I will mention it. I tried to approach the experience with an attitude of immersion.
+What was disappointing was that the descriptions of the paintings were broken or hard to read, and that was a strong factor interfering with immersion.
+Because of that, I might also have unconsciously thought about the sound more critically.
+
+Participant 1 07:17
+But the conditions were the same, so why might that have made you criticize the sound?
+
+Participant 2 07:21
+At first, it was an environment I did not know. The text was not readable unless I got very close, because of the resolution.
+
+Participant 1 07:32
+If you had experienced the condition without sound first, you might have felt differently?
+
+Participant 2 07:35
+The image itself may have given me the perception that this is a completely virtual space and somewhat incomplete.
+Because of that, I may also have unconsciously thought about the sound somewhat critically.
+
+Participant 1 07:52
+I understand. Okay. Thank you for participating today.
+
+
+clovanote.naver.com

@@ -1,0 +1,193 @@
+Doo Jieun Interview - English Translation
+2026.05.14 Thu 4:49 PM - 10 min 30 sec
+Jongho Lee
+
+
+Participant 1 00:00
+Thank you. We will proceed with the interview.
+First, thank you for participating in the experiment. Before we begin the questions, about how many times a year do you go to museums?
+
+Participant 2 00:15
+Including museums, art galleries, and galleries, maybe at least 10 times. More than 10.
+
+Participant 1 00:23
+About once a month?
+
+Participant 2 00:25
+Yes. I do not go regularly, but when I see something I am interested in, I tend to go often.
+
+Participant 1 00:35
+Do you go regardless of whether it is a museum or art museum?
+
+Participant 2 00:38
+Yes, museums, art museums, and galleries too.
+
+Participant 1 00:42
+Understood. You just had this experience. Did you feel what this study was about, or what it was trying to measure?
+
+Participant 2 00:55
+I think the settings were almost the same visually, but it was more about the sense of realism through sound.
+
+Participant 1 01:02
+Sound-based realism?
+
+Participant 2 01:04
+And immersion.
+
+Participant 1 01:09
+What do you mean by sound-based realism?
+
+Participant 2 01:13
+In the space, whether sounds like my footsteps or subtle sounds being heard more or less would help immersion in a VR environment. I thought it might be about that.
+
+Participant 1 01:32
+So it seemed to be about immersion in the environment?
+
+Participant 2 01:40
+Yes. In the same visual setting, I thought you were measuring whether sound can increase immersion in the museum environment, or make it feel more present or realistic.
+
+Participant 1 02:13
+I see. As you predicted, you completed two visits.
+How specifically were these two visits different, and what stood out?
+
+Participant 2 02:24
+For the first one, B, I felt the sound more through the headset. It felt like my own footsteps were heard more clearly, and I could sense more surrounding sounds, not noisy sounds exactly, but the small sounds you might hear in a museum. A was quieter.
+
+Participant 1 02:58
+Quieter.
+
+Participant 2 02:59
+Yes, quieter.
+
+Participant 1 03:02
+Did you feel anything related to being more alone or less alone?
+
+Participant 2 03:08
+In the second one, because the sound was less noticeable, it felt more like being alone.
+In the first one, I heard various sounds. But rather than feeling strongly that I was with someone, both felt like I was viewing alone, with the first one simply sounding more like an actual museum.
+
+Participant 1 03:41
+So more like sounds from a real space.
+
+Participant 2 03:48
+Yes, that is how it felt.
+
+Participant 1 03:51
+So you did not particularly feel that another person was there?
+
+Participant 2 03:57
+Rather than thinking someone was there, it felt more like an actual museum environment.
+Museums can be very crowded, but there are also many rooms that are not. So in terms of footsteps and things like that, rather than feeling that someone was near me, I suppose you could interpret it as someone being there. But it was not very strongly felt.
+
+Participant 1 04:32
+Was it more like traces? Like recordings made in a museum, where people had come and gone?
+
+Participant 2 04:41
+Maybe. It could be like traces. Rather than traces, maybe it felt like someone else was viewing, or someone was there somewhere. Maybe someone was in another room. I think that feeling could arise a little.
+
+Participant 1 05:07
+You heard these sounds. Did they feel natural?
+Or did anything feel artificial, unnatural, or strange?
+
+Participant 2 05:19
+I think they felt fairly natural.
+I do not think there were sounds that felt very unnatural or distracting.
+
+Participant 1 05:27
+You go to museums quite often. If you could visit one of these two conditions again in the same VR, virtual, or AR museum environment, which one would you prefer?
+
+Participant 2 05:45
+Still the first one.
+
+Participant 1 05:47
+The one with sound?
+
+Participant 2 05:49
+Yes. Because if it is too quiet, that feels stranger.
+
+Participant 1 05:58
+Too quiet feels that way?
+
+Participant 2 06:00
+If it is too quiet, it feels like, "This is really just a VR environment." Even though I know I am experiencing VR, to feel more like I am interacting with the place and to increase immersion, I think the first one is better. This may also be personal preference, but I feel uncomfortable when it is too quiet. Some white noise...
+
+Participant 1 06:40
+White noise.
+
+Participant 2 06:41
+That kind of feeling makes it a more comfortable viewing environment.
+
+Participant 1 06:44
+Was there any difference in concentration on the artworks or immersion?
+
+Participant 2 06:50
+It may be because it was the first viewing, but I accepted the first one as a more comfortable environment, so viewing the works felt easier.
+
+Participant 1 07:07
+The reason the environment felt comfortable was that the virtual feeling became blurred?
+
+Participant 2 07:15
+Not blurred, but as I was in the space and experiencing it, it felt like the space matched better. The sound matched this experimental space and the virtual space. Because I am familiar with those sounds from going to actual museums often, I think it felt more comfortable, and that helped with viewing.
+
+Participant 1 07:52
+Is there anything you did not get a chance to say that you would like to share?
+
+Participant 2 07:59
+There is something that is not sound-related, and this study may not address it, but I thought it was a very strong factor disrupting immersion: the images and the explanations.
+The text. My eyesight is very good.
+
+Participant 1 08:28
+Yes.
+
+Participant 2 08:29
+In an actual environment, text is somewhat readable from a distance.
+I like looking at the artwork from a distance and then going closer to see details. But in this VR environment, when I was far away, I had to get extremely close to read the description.
+
+Participant 1 08:50
+Is that because the description is small, or because of VR resolution?
+
+Participant 2 08:55
+It is the VR characteristic, the shaking that causes dizziness or motion sickness.
+
+Participant 1 09:05
+There is some of that.
+
+Participant 2 09:06
+I think that is severe.
+
+Participant 1 09:08
+So that breaks immersion.
+
+Participant 2 09:12
+It greatly harms immersion. Also, with the images, the materiality does not come through.
+
+Participant 1 09:25
+In VR, yes.
+
+Participant 2 09:28
+That is huge. In an actual environment, the reason you go is because the aura is different.
+
+Participant 1 09:38
+Yes, I know what you mean.
+
+Participant 2 09:41
+The materiality is very...
+
+Participant 1 09:43
+In a way, it feels more like seeing it in 2D than 3D.
+
+Participant 2 09:47
+Yes. For this to work better, I think materiality and VR dizziness are the biggest issues. Sound is also very important, of course, but those earlier issues need to be solved first in order to provide more immersion.
+
+Participant 1 10:13
+That is a very interesting insight. I think it is a very good point to discuss with the team.
+Thank you. For now, the interview will...
+
+Participant 2 10:26
+End here.
+
+Participant 1 10:28
+Thank you. Thank you for participating.
+
+
+clovanote.naver.com

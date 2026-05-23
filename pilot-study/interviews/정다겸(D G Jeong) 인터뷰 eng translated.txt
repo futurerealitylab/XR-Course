@@ -1,0 +1,153 @@
+Jeong Dagyeom Interview - English Translation
+2026.05.14 Thu 4:50 PM - 9 min 23 sec
+Jongho Lee
+
+
+Participant 1 00:00
+Dagyeom, we will begin the interview. First, thank you for participating in the experiment.
+You have completed both visits, and now we will conduct a short interview.
+About how often do you go to museums in a year?
+
+Participant 2 00:19
+I think I definitely see three or four exhibitions a month.
+
+Participant 1 00:25
+So you go almost every week.
+
+Participant 1 00:32
+Good. Before we get into the main questions, I would like to ask what you thought this study was about, or what you felt it was measuring.
+
+Participant 2 00:47
+I felt like you were trying to look at companionship. In Section A, there was almost only ambient sound.
+So it felt like time to focus on myself and the artwork. In Section B, with footstep sounds and things like that, I thought you might be studying how to create an experience of being together in a shared virtual space.
+
+Participant 1 01:28
+That is very detailed. You completed two visits.
+Could you tell me how the two visits differed and what stood out?
+
+Participant 2 01:40
+In the first experience, I do not think I paid much attention to the sound.
+But at one point, the sound looped, right? There was a point where it cut slightly when the loop repeated, and that made me notice that sound was included.
+Other than that, I comfortably understood it as the usual experience of viewing artworks in a museum.
+In B, at first I started with the portrait on the right. I do not remember the name exactly.
+
+Participant 1 02:28
+I am not sure either.
+
+Participant 2 02:32
+The portrait on the right. I started with that, and at first I thought sound was coming from the artwork.
+There were footsteps and clothing sounds, so when I started with the portrait, I wondered if this was sound coming from the artwork itself. But as I moved, those sounds kept coming only from the left.
+So I felt that someone was there. Overall, I walked around from right to left, and it felt like I was appreciating the works together with someone.
+
+Participant 1 03:10
+That is very good. So in the first visit, it felt like you were alone, and in the second visit, it felt like someone was there. Is that what you mean?
+Right. Then you perceived from the audio that another person was present.
+Were there specific sounds that made you feel that more?
+
+Participant 2 03:37
+I thought footsteps had more value than clothing sounds.
+Footsteps, yes. Footsteps and sounds like something brushing incorrectly, little scratchy or squeaky sounds, gave more of a sense of presence.
+
+Participant 1 04:03
+If there were people, about how many were there?
+
+Participant 2 04:06
+I felt there were three.
+
+Participant 1 04:09
+Did they feel close, not far away?
+
+Participant 2 04:14
+Yes, I felt they were close.
+
+Participant 1 04:17
+Did it feel like viewing together, or like traces of someone who had already come and gone?
+
+Participant 2 04:23
+It felt like viewing together.
+
+Participant 1 04:27
+Did these sounds feel natural, or did anything feel artificial or strange?
+
+Participant 2 04:33
+They felt somewhat artificial, and I think it was because they were too close.
+
+Participant 1 04:41
+Because the sound felt too close?
+
+Participant 2 04:44
+This may just be my personal trait, but I usually go to exhibitions alone, so people do not often come that close beside me.
+I think that is why I felt that way.
+
+Participant 1 04:57
+Because you usually go to exhibitions alone, and your tendency is to view alone, the presence of sound felt somewhat artificial.
+
+Participant 2 05:06
+Yes. I usually hear sounds from farther away, so because they were too close, they sounded artificial.
+
+Participant 1 05:12
+Usually in museums, if you hear sounds, they come from farther away.
+
+Participant 2 05:16
+Even when you hear sounds. If a place is very crowded, that is another matter. But usually people try to keep some distance.
+
+Participant 1 05:25
+Is that usually the case?
+
+Participant 2 05:26
+Usually, yes. Even at the National Museum of Modern and Contemporary Art, there are a lot of people these days, but people seem to view in sequence. At least from what I have seen, people who came alone tend to keep some distance.
+
+Participant 1 05:54
+Then if two similar visits were possible later with different artworks, which one would you prefer?
+
+Participant 2 06:08
+You mean within a virtual space, right? I would choose the first one.
+
+Participant 1 06:14
+The one where you view alone?
+
+Participant 2 06:16
+Yes, alone.
+
+Participant 1 06:19
+Is that because you usually go to see artworks alone?
+
+Participant 2 06:24
+Rather than that, it is because of the nature of the virtual space. In an actual museum, I think feeling companionship can be good. But in the medium of virtual space, you wear the headset alone.
+Unless it is developed further, even if two or three headset users are in the same environment, unless I can visually see that person moving around, I personally think it is almost an individual experience.
+For virtual media, I think Section A fits the medium better.
+
+Participant 1 07:15
+So because it is VR, you feel that way.
+Did you feel anything was strange because there was sound only?
+
+Participant 2 07:30
+Because there was sound only? No, I did not.
+
+Participant 1 07:37
+Nothing like that. Is there any additional feedback or anything you would like to say about this museum experience?
+
+Participant 2 07:52
+Was there a reason the sound kept coming only from the left?
+
+Participant 1 07:57
+That is because I recorded it here. I had visitors walk around while recording with microphones, then spatialized the sound. The reason you heard it from the left is that the person recorded at that moment was located on the left.
+Each artwork had two microphones, one for footsteps and one for mouth or clothing sounds. So if the person was on the left, the spatial audio made it come from the left; if they were on the right, it was louder on the right; if you were in the same position, it would sound similar on both sides.
+Any other feedback?
+
+Participant 2 08:50
+Earlier you mentioned spatial surround. Later, if sounds from farther away could also be included...
+
+Participant 1 08:59
+Yes.
+
+Participant 2 09:00
+If distant sounds were included too, I think it would be...
+
+Participant 1 09:04
+Sounds from farther away. That would probably be more similar to sounds heard in an actual museum.
+Understood. That is very good. We will end the interview here.
+Thank you for participating today. Thank you.
+
+
+clovanote.naver.com

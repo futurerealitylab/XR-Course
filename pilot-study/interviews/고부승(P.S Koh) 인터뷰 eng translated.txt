@@ -1,0 +1,170 @@
+Ko Buseung Interview - English Translation
+2026.05.14 Thu 4:50 PM - 13 min 57 sec
+Jongho Lee
+
+
+Participant 1 00:00
+Ko Buseung, both visits are now complete.
+We will conduct a short interview. About how many times a year do you usually go to museums?
+
+Participant 2 00:15
+It differs by year, but usually I think I go about twice a year.
+Especially when I travel abroad, I do tend to make sure I visit museums there.
+
+Participant 1 00:34
+Twice a year?
+
+Participant 2 00:35
+Yes.
+
+Participant 1 00:36
+Fewer than I expected. That includes both museums and art galleries, right?
+
+Participant 2 00:42
+Yes. Honestly, I sometimes go to art galleries, but unless it is modern or contemporary, I am not sure, I usually do not end up going. I go when I travel abroad, or if there is a museum nearby. Since there are not many where I live, I do not think I specifically seek them out domestically.
+
+Participant 1 01:10
+I see. You just went through the whole experience.
+What did you think this study was about?
+And what do you think it was trying to measure?
+
+Participant 2 01:25
+Honestly, first I thought it might be measuring the feasibility or possibility of MetaMuseum, from the perspective of someone involved in the research.
+And how to make this virtual experience more similar to what real visitors experience, at least a little bit. That is how it felt.
+Then, when sound is included, how it can provide a more immersive experience. Also, in real environments, even with things like real-time chat, I know a lot of people can enter, maybe around 20 people, but because of networking and things like that, it can be difficult for people to join.
+
+Participant 2 02:34
+And some people may want to go to a museum quietly. If you go with multiple people in multiplayer, it can become a messy experience. Usually when you go to a museum while traveling, or with family, or alone, you only talk within your group. But once it becomes multiplayer like a game, the experience can become cluttered.
+But if people are completely removed, it can also feel too lonely. So I thought it might be about how to add supplementary devices, using sound in a single-player setting, to create presence or the feeling that "this is not an empty warehouse," while reducing networking load.
+For measurement, I thought you might be measuring how much people look at the paintings in the space, how long they look, or whether they react to sound. That is what I thought because of the recording.
+
+Participant 1 03:55
+Understood. You completed two visits.
+How were the visits different?
+
+Participant 2 04:02
+Honestly, the first visit was the most interesting. It was my first time walking around in a virtual medium like that. Usually, people just tell you to move with a controller, but here I could move in a fairly large space and look at paintings.
+It did feel somewhat similar to going to an actual museum or art gallery, which was interesting. The text and things were a bit blurry, which was a little uncomfortable, but the paintings themselves looked better when I got close.
+
+Participant 2 04:42
+Seeing that, I thought this is something that can be done to some extent without physically going somewhere. One thing I definitely felt is that in gallery-form exhibitions or curated museums, everything from space design to text is designed, so the space itself is very important.
+It is very different from just searching for an image online and looking at it. In an exhibition hall or museum, the space gives you a path. When you walk, there is a flow that guides you.
+Because actual walking is included here, I thought this was worth trying. If a living room at home were a little large and you could walk around a bit, this could be quite viable.
+
+Participant 2 05:41
+When sound appeared in the second one, at first I wondered whether maybe an NPC was walking around, so I kept looking back, but there was nothing.
+Still, having sound was fine. I think it could be there or not be there. At that level of sound, either is okay.
+It did not strongly make me think, "There is definitely a person." I just thought, "Ah, this was the intention," or "There could be someone." But if you ask whether it greatly affected my experience, it did not.
+
+Participant 1 06:22
+Understood. So the two visits were similar?
+
+Participant 2 06:28
+I think they were similar. Yes, similar.
+The second one was nice to have, because it gave a slight feeling that the space was not completely empty. But with only that much sound, it felt a bit lacking. If there had been a bit more, not necessarily more fun, but more meaningful, maybe.
+The difference was not very large. It was more like, "There might be someone," or if there was no sound, "There was no one."
+But even without sound, when you go to some exhibition halls early in the morning or afternoon, there is no one there. That does not necessarily make you feel lonely.
+The first visit felt like I was walking around alone in a less popular museum. The second felt like one person was making sound behind me. So I did not feel a major experiential difference.
+
+Participant 1 07:35
+When there was audio, did you feel that it gave a feeling of another person?
+Or did you just feel that there was audio?
+
+Participant 2 07:43
+At first, I did think maybe there was a person. But because I kept looking back and there was sound but nothing there, I ended up thinking it was just audio.
+
+Participant 1 07:58
+So rather than feeling that a certain number of people were there, it felt like there was audio?
+
+Participant 2 08:04
+Not exactly. Because I could hear the sounds, they made me think about it. It did not feel like many people, maybe one to three people, somewhere I could not see.
+I thought that at first, but because no one was visible and the audio kept playing, it shifted more toward audio.
+
+Participant 1 08:35
+Then what kind of feeling was it exactly? Did it feel like someone was viewing together with you?
+Or like traces?
+
+Participant 2 08:43
+It felt like they were viewing together. Maybe not in this exact space, but as if there were people outside. I imagined something moving somewhere nearby.
+So I think I was simply imagining the space more broadly.
+
+Participant 1 09:02
+Did it feel like they were walking around in real time?
+Or like traces of someone who had already come and gone?
+
+Participant 2 09:08
+Real time. The real-time feeling was stronger.
+
+Participant 1 09:13
+You said it felt real-time, but you also said it felt like audio.
+What exactly do you mean? Did it feel like someone was actually viewing together in real time?
+
+Participant 2 09:27
+For maybe the first 30 seconds or one minute, I did think there was a person in real time.
+But because I could not see anyone, it turned into just audio.
+
+Participant 1 09:38
+I understand.
+
+Participant 2 09:41
+But it still made me think that a person could be somewhere in real time.
+When I first entered, I thought someone might be walking around in this museum. I did not think only about this room; there is also a door behind it, and there could be someone beyond that door.
+
+Participant 1 10:04
+I understand. Did these sounds feel real?
+Or did they feel artificial or strange?
+
+Participant 2 10:10
+They felt somewhat real. The volume level and things like that were okay.
+I did not think of them as highly realistic real-life industrial footsteps or anything, but if I am in a virtual space and hear someone's footsteps, I think, "This is an NPC or a player."
+In multiplayer games or games with various NPCs, those sounds happen, so within the virtual space, the audio felt natural.
+For example, in PUBG, if you hear footsteps next to you, you do not think it is artificial. You recognize it as footsteps within the game, and that means there is a person. I felt it in that way, so it was real within the virtual space.
+But whether it was the actual sound of a real person's footsteps is another matter. It did not make me fully feel that someone was truly walking around here in reality. But within the virtual space, it felt natural.
+
+Participant 1 11:20
+If you could visit the same kind of museum environment again, with different artworks but the same conditions, which of the two would you want to visit more?
+
+Participant 2 11:37
+I think I would still choose the second one.
+The condition with audio. Why? Because compared with complete silence, the rustling sounds and so on were a little more stimulating.
+Not stimulating in a bad way, but instead of walking around completely alone with only visuals and hearing the loud air conditioner in the real room, the virtual space also stimulated an additional sense. That helped immersion a little.
+It made me think that this space has details, that it is an intentionally designed space. That made me more interested.
+
+Participant 1 12:50
+Does that mean you could concentrate better?
+
+Participant 2 12:51
+Not exactly. I do not think concentration was better.
+It simply made me feel that more care had been put into the space, so I would want to enter that space more.
+
+Participant 1 13:04
+So it is a different kind of feeling, interest in the space.
+
+Participant 2 13:10
+You could think of it as quality. The quality of the space increased.
+It felt like a higher-quality product.
+
+Participant 1 13:19
+So it felt like more effort had been put in.
+
+Participant 2 13:21
+Yes, exactly.
+
+Participant 1 13:25
+If you are going to enter anyway, the creator put more in, and there are more stimuli. But that is unrelated to focusing on the artworks.
+
+Participant 2 13:38
+Yes, I think it is unrelated.
+
+Participant 1 13:39
+Was there no difference in focusing on the artworks?
+
+Participant 2 13:42
+There was no difference. Actually, I focused best in the first one because they were the first artworks I saw.
+That may be due to order.
+
+Participant 1 13:51
+Understood. Then we will end the interview here.
+
+
+clovanote.naver.com

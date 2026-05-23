@@ -1,0 +1,73 @@
+Kim Seongjun Interview - English Translation
+2026.05.14 Thu 4:50 PM - 5 min 37 sec
+Jongho Lee
+
+
+Participant 1 00:03
+Kim Seongjun. Yes. You have completed both visits.
+We will conduct a short interview. Before we begin, how often do you usually go to museums in a year?
+
+Participant 2 00:22
+Maybe once a year, or not even that.
+
+Participant 1 00:24
+Once a year. Then when was the most recent time you went?
+
+Participant 2 00:32
+Last year, when I went on a business trip to the UK, I went to a large museum.
+I went around museums or galleries. No, do you remember when the last time was?
+
+Participant 2 00:44
+From what I remember, probably more than seven years ago.
+
+Participant 1 00:50
+I see. Before we get into the main questions, what do you think this study was about?
+And what do you think it was trying to measure?
+
+Participant 2 00:58
+I understood it as checking whether people feel a sense of presence depending on what kind of sound is provided on site. By "sound," I mean environmental noise that could be heard inside, or sounds made by people, such as brushing footstep sounds or the sound of clothing rubbing.
+
+Participant 1 01:29
+What do you think the purpose of doing that was?
+
+Participant 2 01:32
+I understand that the intention is to bring out the realism of a museum site in VR, but I am not sure whether that is necessarily needed.
+
+Participant 1 01:49
+You completed two visits. Could you tell me how the two visits were different, and what stood out?
+
+Participant 2 01:59
+In the first visit, I heard footsteps and things like that a little, but they felt quite artificially amplified. In the second one, I actually did not really notice the environmental noise, so what I perceived was basically just visuals without sound. That is how I judged it.
+
+Participant 1 02:29
+Between the two visits, did either one feel less alone or more alone?
+Both felt like I was alone.
+Both felt like being alone. I see. Then did you perceive from the audio that there were other people present?
+
+Participant 2 02:53
+I could tell from the audio that footsteps and things like that had been added, but because they did not match the visuals, I did not really feel that someone was there. I think for that to work, there would need to be another moving object nearby or something like that.
+So the visual and the audio do not match. In that case, it does not feel like someone is there together with you. What kind of feeling is it?
+It literally felt like footsteps were being played. At first, I thought the sound was supplementary material related to the artwork, but it was not. It did not really match the artwork, and if the idea was that someone was inside the museum, that also did not match the visuals. So it just felt like footsteps suddenly playing by themselves.
+
+Participant 1 03:57
+So it did not give you the feeling of traces of someone who had been there, or of someone viewing together with you. You did not receive that at all.
+I see. Then did you feel that the sound was artificial?
+Because you could not see anything but could hear the sound, right. If another visit were possible, would you prefer the version without sound or the version with sound?
+
+Participant 2 04:25
+I think it would depend on what kind of sound it is, but with the sound as it is now, I think it would be better without it.
+If sound must be used, there was a painting that looked somewhat like the ocean, maybe an advertisement-like painting, next to a seonbi painting. Anyway, there was something like a natural landscape, and also the one with two Tahitian women. For those, maybe it would be better to add background sound related to the painting, more like providing content.
+
+Participant 1 05:08
+But if it is the same environment, you would prefer to visit the version without sound. Is that what you mean?
+
+Participant 2 05:17
+I see. But if there are other avatars in the space, then the fact that those avatars make footstep sounds would feel very realistic.
+
+Participant 1 05:26
+So you mean that something visual would need to be shown.
+Understood. Then we will end the interview here.
+Thank you.
+
+
+clovanote.naver.com
