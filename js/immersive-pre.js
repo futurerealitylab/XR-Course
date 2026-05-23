@@ -71,6 +71,17 @@ let xrImmersiveRefSpace = null;
 export let inlineViewerHelper = null;
 let inputController = null;
 let time = 0;
+const DEFAULT_INLINE_VIEWER_HEIGHT = 1.6;
+const XR_HEIGHT_OFFSET_STORAGE_KEY = "fc_xr_height_offset";
+const XR_HEIGHT_OFFSET_PARAM = "xrheightoffset";
+const XR_HEIGHT_OFFSET_MIN = -1.0;
+const XR_HEIGHT_OFFSET_MAX = 1.0;
+const XR_HEIGHT_OFFSET_KEYBOARD_STEP = 0.05;
+const XR_HEIGHT_OFFSET_STICK_SPEED = 0.8;
+const XR_HEIGHT_OFFSET_STICK_DEADZONE = 0.2;
+const XR_HEIGHT_STATUS_DURATION_MS = 1800;
+let xrHeightOffset = 0;
+let xrHeightStatusTimeout = null;
 
 // WebGL scene globals.
 let gl = null;
@@ -96,6 +107,167 @@ window.teamUIDs = [];
 window.teamObj = {};
 window.teamAvatar = {};
 window.team = "team1";
+
+function clampXRHeightOffset(value) {
+    return Math.max(XR_HEIGHT_OFFSET_MIN, Math.min(XR_HEIGHT_OFFSET_MAX, value));
+}
+
+function formatXRHeightOffset(value) {
+    return `${value >= 0 ? "+" : ""}${value.toFixed(2)}m`;
+}
+
+function ensureXRHeightStatusElement() {
+    let status = document.getElementById("xr-height-status");
+    if (status) {
+        return status;
+    }
+
+    status = document.createElement("div");
+    status.id = "xr-height-status";
+    status.style.position = "fixed";
+    status.style.right = "16px";
+    status.style.bottom = "16px";
+    status.style.zIndex = "4";
+    status.style.padding = "10px 14px";
+    status.style.borderRadius = "10px";
+    status.style.background = "rgba(20, 20, 20, 0.82)";
+    status.style.color = "#fff";
+    status.style.font = "600 14px/1.3 -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
+    status.style.letterSpacing = "0.01em";
+    status.style.opacity = "0";
+    status.style.pointerEvents = "none";
+    status.style.transition = "opacity 120ms ease";
+    document.body.appendChild(status);
+    return status;
+}
+
+function showXRHeightStatus(extra = "") {
+    const status = ensureXRHeightStatusElement();
+    const detail = extra ? ` ${extra}` : "";
+    status.textContent = `XR height offset ${formatXRHeightOffset(xrHeightOffset)}${detail}`;
+    status.style.opacity = "1";
+
+    if (xrHeightStatusTimeout) {
+        clearTimeout(xrHeightStatusTimeout);
+    }
+
+    xrHeightStatusTimeout = setTimeout(() => {
+        status.style.opacity = "0";
+        xrHeightStatusTimeout = null;
+    }, XR_HEIGHT_STATUS_DURATION_MS);
+}
+
+function readStoredXRHeightOffset() {
+    try {
+        const savedValue = window.localStorage.getItem(XR_HEIGHT_OFFSET_STORAGE_KEY);
+        if (savedValue == null) {
+            return 0;
+        }
+
+        const parsedValue = parseFloat(savedValue);
+        return Number.isFinite(parsedValue) ? clampXRHeightOffset(parsedValue) : 0;
+    } catch (error) {
+        return 0;
+    }
+}
+
+function persistXRHeightOffset(value) {
+    try {
+        window.localStorage.setItem(XR_HEIGHT_OFFSET_STORAGE_KEY, String(value));
+    } catch (error) {
+    }
+}
+
+function applyXRHeightOffset(value, options = {}) {
+    if (!Number.isFinite(value)) {
+        return xrHeightOffset;
+    }
+
+    const clampedValue = clampXRHeightOffset(value);
+    const changed = Math.abs(clampedValue - xrHeightOffset) > 1e-4;
+    xrHeightOffset = clampedValue;
+
+    if (inputController) {
+        inputController.setHeight(xrHeightOffset);
+    }
+
+    if (inlineViewerHelper) {
+        inlineViewerHelper.setHeight(DEFAULT_INLINE_VIEWER_HEIGHT + xrHeightOffset);
+    }
+
+    persistXRHeightOffset(xrHeightOffset);
+
+    if (changed || options.forceStatus) {
+        if (options.log !== false) {
+            console.log(`[XR] Height offset set to ${formatXRHeightOffset(xrHeightOffset)}.`);
+        }
+        showXRHeightStatus(options.extra || "");
+    }
+
+    return xrHeightOffset;
+}
+
+function updateXRHeightFromControllers(deltaTime) {
+    if (!xrSession || !xrSession.isImmersive || !inputController) {
+        return;
+    }
+
+    const leftGripPressed = !!(buttonState.left[1] && buttonState.left[1].pressed);
+    const rightGripPressed = !!(buttonState.right[1] && buttonState.right[1].pressed);
+    if (!rightGripPressed && !leftGripPressed) {
+        return;
+    }
+
+    const stickY = joyStickState.right?.y ?? 0;
+    if (Math.abs(stickY) < XR_HEIGHT_OFFSET_STICK_DEADZONE) {
+        return;
+    }
+
+    const delta = -stickY * XR_HEIGHT_OFFSET_STICK_SPEED * deltaTime;
+    applyXRHeightOffset(xrHeightOffset + delta, {
+        extra: "(hold grip + right stick)",
+        log: false,
+    });
+}
+
+function onXRHeightShortcut(event) {
+    if (event.ctrlKey || event.metaKey || event.altKey) {
+        return;
+    }
+
+    const tagName = event.target?.tagName;
+    if (tagName == "INPUT" || tagName == "TEXTAREA" || tagName == "SELECT") {
+        return;
+    }
+
+    if (event.key == "[") {
+        event.preventDefault();
+        applyXRHeightOffset(xrHeightOffset - XR_HEIGHT_OFFSET_KEYBOARD_STEP, {
+            extra: "(keyboard [ / ])",
+        });
+    } else if (event.key == "]") {
+        event.preventDefault();
+        applyXRHeightOffset(xrHeightOffset + XR_HEIGHT_OFFSET_KEYBOARD_STEP, {
+            extra: "(keyboard [ / ])",
+        });
+    } else if (event.key == "\\") {
+        event.preventDefault();
+        applyXRHeightOffset(0, {
+            extra: "(reset)",
+        });
+    }
+}
+
+const queryXRHeightOffset = QueryArgs.getFloat(XR_HEIGHT_OFFSET_PARAM, Number.NaN);
+xrHeightOffset = Number.isFinite(queryXRHeightOffset)
+    ? clampXRHeightOffset(queryXRHeightOffset)
+    : readStoredXRHeightOffset();
+
+window.getXRHeightOffset = () => xrHeightOffset;
+window.setXRHeightOffset = value => applyXRHeightOffset(Number(value), { extra: "(manual)" });
+window.adjustXRHeightOffset = delta => applyXRHeightOffset(xrHeightOffset + Number(delta), { extra: "(manual)" });
+window.resetXRHeightOffset = () => applyXRHeightOffset(0, { extra: "(reset)" });
+document.addEventListener("keydown", onXRHeightShortcut);
 
 import * as mtt from "../js/util/mtt/mtt.js"
 mtt.init();
@@ -540,7 +712,7 @@ window.isXR = () => isXRMode;
 
 function onRequestSession() {
     return navigator.xr
-        .requestSession("immersive-ar", {
+        .requestSession("immersive-vr", {
             requiredFeatures: ["local-floor"],
             optionalFeatures: ["hand-tracking", "layers", "mesh-detection", "depth-sensing", "shared"],
         })
@@ -621,17 +793,18 @@ async function onSessionStarted(session) {
          //   inlineVerticalFieldOfView: .24
         });
 
-    let refSpaceType = session.isImmersive ? "bounded-floor" : "viewer";
+    let refSpaceType = session.isImmersive ? "local-floor" : "viewer";
     window.insY = null;
     window.insXZ = null;
     window.insS = null;
     let onRequestRefSpace = (refSpace)=>{
         if (session.isImmersive) {
             inputController = new InputController(refSpace);
+            inputController.setHeight(xrHeightOffset);
             xrImmersiveRefSpace = inputController.referenceSpace;
         } else {
             inlineViewerHelper = new InlineViewerHelper(gl.canvas, refSpace);
-            inlineViewerHelper.setHeight(1.6);
+            inlineViewerHelper.setHeight(DEFAULT_INLINE_VIEWER_HEIGHT + xrHeightOffset);
         }
 
         xrRefSpace = refSpace;
@@ -1104,14 +1277,16 @@ function onXRFrame(t, frame) {
             });
         }
     }
+    updateXRHeightFromControllers(deltaTime);
     // }
 
-/*
-    if (refSpace == inlineViewerHelper.referenceSpace) {
+    if (session.isImmersive) {
+        inputController.update(deltaTime);
+    } else if (refSpace == inlineViewerHelper.referenceSpace) {
         inlineViewerHelper.deltaTime = deltaTime;
         inlineViewerHelper.update(deltaTime);
     }
-*/
+
     global.scene().drawXRFrame(frame, pose, time);
 
     if (pose && resonance) {

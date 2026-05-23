@@ -52,6 +52,11 @@ export async function createSoundSource(index = 0, url, position, loop = false, 
         bufferSource.buffer = audioBuffer;
         bufferSource.loop = loop;
         bufferSource.connect(resonanceSources[index].source.input);
+        bufferSource.onended = () => {
+            if (resonanceSources[index]) {
+                resonanceSources[index].stopped = true;
+            }
+        };
         resonanceSources[index].source.setPosition(position[0], position[1], position[2]);
         resonanceSources[index].bufferSource = bufferSource;
         resonanceSources[index].source.setGain(gain);
@@ -61,7 +66,7 @@ export async function createSoundSource(index = 0, url, position, loop = false, 
     }
 }
 
-export function playSound(sourceIndex = 0) {
+export function playSound(sourceIndex = 0, when = null) {
     if (resonanceSources[sourceIndex] && resonanceSources[sourceIndex].bufferSource) {
         audioContext.resume();
         if (resonanceSources[sourceIndex].bufferSource.loop) {
@@ -77,13 +82,30 @@ export function playSound(sourceIndex = 0) {
         bufferSource.buffer = oldBuffer;
         bufferSource.loop = oldLoop;
         bufferSource.connect(resonanceSources[sourceIndex].source.input);
+        bufferSource.onended = () => {
+            if (resonanceSources[sourceIndex]) {
+                resonanceSources[sourceIndex].stopped = true;
+            }
+        };
         resonanceSources[sourceIndex].bufferSource = bufferSource;
-        bufferSource.start(0);
+        const startTime = when == null ? 0 : Math.max(when, audioContext.currentTime);
+        bufferSource.start(startTime);
         resonanceSources[sourceIndex].stopped = false;
         console.log('Sound Played at index', sourceIndex, 'Looping:', oldLoop);
     } else {
         console.error(`No audio source prepared or available at index ${sourceIndex}`);
     }
+}
+
+export function getAudioContextTime() {
+    return audioContext.currentTime;
+}
+
+export function resumeAudioContext() {
+    if (audioContext.state === 'suspended') {
+        return audioContext.resume();
+    }
+    return Promise.resolve();
 }
 
 
@@ -92,6 +114,12 @@ export function updatePosition(sourceIndex, newPosition) {
     if (resonanceSources[sourceIndex] && resonanceSources[sourceIndex].source) {
         resonanceSources[sourceIndex].source.setPosition(newPosition[0], newPosition[1], newPosition[2]);
     } 
+}
+
+export function setGain(sourceIndex, gain = 1.0) {
+    if (resonanceSources[sourceIndex] && resonanceSources[sourceIndex].source) {
+        resonanceSources[sourceIndex].source.setGain(Math.max(0, gain));
+    }
 }
 
 export function stopSound(sourceIndex = 0) {
@@ -115,20 +143,4 @@ export function stopAllSounds() {
         // source.bufferSource = null; 
     });
     console.log('All Sound Stops');
-}
-
-export function setSourceDistanceRange(sourceIndex, minDistance, maxDistance) {
-    const src = resonanceSources[sourceIndex]?.source;
-    if (!src) {
-        console.warn(`No source found at index ${sourceIndex}`);
-        return;
-    }
-
-    if (minDistance !== undefined && maxDistance !== undefined && minDistance > maxDistance) {
-        console.warn(`minDistance > maxDistance for index ${sourceIndex}, ignoring`);
-        return;
-    }
-
-    if (minDistance !== undefined) src.setMinDistance(minDistance);
-    if (maxDistance !== undefined) src.setMaxDistance(maxDistance);
 }

@@ -208,11 +208,11 @@ export class InlineViewerHelper {
         this.walkPosition[2] -= WALK_SPEED * Math.cos(this.lookYaw + 0.5 * Math.PI) * deltaTime;
         this.walkPosition[0] -= WALK_SPEED * Math.sin(this.lookYaw + 0.5 * Math.PI) * deltaTime;
       }
-      if (keyboardInput.keyIsDown(keyboardInput.KEY_F)) {
-	this.lookPitch -= deltaTime;
+      if (keyboardInput.keyIsDown(keyboardInput.KEY_F) || keyboardInput.keyIsDown(keyboardInput.KEY_I)) {
+        this.lookPitch -= deltaTime;
       }
-      if (keyboardInput.keyIsDown(keyboardInput.KEY_C)) {
-	this.lookPitch += deltaTime;
+      if (keyboardInput.keyIsDown(keyboardInput.KEY_C) || keyboardInput.keyIsDown(keyboardInput.KEY_K)) {
+        this.lookPitch += deltaTime;
       }
       if (keyboardInput.keyIsDown(keyboardInput.KEY_W)) {
         // console.log("move forward");
@@ -240,18 +240,19 @@ export class InlineViewerHelper {
 	   this.walkPosition[0] = r * Math.sin(theta);
 	   this.walkPosition[2] = r * Math.cos(theta);
       }
-      if (keyboardInput.keyIsDown(keyboardInput.KEY_LEFT)) {
+      if (keyboardInput.keyIsDown(keyboardInput.KEY_LEFT) || keyboardInput.keyIsDown(keyboardInput.KEY_J)) {
         // console.log("turn left");
         this.lookYaw += WALK_SPEED * deltaTime;
 	if (this._isShiftKeyDown)
 	   rotateYWalkPosition(1);
       }
-      if (keyboardInput.keyIsDown(keyboardInput.KEY_RIGHT)) {
+      if (keyboardInput.keyIsDown(keyboardInput.KEY_RIGHT) || keyboardInput.keyIsDown(keyboardInput.KEY_L)) {
         // console.log("turn right");
         this.lookYaw -= WALK_SPEED * deltaTime;
 	if (this._isShiftKeyDown)
 	   rotateYWalkPosition(-1);
       }
+      this.lookPitch = Math.max(-Math.PI * 0.5, Math.min(Math.PI * 0.5, this.lookPitch));
       this.dirty = true;
     }
   }
